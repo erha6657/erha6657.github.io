@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>Categories on Erha&#39;s Blog</title>
+        <link>erha6657.github.io/categories/</link>
+        <description>Recent content in Categories on Erha&#39;s Blog</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>zh</language>
+        <lastBuildDate>Mon, 26 Jan 2026 00:00:00 +0000</lastBuildDate><atom:link href="erha6657.github.io/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>文档</title>
+            <link>erha6657.github.io/categories/documentation/</link>
+            <pubDate>Mon, 26 Jan 2026 00:00:00 +0000</pubDate>
+            <guid>erha6657.github.io/categories/documentation/</guid>
+            <description>&lt;img src=&#34;erha6657.github.io/erha6657.github.io/categories/documentation/hutomo-abrianto-l2jk-uxb1BY-unsplash.jpg&#34; alt=&#34;Featured image of post 文档&#34; /&gt;</description>
+        </item><item>
+            <title>Syntax</title>
+            <link>erha6657.github.io/categories/syntax/</link>
+            <pubDate>Tue, 23 Dec 2025 00:00:00 +0000</pubDate>
+            <guid>erha6657.github.io/categories/syntax/</guid>
+            <description></description>
+        </item><item>
+            <title>Themes</title>
+            <link>erha6657.github.io/categories/themes/</link>
+            <pubDate>Tue, 23 Dec 2025 00:00:00 +0000</pubDate>
+            <guid>erha6657.github.io/categories/themes/</guid>
+            <description></description>
+        </item></channel>
+</rss>
