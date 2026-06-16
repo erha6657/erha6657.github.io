@@ -1,0 +1,2417 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="1.安装配置mysql\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 # 下载 MySQL 8.0 的 yum 仓库（适用于 CentOS 7） wget https://dev.mysql.com/get/mysql80-community-release-el7-7.noarch.rpm # 安装仓库 rpm -ivh mysql80-community-release-el7-7.noarch.rpm # 因为企业里大多数使用的是 MySQL 5.7;所以我们此次也安装MySQL 5.7 # 如果需要安装 MySQL 5.7，需先禁用 8.0 仓库并启用 5.7 仓库 yum-config-manager --disable mysql80-community yum-config-manager --enable mysql57-community # 安装 MySQL 服务器 yum install -y mysql-community-server # 启动 MySQL 并设置开机自启 systemctl start mysqld systemctl enable mysqld # 查看 MySQL 运行状态 systemctl status mysqld # 查看临时密码 grep &#39;temporary password&#39; /var/log/mysqld.log # 执行安全配置（设置新密码、删除匿名用户等） # 修改 root 密码之后，后续选择全部选择 Y mysql_secure_installation 创建数据库\n">
+<title>若依微服务 (RuoYi-Cloud) 传统部署</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="若依微服务 (RuoYi-Cloud) 传统部署">
+<meta property='og:description' content="1.安装配置mysql\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 # 下载 MySQL 8.0 的 yum 仓库（适用于 CentOS 7） wget https://dev.mysql.com/get/mysql80-community-release-el7-7.noarch.rpm # 安装仓库 rpm -ivh mysql80-community-release-el7-7.noarch.rpm # 因为企业里大多数使用的是 MySQL 5.7;所以我们此次也安装MySQL 5.7 # 如果需要安装 MySQL 5.7，需先禁用 8.0 仓库并启用 5.7 仓库 yum-config-manager --disable mysql80-community yum-config-manager --enable mysql57-community # 安装 MySQL 服务器 yum install -y mysql-community-server # 启动 MySQL 并设置开机自启 systemctl start mysqld systemctl enable mysqld # 查看 MySQL 运行状态 systemctl status mysqld # 查看临时密码 grep &#39;temporary password&#39; /var/log/mysqld.log # 执行安全配置（设置新密码、删除匿名用户等） # 修改 root 密码之后，后续选择全部选择 Y mysql_secure_installation 创建数据库\n">
+<meta property='og:url' content='https://erha6657.github.io/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-05-06T15:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-05-06T15:00:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260505211407170.png' />
+<meta name="twitter:title" content="若依微服务 (RuoYi-Cloud) 传统部署">
+<meta name="twitter:description" content="1.安装配置mysql\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 # 下载 MySQL 8.0 的 yum 仓库（适用于 CentOS 7） wget https://dev.mysql.com/get/mysql80-community-release-el7-7.noarch.rpm # 安装仓库 rpm -ivh mysql80-community-release-el7-7.noarch.rpm # 因为企业里大多数使用的是 MySQL 5.7;所以我们此次也安装MySQL 5.7 # 如果需要安装 MySQL 5.7，需先禁用 8.0 仓库并启用 5.7 仓库 yum-config-manager --disable mysql80-community yum-config-manager --enable mysql57-community # 安装 MySQL 服务器 yum install -y mysql-community-server # 启动 MySQL 并设置开机自启 systemctl start mysqld systemctl enable mysqld # 查看 MySQL 运行状态 systemctl status mysqld # 查看临时密码 grep &#39;temporary password&#39; /var/log/mysqld.log # 执行安全配置（设置新密码、删除匿名用户等） # 修改 root 密码之后，后续选择全部选择 Y mysql_secure_installation 创建数据库\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260505211407170.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/">
+            <img alt="Featured image of post 若依微服务 (RuoYi-Cloud) 传统部署" height="388" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260505211407170.png" width="623">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/" style="background-color: hsl(140, 60%, 84%); color: hsl(140, 60%, 15%);">
+                传统部署
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/">若依微服务 (RuoYi-Cloud) 传统部署</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-05-06T15:00:00&#43;08:00'>2026年5月6日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 9 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+
+    <section class="article-content">
+    
+    
+    <p>1.安装配置mysql</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 下载 MySQL 8.0 的 yum 仓库（适用于 CentOS 7）</span>
+</span></span><span class="line"><span class="cl">wget https://dev.mysql.com/get/mysql80-community-release-el7-7.noarch.rpm
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装仓库</span>
+</span></span><span class="line"><span class="cl">rpm -ivh mysql80-community-release-el7-7.noarch.rpm
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 因为企业里大多数使用的是 MySQL 5.7;所以我们此次也安装MySQL 5.7</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 如果需要安装 MySQL 5.7，需先禁用 8.0 仓库并启用 5.7 仓库</span>
+</span></span><span class="line"><span class="cl">yum-config-manager --disable mysql80-community
+</span></span><span class="line"><span class="cl">yum-config-manager --enable mysql57-community
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 MySQL 服务器</span>
+</span></span><span class="line"><span class="cl">yum install -y mysql-community-server
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动 MySQL 并设置开机自启</span>
+</span></span><span class="line"><span class="cl">systemctl start mysqld
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> mysqld
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看 MySQL 运行状态</span>
+</span></span><span class="line"><span class="cl">systemctl status mysqld
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看临时密码</span>
+</span></span><span class="line"><span class="cl">grep <span class="s1">&#39;temporary password&#39;</span> /var/log/mysqld.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 执行安全配置（设置新密码、删除匿名用户等）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 修改 root 密码之后，后续选择全部选择 Y</span>
+</span></span><span class="line"><span class="cl">mysql_secure_installation
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>创建数据库</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 登录 MySQL（输入刚设置的 root 密码）</span>
+</span></span><span class="line"><span class="cl">mysql -h 127.0.0.1 -u root -p
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 执行 SQL 命令（替换 your_password 为实际密码）</span>
+</span></span><span class="line"><span class="cl">-- 创建名称为 wordpress 的数据库
+</span></span><span class="line"><span class="cl">CREATE DATABASE wordpress CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci<span class="p">;</span>
+</span></span><span class="line"><span class="cl">-- 创建一个名称为 wpuser 的用户，并且设置密码为 Chen123456789!
+</span></span><span class="line"><span class="cl">CREATE USER <span class="s1">&#39;wpuser&#39;</span>@<span class="s1">&#39;%&#39;</span> IDENTIFIED BY <span class="s1">&#39;Chen123456!&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">-- 授权
+</span></span><span class="line"><span class="cl">GRANT ALL PRIVILEGES ON wordpress.* TO <span class="s1">&#39;wpuser&#39;</span>@<span class="s1">&#39;%&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">-- 刷新权限
+</span></span><span class="line"><span class="cl">FLUSH PRIVILEGES<span class="p">;</span>
+</span></span><span class="line"><span class="cl">-- 退出
+</span></span><span class="line"><span class="cl">EXIT<span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260505211407170" class="gallery-image" data-flex-basis="385px" data-flex-grow="160" height="388" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260505211407170.png" width="623"></p>
+<p>优化数据库</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="n">cat</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">my</span><span class="o">.</span><span class="n">cnf</span> <span class="o">&lt;&lt;</span><span class="n">EOF</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># -------------------------- MySQL 全局配置文件 my.cnf --------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 适用系统：Linux/macOS（Windows 对应文件为 my.ini，路径和部分参数略有差异）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置说明：整合基础服务配置、字符集配置，避免乱码并保障服务稳定运行</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 注意：修改后需重启 MySQL 服务生效（systemctl restart mysqld）</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># -------------------------- 1. MySQL 服务器核心配置（[mysqld] 模块）--------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 该模块配置 MySQL 服务端（mysqld 进程）的核心参数，影响服务运行、存储、日志等</span>
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">mysqld</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1.1 基础服务与存储配置（你指定的核心配置项）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 数据存储目录：MySQL 所有数据库文件（表、索引等）的存放路径，默认 /var/lib/mysql</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 注意：修改此路径需迁移原有数据并调整目录权限（chown -R mysql:mysql 新路径）</span>
+</span></span><span class="line"><span class="cl"><span class="n">datadir</span><span class="o">=/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">mysql</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 服务通信 socket 文件：MySQL 本地客户端（如 mysql 命令行）与服务端通信的 Unix 套接字文件</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 路径需与 [client] 模块的 socket 一致，否则本地连接会报错</span>
+</span></span><span class="line"><span class="cl"><span class="n">socket</span><span class="o">=/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">mysql</span><span class="o">/</span><span class="n">mysql</span><span class="o">.</span><span class="n">sock</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 符号链接开关：0 禁用符号链接（防止通过软链接访问非授权目录，提升安全性）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 生产环境推荐设为 0，避免数据泄露或误操作风险</span>
+</span></span><span class="line"><span class="cl"><span class="n">symbolic</span><span class="o">-</span><span class="n">links</span><span class="o">=</span><span class="mi">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 错误日志路径：记录 MySQL 服务启动、运行、崩溃等所有错误信息，用于故障排查</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 定期清理避免日志过大，可通过 log_error_verbosity 调整日志详细程度</span>
+</span></span><span class="line"><span class="cl"><span class="nb">log</span><span class="o">-</span><span class="n">error</span><span class="o">=/</span><span class="k">var</span><span class="o">/</span><span class="nb">log</span><span class="o">/</span><span class="n">mysqld</span><span class="o">.</span><span class="n">log</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 进程 ID 文件：存储 mysqld 进程的 PID，用于服务管理（如停止、重启时定位进程）</span>
+</span></span><span class="line"><span class="cl"><span class="n">pid</span><span class="o">-</span><span class="n">file</span><span class="o">=/</span><span class="k">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">mysqld</span><span class="o">/</span><span class="n">mysqld</span><span class="o">.</span><span class="n">pid</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1.2 字符集配置（解决中文乱码，支持 emoji）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 服务器默认字符集：控制新建数据库、表的默认编码，推荐 utf8mb4（支持所有 Unicode 字符，含 emoji）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 替代传统 utf8（仅支持 3 字节字符，无法存储 emoji）</span>
+</span></span><span class="line"><span class="cl"><span class="n">character</span><span class="o">-</span><span class="n">set</span><span class="o">-</span><span class="n">server</span> <span class="o">=</span> <span class="n">utf8mb4</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 服务器默认排序规则：影响字符串比较（如 ORDER BY、WHERE 条件匹配）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># utf8mb4_general_ci：通用排序，性能较高；utf8mb4_unicode_ci：精准排序（支持更多语言），性能略低</span>
+</span></span><span class="line"><span class="cl"><span class="n">collation</span><span class="o">-</span><span class="n">server</span> <span class="o">=</span> <span class="n">utf8mb4_general_ci</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 连接初始化 SQL：客户端每次连接时自动执行的SQL，强制设置连接编码（避免客户端未主动指定编码导致乱码）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 覆盖连接级字符集，确保与服务器编码一致</span>
+</span></span><span class="line"><span class="cl"><span class="n">init_connect</span> <span class="o">=</span> <span class="s1">&#39;SET NAMES utf8mb4&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1.3 可选优化配置（根据服务器性能调整，非必须但推荐）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 最大连接数：控制同时连接 MySQL 的客户端数量，默认 151，根据业务并发调整（如 1000）</span>
+</span></span><span class="line"><span class="cl"><span class="n">max_connections</span> <span class="o">=</span> <span class="mi">1000</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 连接超时时间：客户端连接后无操作的超时时间（秒），避免空闲连接占用资源</span>
+</span></span><span class="line"><span class="cl"><span class="n">wait_timeout</span> <span class="o">=</span> <span class="mi">600</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 表缓存数量：缓存已打开的表结构，减少磁盘 IO，根据表数量调整（如 2000）</span>
+</span></span><span class="line"><span class="cl"><span class="n">table_open_cache</span> <span class="o">=</span> <span class="mi">2000</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 临时表最大大小：避免临时表过大导致磁盘占用，超过则写入磁盘临时表</span>
+</span></span><span class="line"><span class="cl"><span class="n">tmp_table_size</span> <span class="o">=</span> <span class="mi">64</span><span class="n">M</span>
+</span></span><span class="line"><span class="cl"><span class="n">max_heap_table_size</span> <span class="o">=</span> <span class="mi">64</span><span class="n">M</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># -------------------------- 2. MySQL 客户端通用配置（[client] 模块）--------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 该模块配置所有 MySQL 客户端工具（如 mysql 命令行、Navicat、Python 连接等）的默认参数</span>
+</span></span><span class="line"><span class="cl"><span class="p">[</span><span class="n">client</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 客户端与服务端通信的 socket 文件：必须与 [mysqld] 模块的 socket 路径一致</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 否则本地客户端连接会报“Can&#39;t connect to local MySQL server through socket”错误</span>
+</span></span><span class="line"><span class="cl"><span class="n">socket</span><span class="o">=/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">mysql</span><span class="o">/</span><span class="n">mysql</span><span class="o">.</span><span class="n">sock</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 客户端默认字符集：客户端发送/接收数据的编码，与服务器编码保持一致（utf8mb4）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 避免连接级编码不匹配导致的乱码（如中文显示为 ?）</span>
+</span></span><span class="line"><span class="cl"><span class="n">default</span><span class="o">-</span><span class="n">character</span><span class="o">-</span><span class="n">set</span> <span class="o">=</span> <span class="n">utf8mb4</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>创建配置数据库</p>
+<p>mysql -u root -pChen123456!</p>
+<p>mysql&gt; CREATE DATABASE ruoyi CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;</p>
+<p>mysql&gt; EXIT;</p>
+<p>下载git仓库内容</p>
+<p>git clone <a class="link" href="https://gitee.com/chenyang0910/ruoyi.git"  target="_blank" rel="noopener"
+    >https://gitee.com/chenyang0910/ruoyi.git</a></p>
+<p><img alt="image-20260506110329292" class="gallery-image" data-flex-basis="376px" data-flex-grow="157" height="370" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506110329292.png" width="581"></p>
+<p>把内容上传到mysql rouyi表中</p>
+<p><img alt="image-20260506111128009" class="gallery-image" data-flex-basis="426px" data-flex-grow="177" height="893" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506111128009.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506111128009_hu_2c7393b9e5811230.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506111128009.png 1586w" width="1586"></p>
+<p>部署 Redis</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 下载源代码包</span>
+</span></span><span class="line"><span class="cl">$ wget https://download.redis.io/releases/redis-7.2.4.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 解压</span>
+</span></span><span class="line"><span class="cl">$ tar -xf redis-7.2.4.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建 redis 用户（-r 表示系统用户，-s /sbin/nologin 禁止登录）</span>
+</span></span><span class="line"><span class="cl">$ useradd -r -s /sbin/nologin redis
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 编译</span>
+</span></span><span class="line"><span class="cl">$ <span class="nb">cd</span> redis-7.2.4
+</span></span><span class="line"><span class="cl">$ make <span class="o">&amp;&amp;</span> make install
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ cp redis.conf /etc/
+</span></span><span class="line"><span class="cl">$ vim /etc/redis.conf
+</span></span><span class="line"><span class="cl"><span class="nb">bind</span> 0.0.0.0
+</span></span><span class="line"><span class="cl">dir /var/lib/redis
+</span></span><span class="line"><span class="cl">requirepass Chen123456!
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ mkdir -p /var/lib/redis
+</span></span><span class="line"><span class="cl">$ chown -R redis:redis /var/lib/redis
+</span></span><span class="line"><span class="cl">$ chmod -R <span class="m">755</span> /var/lib/redis
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># service</span>
+</span></span><span class="line"><span class="cl">$ cat &gt; /usr/lib/systemd/system/redis.service <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s"># 服务描述
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Redis In-Memory Data Store (Foreground to Daemon via systemd)
+</span></span></span><span class="line"><span class="cl"><span class="s"># 依赖网络服务（可选，若 Redis 需远程访问则保留）
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network.target
+</span></span></span><span class="line"><span class="cl"><span class="s"># 依赖本地文件系统（确保配置文件目录已挂载）
+</span></span></span><span class="line"><span class="cl"><span class="s">After=local-fs.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s"># 运行用户（建议使用非 root 用户，如 redis，需提前创建：sudo useradd -r -s /sbin/nologin redis）
+</span></span></span><span class="line"><span class="cl"><span class="s">User=redis
+</span></span></span><span class="line"><span class="cl"><span class="s"># 运行组
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=redis
+</span></span></span><span class="line"><span class="cl"><span class="s"># 服务类型：simple（前台进程由 systemd 直接管理）
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s"># 启动命令（对应原前台运行命令，需指定配置文件）
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/local/bin/redis-server /etc/redis.conf
+</span></span></span><span class="line"><span class="cl"><span class="s"># 重启策略：失败时自动重启（可根据需求调整为 on-failure/always/never）
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s"># 重启间隔（秒）
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=3
+</span></span></span><span class="line"><span class="cl"><span class="s"># PID 文件路径（需与 redis.conf 中 pidfile 配置一致，默认通常为 /var/run/redis_6379.pid）
+</span></span></span><span class="line"><span class="cl"><span class="s">PIDFile=/var/run/redis_6379.pid
+</span></span></span><span class="line"><span class="cl"><span class="s"># 限制进程文件描述符数量（避免连接数过多时报错）
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65535
+</span></span></span><span class="line"><span class="cl"><span class="s"># 限制进程最大线程数
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNPROC=65535
+</span></span></span><span class="line"><span class="cl"><span class="s"># 工作目录（Redis 数据存储目录，需提前创建并授权）
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/var/lib/redis
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s"># 服务安装目录（设置为多用户模式下的自启服务）
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506112122738" class="gallery-image" data-flex-basis="550px" data-flex-grow="229" height="304" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506112122738.png" width="697"></p>
+<p>安装java</p>
+<p>yum install java-11-openjdk java-11-openjdk-devel -y</p>
+<p><img alt="image-20260506112326791" class="gallery-image" data-flex-basis="2237px" data-flex-grow="932" height="74" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506112326791.png" width="690"></p>
+<p>安装nacos</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1">#手动下载上传到文件夹内</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ tar -xf nacos-server-2.5.2.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ chown -R www.www /usr/local/nacos
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ vim /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">NACOS_HOME</span><span class="o">=</span>/usr/local/nacos
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="nv">$NACOS_HOME</span>/bin:<span class="nv">$PATH</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506113102067" class="gallery-image" data-flex-basis="1823px" data-flex-grow="759" height="52" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506113102067.png" width="395"></p>
+<p><img alt="image-20260506141115220" class="gallery-image" data-flex-basis="251px" data-flex-grow="104" height="1073" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506141115220.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506141115220_hu_9f76ce6d7dd66122.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506141115220.png 1123w" width="1123"></p>
+<p>安装配置 minio</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1">#下载并且上传到服务器中</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ yum localinstall minio-20250723155402.0.0-1.x86_64.rpm
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建数据⽬录</span>
+</span></span><span class="line"><span class="cl">$ mkdir -p /data/minio
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建⽤户并授权</span>
+</span></span><span class="line"><span class="cl">$ useradd -M -r -s /sbin/nologin minio-user
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ chown -R minio-user.minio-user /data/minio
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ vi /etc/default/minio
+</span></span><span class="line"><span class="cl"><span class="c1">#minIO 用户名</span>
+</span></span><span class="line"><span class="cl"><span class="nv">MINIO_ROOT_USER</span><span class="o">=</span>admin
+</span></span><span class="line"><span class="cl"><span class="c1"># 密码</span>
+</span></span><span class="line"><span class="cl"><span class="nv">MINIO_ROOT_PASSWORD</span><span class="o">=</span>Chen123456!
+</span></span><span class="line"><span class="cl"><span class="c1"># 存储数据的目录</span>
+</span></span><span class="line"><span class="cl"><span class="nv">MINIO_VOLUMES</span><span class="o">=</span><span class="s2">&#34;/data/minio&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 服务的访问方式</span>
+</span></span><span class="line"><span class="cl"><span class="nv">MINIO_ADDRESS</span><span class="o">=</span><span class="s2">&#34;0.0.0.0:9000&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># web服务访问的方式</span>
+</span></span><span class="line"><span class="cl"><span class="nv">MINIO_CONSOLE_ADDRESS</span><span class="o">=</span><span class="s2">&#34;0.0.0.0:9001&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ cat &gt; /usr/lib/systemd/system/minio.service <span class="s">&lt;&lt; &#39;EOF&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=MinIO
+</span></span></span><span class="line"><span class="cl"><span class="s">Documentation=https://docs.min.io
+</span></span></span><span class="line"><span class="cl"><span class="s">Wants=network-online.target
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network-online.target
+</span></span></span><span class="line"><span class="cl"><span class="s">AssertFileIsExecutable=/usr/local/bin/minio
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">User=minio-user
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=minio-user
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">EnvironmentFile=/etc/default/minio
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStartPre=/bin/bash -c &#34;if [ -z \&#34;${MINIO_VOLUMES}\&#34; ]; then echo &#39;Variable MINIO_VOLUMES not set in /etc/default/minio&#39;; exit 1; fi&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/local/bin/minio server --address $MINIO_ADDRESS --console-address $MINIO_CONSOLE_ADDRESS $MINIO_VOLUMES
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># Let systemd restart this service always
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=always
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># Specifies the maximum file descriptor number that can be opened by this process
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65536
+</span></span></span><span class="line"><span class="cl"><span class="s">MemoryLimit=0
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># Disable timeout logic and wait until process is stopped
+</span></span></span><span class="line"><span class="cl"><span class="s">TimeoutStopSec=infinity
+</span></span></span><span class="line"><span class="cl"><span class="s">SendSIGKILL=no
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>systemctl daemon-reload</p>
+<p>systemctl restart minio</p>
+<p><img alt="image-20260506142114462" class="gallery-image" data-flex-basis="251px" data-flex-grow="104" height="1073" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506142114462.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506142114462_hu_c370bd2cc6185206.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506142114462.png 1123w" width="1123"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 创建目录</span>
+</span></span><span class="line"><span class="cl">mkdir -p /data/minio
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 确保权限归 minio-user 所有</span>
+</span></span><span class="line"><span class="cl">chown -R minio-user:minio-user /data/minio
+</span></span><span class="line"><span class="cl">chmod -R <span class="m">750</span> /data/minio
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 检查一下是否真的创建成功了</span>
+</span></span><span class="line"><span class="cl">ls -ld /data/minio
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>安装mc</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ wget https://dl.min.io/client/mc/release/linux-amd64/archive/mc
+</span></span><span class="line"><span class="cl">$ chmod +x mc
+</span></span><span class="line"><span class="cl">$ mv mc /usr/bin/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 登录</span>
+</span></span><span class="line"><span class="cl">$ mc <span class="nb">alias</span> <span class="nb">set</span> myminio http://localhost:9000 admin Admin123MNGHUYOT
+</span></span><span class="line"><span class="cl">Added <span class="sb">`</span>myminio<span class="sb">`</span> successfully.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看用户列表</span>
+</span></span><span class="line"><span class="cl">$ mc admin user list myminio
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建ruoyi用户并设置密码 Chen123456!</span>
+</span></span><span class="line"><span class="cl">$ mc admin user add myminio ruoyi Chen123456!
+</span></span><span class="line"><span class="cl">Added user <span class="sb">`</span>ruoyi<span class="sb">`</span> successfully.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 自动生成 Access Key 和 Secret Key</span>
+</span></span><span class="line"><span class="cl">$ mc admin user svcacct add myminio ruoyi
+</span></span><span class="line"><span class="cl">Access Key: 0BFZ5TFFH1A2I9X2T1Y0
+</span></span><span class="line"><span class="cl">Secret Key: ZxPZuBIu+o5NUv1Ww9LClEAXR6U+W2IO+0gtmRk3
+</span></span><span class="line"><span class="cl">Expiration: no-expiry
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 绑定可读可写权限</span>
+</span></span><span class="line"><span class="cl">$ mc admin policy attach myminio readwrite --user &lt;用户名&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看用户详细信息（包括状态）</span>
+</span></span><span class="line"><span class="cl">$ mc admin user info myminio &lt;用户名&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 禁用指定用户</span>
+</span></span><span class="line"><span class="cl">$ mc admin user disable myminio &lt;用户名&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启用指定用户</span>
+</span></span><span class="line"><span class="cl">$ mc admin user <span class="nb">enable</span> myminio &lt;用户名&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 删除指定用户</span>
+</span></span><span class="line"><span class="cl">$ mc admin user remove myminio &lt;用户名&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看所有的 Bucket</span>
+</span></span><span class="line"><span class="cl">$ mc ls myminio
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看 bucket 详情（包括大小、对象数等）</span>
+</span></span><span class="line"><span class="cl">$ mc stat myminio/bucket-name
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 删除空 bucket</span>
+</span></span><span class="line"><span class="cl">$ mc rb myminio/bucket-name
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>部署Sentinel Dashboard</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ mkdir /usr/local/sentinel-dashboard
+</span></span><span class="line"><span class="cl">$ cp sentinel-dashboard-1.8.9.jar /usr/local/sentinel-dashboard/
+</span></span><span class="line"><span class="cl">$ <span class="nb">cd</span> /usr/local/sentinel-dashboard
+</span></span><span class="line"><span class="cl">$ mkdir -p /var/log/sentinel-dashboard
+</span></span><span class="line"><span class="cl">$ chown -R www.www /var/log/sentinel-dashboard
+</span></span><span class="line"><span class="cl">$ chown -R www.www /usr/local/sentinel-dashboard
+</span></span><span class="line"><span class="cl">$ cat &gt; /etc/systemd/system/sentinel-dashboard.service <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Sentinel Dashboard
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">User=www
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=www
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 工作目录
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local/sentinel-dashboard
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 启动命令
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/bin/java \
+</span></span></span><span class="line"><span class="cl"><span class="s">  -Dserver.port=8718 \
+</span></span></span><span class="line"><span class="cl"><span class="s">  -Dcsp.sentinel.dashboard.server=localhost:8718 \
+</span></span></span><span class="line"><span class="cl"><span class="s">  -Dproject.name=sentinel-dashboard \
+</span></span></span><span class="line"><span class="cl"><span class="s">  -Dcsp.sentinel.api.port=8719 \
+</span></span></span><span class="line"><span class="cl"><span class="s">  -Dcsp.sentinel.log.dir=/var/log/sentinel-dashboard \
+</span></span></span><span class="line"><span class="cl"><span class="s">  -jar sentinel-dashboard-1.8.9.jar
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># JVM 参数
+</span></span></span><span class="line"><span class="cl"><span class="s">Environment=&#34;JAVA_OPTS=-Xms512m -Xmx512m -XX:+UseG1GC&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 重启策略
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=10s
+</span></span></span><span class="line"><span class="cl"><span class="s">StartLimitInterval=60s
+</span></span></span><span class="line"><span class="cl"><span class="s">StartLimitBurst=3
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 资源限制
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65536
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNPROC=4096
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 安全设置
+</span></span></span><span class="line"><span class="cl"><span class="s">NoNewPrivileges=true
+</span></span></span><span class="line"><span class="cl"><span class="s">PrivateTmp=true
+</span></span></span><span class="line"><span class="cl"><span class="s">ProtectSystem=strict
+</span></span></span><span class="line"><span class="cl"><span class="s"># 允许写入日志目录
+</span></span></span><span class="line"><span class="cl"><span class="s">ReadWritePaths=/var/log/sentinel-dashboard
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Access Key: TM4DV8YIOGE5NTEU9CJ0
+</span></span><span class="line"><span class="cl">Secret Key: 5imZIGtnjaFEA42mpMnNGlc0NnSl5ZkY3NnU8gaS
+</span></span><span class="line"><span class="cl">Expiration: no-expiry
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506143718773" class="gallery-image" data-flex-basis="1748px" data-flex-grow="728" height="56" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506143718773.png" width="408"></p>
+<p><img alt="image-20260506143625076" class="gallery-image" data-flex-basis="251px" data-flex-grow="104" height="1073" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506143625076.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506143625076_hu_eb5b3a1ae7c5d46c.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506143625076.png 1123w" width="1123"></p>
+<p>部署maven</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="o">$</span> <span class="n">wget</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">dlcdn</span><span class="o">.</span><span class="n">apache</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">maven</span><span class="o">/</span><span class="n">maven</span><span class="o">-</span><span class="mi">3</span><span class="o">/</span><span class="mf">3.9</span><span class="o">.</span><span class="mi">12</span><span class="o">/</span><span class="n">binaries</span><span class="o">/</span><span class="n">apache</span><span class="o">-</span><span class="n">maven</span><span class="o">-</span><span class="mf">3.9</span><span class="o">.</span><span class="mi">12</span><span class="o">-</span><span class="n">bin</span><span class="o">.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">$</span> <span class="n">tar</span> <span class="o">-</span><span class="n">xf</span> <span class="n">apache</span><span class="o">-</span><span class="n">maven</span><span class="o">-</span><span class="mf">3.9</span><span class="o">.</span><span class="mi">12</span><span class="o">-</span><span class="n">bin</span><span class="o">.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span> <span class="o">-</span><span class="n">C</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">$</span> <span class="n">ln</span> <span class="o">-</span><span class="n">s</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">apache</span><span class="o">-</span><span class="n">maven</span><span class="o">-</span><span class="mf">3.9</span><span class="o">.</span><span class="mi">12</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">maven</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">$</span> <span class="n">echo</span> <span class="s1">&#39;export M2_HOME=/usr/local/maven&#39;</span> <span class="o">&gt;&gt;</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile</span>
+</span></span><span class="line"><span class="cl"><span class="o">$</span> <span class="n">echo</span> <span class="s1">&#39;export PATH=$M2_HOME/bin:$PATH&#39;</span> <span class="o">&gt;&gt;</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile</span>
+</span></span><span class="line"><span class="cl"><span class="o">$</span> <span class="n">source</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">$</span> <span class="n">mvn</span> <span class="o">--</span><span class="n">version</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506143906166" class="gallery-image" data-flex-basis="1246px" data-flex-grow="519" height="133" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506143906166.png" width="691"></p>
+<p>修改并且上传代码编译</p>
+<p><img alt="image-20260506151031525" class="gallery-image" data-flex-basis="2816px" data-flex-grow="1173" height="57" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506151031525.png" width="669"></p>
+<p>mvn clean package</p>
+<p><img alt="image-20260506151910090" class="gallery-image" data-flex-basis="279px" data-flex-grow="116" height="596" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506151910090.png" width="695"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ mkdir -p /usr/local/ruoyi/ruoyi-gateway
+</span></span><span class="line"><span class="cl">$ cp ruoyi-gateway/target/ruoyi-gateway.jar /usr/local/ruoyi/ruoyi-gateway/
+</span></span><span class="line"><span class="cl">$ chown -R www.www /usr/local/ruoyi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ mkdir -p /var/log/sentinel
+</span></span><span class="line"><span class="cl">$ chown -R www:www /var/log/sentinel
+</span></span><span class="line"><span class="cl">$ chmod <span class="m">755</span> /var/log/sentinel
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ mkdir -p /var/lib/nacos-client
+</span></span><span class="line"><span class="cl">$ chown -R www:www /var/lib/nacos-client
+</span></span><span class="line"><span class="cl">$ chmod <span class="m">755</span> /var/lib/nacos-client
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ cat &gt; /etc/systemd/system/ruoyi-gateway.service <span class="s">&lt;&lt; EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Ruoyi Gateway Service
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">User=www
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=www
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 工作目录（根据实际情况调整）
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local/ruoyi/ruoyi-gateway
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># JVM 参数（根据实际情况调整）
+</span></span></span><span class="line"><span class="cl"><span class="s">Environment=&#34;JAVA_OPTS=-Xms512m -Xmx512m -XX:+UseG1GC&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 启动命令
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/bin/java \$JAVA_OPTS -Dcsp.sentinel.log.dir=/var/log/sentinel -Dcsp.sentinel.log.use.pid=true -Dnacos.home=/var/lib/nacos-client -DJM.SNAPSHOT.PATH=/var/lib/nacos-client -DJM.LOG.PATH=/var/lib/nacos-client/logs -jar ruoyi-gateway.jar
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 重启策略
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=10s
+</span></span></span><span class="line"><span class="cl"><span class="s">StartLimitInterval=60s
+</span></span></span><span class="line"><span class="cl"><span class="s">StartLimitBurst=3
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 资源限制
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65536
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNPROC=4096
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 安全设置
+</span></span></span><span class="line"><span class="cl"><span class="s">NoNewPrivileges=true
+</span></span></span><span class="line"><span class="cl"><span class="s">PrivateTmp=true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> ruoyi-gateway
+</span></span><span class="line"><span class="cl">systemctl restart ruoyi-gateway
+</span></span><span class="line"><span class="cl">journalctl -u ruoyi-gateway -n <span class="m">50</span> -f
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506152306385" class="gallery-image" data-flex-basis="802px" data-flex-grow="334" height="212" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152306385.png" width="709"></p>
+<p><img alt="image-20260506152403498" class="gallery-image" data-flex-basis="1065px" data-flex-grow="444" height="243" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152403498.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152403498_hu_9d078d5c6f2d6068.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152403498.png 1079w" width="1079"></p>
+<p>编译 ruoyi-auth 项目代码</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /data/ruoyi
+</span></span><span class="line"><span class="cl">mvn clean package
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506152750488" class="gallery-image" data-flex-basis="715px" data-flex-grow="298" height="154" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152750488.png" width="459"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ mkdir -p /usr/local/ruoyi/ruoyi-auth
+</span></span><span class="line"><span class="cl">$ cp ruoyi-auth/target/ruoyi-auth.jar /usr/local/ruoyi/ruoyi-auth/
+</span></span><span class="line"><span class="cl">$ chown -R www:www /usr/local/ruoyi/ruoyi-auth
+</span></span><span class="line"><span class="cl">$ chmod <span class="m">755</span> /usr/local/ruoyi/ruoyi-auth
+</span></span><span class="line"><span class="cl">$ cat &gt; /etc/systemd/system/ruoyi-auth.service <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Ruoyi Auth Service
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">User=www
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=www
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 工作目录
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local/ruoyi/ruoyi-auth
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 启动命令
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/bin/java -Xms512m -Xmx512m -XX:+UseG1GC -Dcsp.sentinel.log.dir=/var/log/sentinel -Dcsp.sentinel.log.use.pid=true -Dnacos.home=/var/lib/nacos-client -DJM.SNAPSHOT.PATH=/var/lib/nacos-client -DJM.LOG.PATH=/var/lib/nacos-client/logs -jar ruoyi-auth.jar
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 重启策略
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=10
+</span></span></span><span class="line"><span class="cl"><span class="s">StartLimitInterval=60
+</span></span></span><span class="line"><span class="cl"><span class="s">StartLimitBurst=3
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 资源限制
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65536
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNPROC=4096
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># systemd 安全增强
+</span></span></span><span class="line"><span class="cl"><span class="s">NoNewPrivileges=true
+</span></span></span><span class="line"><span class="cl"><span class="s">PrivateTmp=true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> ruoyi-auth
+</span></span><span class="line"><span class="cl">systemctl restart ruoyi-auth
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506152858679" class="gallery-image" data-flex-basis="366px" data-flex-grow="152" height="462" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152858679.png" width="706"></p>
+<p><img alt="image-20260506152924101" class="gallery-image" data-flex-basis="1087px" data-flex-grow="452" height="187" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152924101.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152924101_hu_ea5551781d5c2cfa.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506152924101.png 847w" width="847"></p>
+<p>部署 ruoyi-system</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ mkdir -p /usr/local/ruoyi/ruoyi-system
+</span></span><span class="line"><span class="cl">$ cp ruoyi-modules/ruoyi-system/target/ruoyi-modules-system.jar /usr/local/ruoyi/ruoyi-system/
+</span></span><span class="line"><span class="cl">$ chown -R www:www /usr/local/ruoyi/ruoyi-system
+</span></span><span class="line"><span class="cl">$ cat &gt; /etc/systemd/system/ruoyi-system.service <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Ruoyi System Service
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">User=www
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=www
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 工作目录
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local/ruoyi/ruoyi-system
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 启动命令
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/bin/java -Xms512m -Xmx512m -XX:+UseG1GC -Dcsp.sentinel.log.dir=/var/log/sentinel -Dcsp.sentinel.log.use.pid=true -Dnacos.home=/var/lib/nacos-client -DJM.SNAPSHOT.PATH=/var/lib/nacos-client -DJM.LOG.PATH=/var/lib/nacos-client/logs -jar ruoyi-modules-system.jar
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 重启策略
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=10
+</span></span></span><span class="line"><span class="cl"><span class="s">StartLimitInterval=60
+</span></span></span><span class="line"><span class="cl"><span class="s">StartLimitBurst=3
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 资源限制
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65536
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNPROC=4096
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># systemd 安全选项（CentOS 7 兼容）
+</span></span></span><span class="line"><span class="cl"><span class="s">NoNewPrivileges=true
+</span></span></span><span class="line"><span class="cl"><span class="s">PrivateTmp=true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> ruoyi-system
+</span></span><span class="line"><span class="cl">systemctl restart ruoyi-system
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">journalctl -u ruoyi-system -n <span class="m">50</span> -f
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506153845651" class="gallery-image" data-flex-basis="582px" data-flex-grow="242" height="359" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506153845651.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506153845651_hu_da5d35bfa12201f4.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506153845651.png 872w" width="872"></p>
+<p>部署 ruoyi-job 和 ruoyi-gen</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ mkdir -p /usr/local/ruoyi/ruoyi-job
+</span></span><span class="line"><span class="cl">$ cp ruoyi-modules/ruoyi-job/target/ruoyi-modules-job.jar /usr/local/ruoyi/ruoyi-job/
+</span></span><span class="line"><span class="cl">$ chown -R www.www /usr/local/ruoyi/
+</span></span><span class="line"><span class="cl">$ cat &gt; /etc/systemd/system/ruoyi-job.service <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Ruoyi Job Service
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">User=www
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=www
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 工作目录
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local/ruoyi/ruoyi-job
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 启动命令（使用 jar 绝对路径，最稳）
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/bin/java -Xms512m -Xmx512m -XX:+UseG1GC -Dcsp.sentinel.log.dir=/var/log/sentinel -Dcsp.sentinel.log.use.pid=true -Dnacos.home=/var/lib/nacos-client -DJM.SNAPSHOT.PATH=/var/lib/nacos-client -DJM.LOG.PATH=/var/lib/nacos-client/logs -jar ruoyi-modules-job.jar
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=10
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65536
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNPROC=4096
+</span></span></span><span class="line"><span class="cl"><span class="s">NoNewPrivileges=true
+</span></span></span><span class="line"><span class="cl"><span class="s">PrivateTmp=true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ mkdir -p /usr/local/ruoyi/ruoyi-gen
+</span></span><span class="line"><span class="cl">$ cp ruoyi-modules/ruoyi-gen/target/ruoyi-modules-gen.jar /usr/local/ruoyi/ruoyi-gen/
+</span></span><span class="line"><span class="cl">$ chown -R www.www /usr/local/ruoyi/
+</span></span><span class="line"><span class="cl">$ cat &gt; /etc/systemd/system/ruoyi-gen.service <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Ruoyi Gen Service
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">User=www
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=www
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 工作目录
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local/ruoyi/ruoyi-gen
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 启动命令
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/bin/java -Xms512m -Xmx512m -XX:+UseG1GC -Dcsp.sentinel.log.dir=/var/log/sentinel -Dcsp.sentinel.log.use.pid=true -Dnacos.home=/var/lib/nacos-client -DJM.SNAPSHOT.PATH=/var/lib/nacos-client -DJM.LOG.PATH=/var/lib/nacos-client/logs -jar ruoyi-modules-gen.jar
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 失败自动重启
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=10
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 系统限制
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65536
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNPROC=4096
+</span></span></span><span class="line"><span class="cl"><span class="s">NoNewPrivileges=true
+</span></span></span><span class="line"><span class="cl"><span class="s">PrivateTmp=true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>vim ./ruoyi-modules/ruoyi-job/src/main/resources/bootstrap.yml</p>
+<p><img alt="image-20260506155031402" class="gallery-image" data-flex-basis="222px" data-flex-grow="92" height="763" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506155031402.png" width="706"></p>
+<p>重新编译</p>
+<p>mvn clean package -DskipTests</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> ruoyi-job
+</span></span><span class="line"><span class="cl">systemctl restart ruoyi-job
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> ruoyi-gen
+</span></span><span class="line"><span class="cl">systemctl restart ruoyi-gen
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506155736329" class="gallery-image" data-flex-basis="513px" data-flex-grow="214" height="406" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506155736329.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506155736329_hu_ce21f1117529beca.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506155736329.png 869w" width="869"></p>
+<p>部署 ruoyi-file</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 设置一个临时别名（使用之前生成的 ruoyi 用户密钥）</span>
+</span></span><span class="line"><span class="cl">mc <span class="nb">alias</span> <span class="nb">set</span> myminio http://192.168.10.45:9000 TM4DV8YIOGE5NTEU9CJ0 5imZIGtnjaFEA42mpMnNGlc0NnSl5ZkY3NnU8gaS
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 创建名为 ruoyi-bucket 的桶</span>
+</span></span><span class="line"><span class="cl">mc mb myminio/ruoyi-bucket
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 设置桶策略为公开（方便以后通过浏览器直接访问图片/文件）</span>
+</span></span><span class="line"><span class="cl">mc anonymous <span class="nb">set</span> download myminio/ruoyi-bucket
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506160705422" class="gallery-image" data-flex-basis="1302px" data-flex-grow="542" height="103" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506160705422.png" width="559"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ mkdir -p /usr/local/ruoyi/ruoyi-file
+</span></span><span class="line"><span class="cl">$ cp ruoyi-modules/ruoyi-file/target/ruoyi-modules-file.jar /usr/local/ruoyi/ruoyi-file/
+</span></span><span class="line"><span class="cl">$ chown -R www.www /usr/local/ruoyi/ruoyi-file
+</span></span><span class="line"><span class="cl">$ cat &gt; /etc/systemd/system/ruoyi-file.service <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Ruoyi File Service
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">User=www
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=www
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 工作目录
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local/ruoyi/ruoyi-file
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 启动命令
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/bin/java -Xms512m -Xmx512m -XX:+UseG1GC -Dcsp.sentinel.log.dir=/var/log/sentinel -Dcsp.sentinel.log.use.pid=true -Dnacos.home=/var/lib/nacos-client -DJM.SNAPSHOT.PATH=/var/lib/nacos-client -DJM.LOG.PATH=/var/lib/nacos-client/logs -jar ruoyi-modules-file.jar
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 失败自动重启
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">RestartSec=10
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 系统限制
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNOFILE=65536
+</span></span></span><span class="line"><span class="cl"><span class="s">LimitNPROC=4096
+</span></span></span><span class="line"><span class="cl"><span class="s">NoNewPrivileges=true
+</span></span></span><span class="line"><span class="cl"><span class="s">PrivateTmp=true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506162152870" class="gallery-image" data-flex-basis="501px" data-flex-grow="208" height="424" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506162152870.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506162152870_hu_c54e791608ddb3be.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506162152870.png 886w" width="886"></p>
+<p>部署前端和代理等</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ wget https://nodejs.org/dist/v16.20.2/node-v16.20.2-linux-x64.tar.xz
+</span></span><span class="line"><span class="cl">$ tar -xf node-v16.20.2-linux-x64.tar.xz -C /usr/local/
+</span></span><span class="line"><span class="cl">$ ln -s /usr/local/node-v16.20.2-linux-x64 /usr/local/node
+</span></span><span class="line"><span class="cl">$ vim /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">NODE_HOME</span><span class="o">=</span>/usr/local/node
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="nv">$NODE_HOME</span>/bin:<span class="nv">$PATH</span>
+</span></span><span class="line"><span class="cl">$ <span class="nb">source</span> /etc/profile
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ npm config <span class="nb">set</span> registry http://mirrors.tencent.com/npm/
+</span></span><span class="line"><span class="cl">$ npm config <span class="nb">set</span> strict-ssl <span class="nb">false</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ <span class="nb">cd</span> ruoyi-ui/
+</span></span><span class="line"><span class="cl">$ npm install
+</span></span><span class="line"><span class="cl">$ npm run build:prod
+</span></span><span class="line"><span class="cl">$ mkdir /data/ruoyi
+</span></span><span class="line"><span class="cl">$ mv dist/* /data/ruoyi/
+</span></span><span class="line"><span class="cl">$ chown -R www.www /data/ruoyi
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506163317337" class="gallery-image" data-flex-basis="294px" data-flex-grow="122" height="407" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506163317337.png" width="500"></p>
+<p>Openresty之前已经配置优化好</p>
+<p>vim /etc/nginx/conf.d/ruoyi.conf</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">server <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    server_name ruoyi.example.com<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    listen 80<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    location / <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        root /data/ruoyi<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.html<span class="p">;</span>
+</span></span><span class="line"><span class="cl">        index index.html index.htm<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    location /prod-api/ <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        proxy_set_header Host <span class="nv">$http_host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        proxy_set_header X-Real-IP <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        proxy_set_header REMOTE-HOST <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        proxy_set_header X-Forwarded-For <span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        proxy_pass http://192.168.20.60:8080/<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    location /ruoyi-bucket <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        proxy_set_header Host <span class="nv">$http_host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        proxy_set_header X-Real-IP <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        proxy_set_header REMOTE-HOST <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        proxy_set_header X-Forwarded-For <span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        proxy_pass http://192.168.20.60:9000<span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img alt="image-20260506163931914" class="gallery-image" data-flex-basis="289px" data-flex-grow="120" height="915" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506163931914.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506163931914_hu_96e407659e9c5360.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506163931914.png 1102w" width="1102"></p>
+<p><img alt="image-20260506164018618" class="gallery-image" data-flex-basis="265px" data-flex-grow="110" height="1017" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506164018618.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506164018618_hu_3879bcd3790ac163.png 800w, /p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/image-20260506164018618.png 1123w" width="1123"></p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post mall-swarm K8s分布式部署" height="150" loading="lazy" src="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png" srcset="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png 1x, /p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_39118aa71ccd939b.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #239dde80 0%, #fafafaC0 100%);">
+            <h2 class="article-title">mall-swarm K8s分布式部署</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 80,
+                "density": {
+                    "enable": true,
+                    "value_area": 700
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.6,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 2,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 200,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 1.5,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": true,
+                    "rotateX": 600,
+                    "rotateY": 1200
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": true,
+                    "mode": "repulse"
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(4, 10) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(2, 5);
+            this.ay = this.getRandomValue(0.05, 0.2);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-5, -2);
+            this.ay = this.getRandomValue(-0.2, -0.05);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 20;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 30;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
