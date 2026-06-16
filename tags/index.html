@@ -533,25 +533,21 @@
   }
 </style>
 
-
-<div id="jsi-flying-fish-container" class="fish-container"></div>
-
 <style>
 .fish-container {
-    position: fixed;
-    bottom: 0;
-    left: 0;
+    position: relative;
     width: 100%;
-    height: 130px;
+    height: 150px;
     pointer-events: none;
-    z-index: 0;
+    z-index: -1;
+    margin-top: -20px;
 }
 </style>
 
 <script>
 var RENDERER = {
     POINT_INTERVAL : 12,
-    FISH_COUNT : 1,
+    FISH_COUNT : 2,
     MAX_INTERVAL_COUNT : 50,
     INIT_HEIGHT_RATE : 0.5,
     THRESHOLD : 30,
@@ -902,9 +898,12 @@ FISH.prototype = {
 
 
 (function() {
-    if (document.getElementById('jsi-flying-fish-container')) {
-        RENDERER.init();
-    }
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
 })();
 </script>
 
