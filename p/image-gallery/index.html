@@ -22,6 +22,82 @@
     <meta name="twitter:image" content='https://erha6657.github.io/p/image-gallery/helena-hertz-wWZzXlDpMog-unsplash.jpg' />
     <link rel="shortcut icon" href="img/avatar.png" />
 
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+<style>
+ 
+#particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+ 
+.fish-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.fish {
+    position: absolute;
+    bottom: 20px;
+    animation: swim linear infinite;
+    opacity: 0.7;
+}
+
+.fish svg {
+    display: block;
+}
+
+@keyframes swim {
+    0% {
+        transform: translateX(-150px) scaleX(1);
+    }
+    49.9% {
+        transform: translateX(calc(100vw + 150px)) scaleX(1);
+    }
+    50% {
+        transform: translateX(calc(100vw + 150px)) scaleX(-1);
+    }
+    99.9% {
+        transform: translateX(-150px) scaleX(-1);
+    }
+    100% {
+        transform: translateX(-150px) scaleX(1);
+    }
+}
+
+ 
+.bubble {
+    position: absolute;
+    bottom: -20px;
+    background: rgba(100, 180, 255, 0.3);
+    border-radius: 50%;
+    animation: rise linear infinite;
+}
+
+@keyframes rise {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(-120px) scale(0.3);
+        opacity: 0;
+    }
+}
+</style>
+
     </head>
     <body class="
     article-page
@@ -76,25 +152,6 @@
             <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
         </div>
     </header><ol class="menu-social">
-            
-                <li>
-                    <a 
-                        href='https://gitee.com/erha6657'
-                        
-                        title="Gitee"
-                        rel="me"
-                    >
-                        
-                        
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="10"/>
-  <path d="M8 8h5a3 3 0 0 1 0 6H8V8Z"/>
-  <line x1="8" y1="14" x2="16" y2="14"/>
-</svg>
-
-                        
-                    </a>
-                </li>
             
                 <li>
                     <a 
@@ -542,6 +599,190 @@
         </div>
         
 <script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+
+<div id="particles-js"></div>
+
+<script>
+
+particlesJS('particles-js', {
+    "particles": {
+        "number": {
+            "value": 40,
+            "density": {
+                "enable": true,
+                "value_area": 800
+            }
+        },
+        "color": {
+            "value": ["#4fc3f7", "#81d4fa", "#b3e5fc", "#29b6f6", "#0288d1"]
+        },
+        "shape": {
+            "type": ["circle", "triangle", "edge"],
+            "stroke": {
+                "width": 0,
+                "color": "#000000"
+            }
+        },
+        "opacity": {
+            "value": 0.4,
+            "random": true,
+            "anim": {
+                "enable": true,
+                "speed": 0.5,
+                "opacity_min": 0.1,
+                "sync": false
+            }
+        },
+        "size": {
+            "value": 4,
+            "random": true,
+            "anim": {
+                "enable": true,
+                "speed": 2,
+                "size_min": 1,
+                "sync": false
+            }
+        },
+        "line_linked": {
+            "enable": true,
+            "distance": 150,
+            "color": "#4fc3f7",
+            "opacity": 0.2,
+            "width": 1
+        },
+        "move": {
+            "enable": true,
+            "speed": 1.5,
+            "direction": "none",
+            "random": true,
+            "straight": false,
+            "out_mode": "bounce",
+            "bounce": false,
+            "attract": {
+                "enable": true,
+                "rotateX": 600,
+                "rotateY": 1200
+            }
+        }
+    },
+    "interactivity": {
+        "detect_on": "canvas",
+        "events": {
+            "onhover": {
+                "enable": true,
+                "mode": "grab"
+            },
+            "onclick": {
+                "enable": true,
+                "mode": "push"
+            },
+            "resize": true
+        },
+        "modes": {
+            "grab": {
+                "distance": 140,
+                "line_linked": {
+                    "opacity": 0.4
+                }
+            },
+            "push": {
+                "particles_nb": 3
+            }
+        }
+    },
+    "retina_detect": true
+});
+</script>
+
+
+<div class="fish-container" id="fishContainer"></div>
+
+<script>
+(function() {
+    const container = document.getElementById('fishContainer');
+
+    
+    const fishColors = [
+        { body: '#FF6B6B', fin: '#FF8E8E' },
+        { body: '#4ECDC4', fin: '#6EE7DE' },
+        { body: '#FFD93D', fin: '#FFE66D' },
+        { body: '#6C5CE7', fin: '#8B7EE8' },
+        { body: '#FF8C42', fin: '#FFA66B' },
+        { body: '#A8E6CF', fin: '#C8F0DE' },
+        { body: '#FF69B4', fin: '#FF8DCB' },
+    ];
+
+    const fishes = [
+        
+        `<svg width="40" height="20" viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="18" cy="10" rx="14" ry="8" fill="{body}"/>
+            <polygon points="32,10 40,2 40,18" fill="{fin}"/>
+            <circle cx="10" cy="8" r="2" fill="#fff" opacity="0.8"/>
+            <circle cx="25" cy="7" r="3" fill="{fin}" opacity="0.5" transform="rotate(-30 25 7)"/>
+        </svg>`,
+        
+        `<svg width="50" height="24" viewBox="0 0 50 24" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="20" cy="12" rx="16" ry="9" fill="{body}"/>
+            <polygon points="36,12 48,2 48,22" fill="{fin}"/>
+            <circle cx="12" cy="10" r="2" fill="#fff" opacity="0.8"/>
+            <ellipse cx="30" cy="10" rx="4" ry="2" fill="{fin}" opacity="0.4" transform="rotate(-20 30 10)"/>
+        </svg>`,
+    ];
+
+    function randomBetween(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    function createFish() {
+        const fish = document.createElement('div');
+        fish.className = 'fish';
+
+        const color = fishColors[Math.floor(Math.random() * fishColors.length)];
+        const svgIndex = Math.floor(Math.random() * fishes.length);
+        const svg = fishes[svgIndex].replace(/{body}/g, color.body).replace(/{fin}/g, color.fin);
+
+        fish.innerHTML = svg;
+        fish.style.bottom = randomBetween(10, 80) + 'px';
+        fish.style.animationDuration = randomBetween(15, 35) + 's';
+        fish.style.animationDelay = Math.random() * -30 + 's';
+        fish.style.opacity = randomBetween(0.3, 0.7);
+
+        container.appendChild(fish);
+    }
+
+    function createBubble() {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.style.left = randomBetween(0, 100) + '%';
+        bubble.style.width = randomBetween(4, 12) + 'px';
+        bubble.style.height = bubble.style.width;
+        bubble.style.animationDuration = randomBetween(3, 8) + 's';
+        bubble.style.animationDelay = Math.random() * -5 + 's';
+        container.appendChild(bubble);
+
+        
+        setTimeout(() => bubble.remove(), 8000);
+    }
+
+    
+    for (let i = 0; i < 6; i++) {
+        setTimeout(() => createFish(), i * 200);
+    }
+
+    
+    setInterval(() => {
+        if (document.querySelectorAll('.fish').length < 10) {
+            createFish();
+        }
+    }, 8000);
+
+    
+    for (let i = 0; i < 15; i++) {
+        setTimeout(() => createBubble(), i * 600);
+    }
+    setInterval(createBubble, 2000);
+})();
+</script>
 
 
     </body>
