@@ -271,7 +271,7 @@
                     <a href="/archives/#2025">
                         
                             <span class="year">2025</span>
-                            <span class="count">2</span>
+                            <span class="count">1</span>
                         
                     </a> 
                 </div>
@@ -279,7 +279,7 @@
                     <a href="/archives/#2024">
                         
                             <span class="year">2024</span>
-                            <span class="count">5</span>
+                            <span class="count">6</span>
                         
                     </a> 
                 </div>
@@ -450,27 +450,32 @@
         <section class="article-list--compact">
             
                 <article>
+    <a href="/categories/documentation/">
+        <div class="article-details">
+            <h2 class="article-title">文档</h2>
+                <footer class="article-meta"><span class="article-description">关于如何使用 Stack 主题的文章</span>
+                </footer></div>
+        <div class="article-image">
+            <img alt="文档" height="60" loading="lazy" src="/categories/documentation/hutomo-abrianto-l2jk-uxb1BY-unsplash_hu_182e0aec6d8bd068.jpg" srcset="/categories/documentation/hutomo-abrianto-l2jk-uxb1BY-unsplash_hu_182e0aec6d8bd068.jpg 1x, /categories/documentation/hutomo-abrianto-l2jk-uxb1BY-unsplash_hu_89598f5079a74f89.jpg 2x" width="60">
+
+        </div>
+        
+    </a>
+</article>
+            
+                <article>
+    <a href="/categories/%E9%AB%98%E5%8F%AF%E7%94%A8%E9%83%A8%E7%BD%B2/">
+        <div class="article-details">
+            <h2 class="article-title">高可用部署</h2>
+                <footer class="article-meta"><span class="article-description">1 个页面</span>
+                </footer></div>
+    </a>
+</article>
+            
+                <article>
     <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">
         <div class="article-details">
             <h2 class="article-title">数据库</h2>
-                <footer class="article-meta"><span class="article-description">1 个页面</span>
-                </footer></div>
-    </a>
-</article>
-            
-                <article>
-    <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">
-        <div class="article-details">
-            <h2 class="article-title">学习笔记</h2>
-                <footer class="article-meta"><span class="article-description">1 个页面</span>
-                </footer></div>
-    </a>
-</article>
-            
-                <article>
-    <a href="/categories/%E6%96%87%E6%A1%A3%E6%95%99%E7%A8%8B/">
-        <div class="article-details">
-            <h2 class="article-title">文档教程</h2>
                 <footer class="article-meta"><span class="article-description">1 个页面</span>
                 </footer></div>
     </a>
@@ -584,7 +589,7 @@ function getParticlesConfig(theme) {
                 "random": true,
                 "anim": {
                     "enable": true,
-                    "speed": 0.6,
+                    "speed": 0.3,
                     "opacity_min": 0.15,
                     "sync": false
                 }
@@ -594,7 +599,7 @@ function getParticlesConfig(theme) {
                 "random": true,
                 "anim": {
                     "enable": true,
-                    "speed": 2,
+                    "speed": 1,
                     "size_min": 1,
                     "sync": false
                 }
@@ -608,7 +613,7 @@ function getParticlesConfig(theme) {
             },
             "move": {
                 "enable": true,
-                "speed": 1.5,
+                "speed": 0.6,
                 "direction": "none",
                 "random": true,
                 "straight": false,
@@ -933,16 +938,16 @@ FISH.prototype = {
         this.direction = Math.random() < 0.5;
         this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
         this.previousY = this.y;
-        this.vx = this.getRandomValue(4, 10) * (this.direction ? -1 : 1);
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
 
         if(this.renderer.reverse){
             this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
-            this.vy = this.getRandomValue(2, 5);
-            this.ay = this.getRandomValue(0.05, 0.2);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
         }else{
             this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
-            this.vy = this.getRandomValue(-5, -2);
-            this.ay = this.getRandomValue(-0.2, -0.05);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
         }
         this.isOut = false;
         this.theta = 0;
@@ -983,9 +988,9 @@ FISH.prototype = {
             }
         }
         if(!this.isOut){
-            this.theta += Math.PI / 20;
+            this.theta += Math.PI / 40;
             this.theta %= Math.PI * 2;
-            this.phi += Math.PI / 30;
+            this.phi += Math.PI / 60;
             this.phi %= Math.PI * 2;
         }
         this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);

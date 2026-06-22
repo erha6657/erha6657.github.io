@@ -271,7 +271,7 @@
                     <a href="/archives/#2025">
                         
                             <span class="year">2025</span>
-                            <span class="count">2</span>
+                            <span class="count">1</span>
                         
                     </a> 
                 </div>
@@ -279,7 +279,7 @@
                     <a href="/archives/#2024">
                         
                             <span class="year">2024</span>
-                            <span class="count">5</span>
+                            <span class="count">6</span>
                         
                     </a> 
                 </div>
@@ -450,20 +450,6 @@
         <section class="article-list--compact">
             
                 <article>
-    <a href="/p/hugohugo--github-%E5%85%8D%E8%B4%B9%E9%83%A8%E7%BD%B2%E8%87%AA%E5%B7%B1%E7%9A%84%E5%8D%9A%E5%AE%A2/">
-        <div class="article-details">
-            <h2 class="article-title">【Hugo】Hugo &#43; Github 免费部署自己的博客</h2>
-                <footer class="article-meta"><time datetime="2024-08-16T10:00:00&#43;08:00">2024年8月16日星期五</time>
-                </footer></div>
-        <div class="article-image">
-            <img alt="【Hugo】Hugo + Github 免费部署自己的博客" height="60" loading="lazy" src="/p/hugohugo--github-%E5%85%8D%E8%B4%B9%E9%83%A8%E7%BD%B2%E8%87%AA%E5%B7%B1%E7%9A%84%E5%8D%9A%E5%AE%A2/%E5%B0%81%E9%9D%A2_hu15659886782863631030_hu_5935ddf9952be050.png" srcset="/p/hugohugo--github-%E5%85%8D%E8%B4%B9%E9%83%A8%E7%BD%B2%E8%87%AA%E5%B7%B1%E7%9A%84%E5%8D%9A%E5%AE%A2/%E5%B0%81%E9%9D%A2_hu15659886782863631030_hu_5935ddf9952be050.png 1x, /p/hugohugo--github-%E5%85%8D%E8%B4%B9%E9%83%A8%E7%BD%B2%E8%87%AA%E5%B7%B1%E7%9A%84%E5%8D%9A%E5%AE%A2/%E5%B0%81%E9%9D%A2_hu15659886782863631030_hu_371be3abf6f1b5bb.png 2x" width="60">
-
-        </div>
-        
-    </a>
-</article>
-            
-                <article>
     <a href="/p/image-gallery/">
         <div class="article-details">
             <h2 class="article-title">相册</h2>
@@ -483,6 +469,20 @@
             <h2 class="article-title">短代码</h2>
                 <footer class="article-meta"><time datetime="2024-06-26T00:00:00Z">2024年6月26日星期三</time>
                 </footer></div>
+    </a>
+</article>
+            
+                <article>
+    <a href="/p/markdown-%E8%AF%AD%E6%B3%95%E6%8C%87%E5%8D%97/">
+        <div class="article-details">
+            <h2 class="article-title">Markdown 语法指南</h2>
+                <footer class="article-meta"><time datetime="2024-06-25T00:00:00Z">2024年6月25日星期二</time>
+                </footer></div>
+        <div class="article-image">
+            <img alt="Markdown 语法指南" height="60" loading="lazy" src="/p/markdown-%E8%AF%AD%E6%B3%95%E6%8C%87%E5%8D%97/pawel-czerwinski-8uZPynIu-rQ-unsplash_hu_e050e9b3d9fc63ed.jpg" srcset="/p/markdown-%E8%AF%AD%E6%B3%95%E6%8C%87%E5%8D%97/pawel-czerwinski-8uZPynIu-rQ-unsplash_hu_e050e9b3d9fc63ed.jpg 1x, /p/markdown-%E8%AF%AD%E6%B3%95%E6%8C%87%E5%8D%97/pawel-czerwinski-8uZPynIu-rQ-unsplash_hu_961024150ee0dc47.jpg 2x" width="60">
+
+        </div>
+        
     </a>
 </article>
             
@@ -594,7 +594,7 @@ function getParticlesConfig(theme) {
                 "random": true,
                 "anim": {
                     "enable": true,
-                    "speed": 0.6,
+                    "speed": 0.3,
                     "opacity_min": 0.15,
                     "sync": false
                 }
@@ -604,7 +604,7 @@ function getParticlesConfig(theme) {
                 "random": true,
                 "anim": {
                     "enable": true,
-                    "speed": 2,
+                    "speed": 1,
                     "size_min": 1,
                     "sync": false
                 }
@@ -618,7 +618,7 @@ function getParticlesConfig(theme) {
             },
             "move": {
                 "enable": true,
-                "speed": 1.5,
+                "speed": 0.6,
                 "direction": "none",
                 "random": true,
                 "straight": false,
@@ -943,16 +943,16 @@ FISH.prototype = {
         this.direction = Math.random() < 0.5;
         this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
         this.previousY = this.y;
-        this.vx = this.getRandomValue(4, 10) * (this.direction ? -1 : 1);
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
 
         if(this.renderer.reverse){
             this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
-            this.vy = this.getRandomValue(2, 5);
-            this.ay = this.getRandomValue(0.05, 0.2);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
         }else{
             this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
-            this.vy = this.getRandomValue(-5, -2);
-            this.ay = this.getRandomValue(-0.2, -0.05);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
         }
         this.isOut = false;
         this.theta = 0;
@@ -993,9 +993,9 @@ FISH.prototype = {
             }
         }
         if(!this.isOut){
-            this.theta += Math.PI / 20;
+            this.theta += Math.PI / 40;
             this.theta %= Math.PI * 2;
-            this.phi += Math.PI / 30;
+            this.phi += Math.PI / 60;
             this.phi %= Math.PI * 2;
         }
         this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
