@@ -5,7 +5,13 @@
         <description>Recent content in Categories on Erha&#39;s Blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 11 Jun 2026 19:05:19 +0800</lastBuildDate><atom:link href="https://erha6657.github.io/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Mon, 22 Jun 2026 20:02:42 +0800</lastBuildDate><atom:link href="https://erha6657.github.io/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>部署文档</title>
+            <link>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/</link>
+            <pubDate>Mon, 22 Jun 2026 20:02:42 +0800</pubDate>
+            <guid>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/</guid>
+            <description></description>
+        </item><item>
             <title>Docker</title>
             <link>https://erha6657.github.io/categories/docker/</link>
             <pubDate>Thu, 11 Jun 2026 19:05:19 +0800</pubDate>
@@ -16,12 +22,6 @@
             <link>https://erha6657.github.io/categories/k8s/</link>
             <pubDate>Thu, 11 Jun 2026 19:05:19 +0800</pubDate>
             <guid>https://erha6657.github.io/categories/k8s/</guid>
-            <description></description>
-        </item><item>
-            <title>部署文档</title>
-            <link>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/</link>
-            <pubDate>Thu, 11 Jun 2026 19:05:19 +0800</pubDate>
-            <guid>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/</guid>
             <description></description>
         </item><item>
             <title>传统部署</title>

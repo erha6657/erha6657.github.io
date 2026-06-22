@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="OpenVPN 是一款基于开源技术的虚拟专用网络（VPN）解决方案，通过 SSL/TLS 加密协议在公共网络（如互联网）中建立安全的“加密隧道”，实现远程设备与企业内网的安全互联。在企业场景中，它是解决“远程办公访问内网资源”“分支机构互联”“跨地域数据安全传输”的核心工具之一，兼具安全性、灵活性与低成本优势。\n">
+<title>Openvpn 部署文档</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Openvpn 部署文档">
+<meta property='og:description' content="OpenVPN 是一款基于开源技术的虚拟专用网络（VPN）解决方案，通过 SSL/TLS 加密协议在公共网络（如互联网）中建立安全的“加密隧道”，实现远程设备与企业内网的安全互联。在企业场景中，它是解决“远程办公访问内网资源”“分支机构互联”“跨地域数据安全传输”的核心工具之一，兼具安全性、灵活性与低成本优势。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-06-22T20:02:42&#43;08:00'/><meta property='article:modified_time' content='2026-06-22T20:02:42&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1758985520478-b9223fab-0101-4596-a7d1-4e9b908b2893.png' />
+<meta name="twitter:title" content="Openvpn 部署文档">
+<meta name="twitter:description" content="OpenVPN 是一款基于开源技术的虚拟专用网络（VPN）解决方案，通过 SSL/TLS 加密协议在公共网络（如互联网）中建立安全的“加密隧道”，实现远程设备与企业内网的安全互联。在企业场景中，它是解决“远程办公访问内网资源”“分支机构互联”“跨地域数据安全传输”的核心工具之一，兼具安全性、灵活性与低成本优势。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1758985520478-b9223fab-0101-4596-a7d1-4e9b908b2893.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#vpn-基础概念">VPN 基础概念</a></li>
+    <li><a href="#openvpn-特点与优势">OpenVPN 特点与优势</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#部署环境准备基于两台主机规划">部署环境准备（基于两台主机规划）</a></li>
+    <li><a href="#网络基础配置">网络基础配置</a>
+      <ol>
+        <li><a href="#阿里云服务器环境配置openvpn-服务器">阿里云服务器环境配置（OpenVPN 服务器）</a>
+          <ol>
+            <li><a href="#创建专有网络与交换机">创建专有网络与交换机</a></li>
+            <li><a href="#安全组配置">安全组配置</a></li>
+            <li><a href="#服务器初始化">服务器初始化</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#安装-openvpn-软件包">安装 OpenVPN 软件包</a>
+      <ol>
+        <li><a href="#查看软件版本">查看软件版本</a></li>
+        <li><a href="#安装-openvpn-与证书工具">安装 OpenVPN 与证书工具</a></li>
+        <li><a href="#准备基础配置文件">准备基础配置文件</a></li>
+        <li><a href="#准备证书相关目录与文件">准备证书相关目录与文件</a></li>
+        <li><a href="#修改证书有效期配置">修改证书有效期配置</a></li>
+      </ol>
+    </li>
+    <li><a href="#证书制作与配置">证书制作与配置</a>
+      <ol>
+        <li><a href="#初始化-pki-与-ca-机构">初始化 PKI 与 CA 机构</a>
+          <ol>
+            <li><a href="#进入证书管理目录">进入证书管理目录</a></li>
+            <li><a href="#初始化-pki">初始化 PKI</a></li>
+            <li><a href="#创建-ca证书颁发机构">创建 CA（证书颁发机构）</a></li>
+            <li><a href="#生成服务端证书请求与私钥">生成服务端证书请求与私钥</a></li>
+          </ol>
+        </li>
+        <li><a href="#制作服务端证书">制作服务端证书</a>
+          <ol>
+            <li><a href="#签发服务端证书">签发服务端证书</a></li>
+            <li><a href="#验证创建证书的结果">验证创建证书的结果</a></li>
+            <li><a href="#生成-diffie-hellman-密钥">生成 Diffie-Hellman 密钥</a></li>
+            <li><a href="#证书吊销列表crl">证书吊销列表（CRL）</a></li>
+          </ol>
+        </li>
+        <li><a href="#整理证书文件">整理证书文件</a></li>
+      </ol>
+    </li>
+    <li><a href="#配置-openvpn-服务端">配置 OpenVPN 服务端</a>
+      <ol>
+        <li><a href="#编辑服务器配置文件">编辑服务器配置文件</a></li>
+        <li><a href="#生成-tls-认证密钥">生成 TLS 认证密钥</a></li>
+        <li><a href="#配置内核参数与防火墙规则">配置内核参数与防火墙规则</a>
+          <ol>
+            <li><a href="#开启-ip-转发功能">开启 IP 转发功能</a></li>
+            <li><a href="#配置-iptables-规则snat-转发">配置 iptables 规则（SNAT 转发）</a></li>
+          </ol>
+        </li>
+        <li><a href="#创建日志目录并授权">创建日志目录并授权</a></li>
+      </ol>
+    </li>
+    <li><a href="#启动-openvpn-服务">启动 OpenVPN 服务</a>
+      <ol>
+        <li><a href="#创建-service-服务管理配置文件">创建 Service 服务管理配置文件</a></li>
+        <li><a href="#启动并设置开机自启">启动并设置开机自启</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#制作客户端证书与配置文件">制作客户端证书与配置文件</a>
+      <ol>
+        <li><a href="#创建客户端证书管理目录">创建客户端证书管理目录</a></li>
+        <li><a href="#生成客户端证书请求与私钥">生成客户端证书请求与私钥</a></li>
+        <li><a href="#签发客户端证书">签发客户端证书</a></li>
+        <li><a href="#整理客户端文件">整理客户端文件</a></li>
+        <li><a href="#生成客户端配置文件">生成客户端配置文件</a></li>
+      </ol>
+    </li>
+    <li><a href="#客户端安装与配置">客户端安装与配置</a>
+      <ol>
+        <li><a href="#客户端连通性测试">客户端连通性测试</a></li>
+      </ol>
+    </li>
+    <li><a href="#用户管理添加--删除用户">用户管理（添加 / 删除用户）</a>
+      <ol>
+        <li><a href="#吊销用户证书">吊销用户证书</a></li>
+        <li><a href="#更新证书吊销列表crl">更新证书吊销列表（CRL）</a></li>
+        <li><a href="#重启-openvpn-服务使吊销生效">重启 OpenVPN 服务使吊销生效</a></li>
+        <li><a href="#清理用户文件可选">清理用户文件（可选）</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/">
+            <img alt="Featured image of post Openvpn 部署文档" height="420" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1758985520478-b9223fab-0101-4596-a7d1-4e9b908b2893.png" width="648">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/">Openvpn 部署文档</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-22T20:02:42&#43;08:00'>2026年6月22日星期一</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#vpn-基础概念">VPN 基础概念</a></li>
+    <li><a href="#openvpn-特点与优势">OpenVPN 特点与优势</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#部署环境准备基于两台主机规划">部署环境准备（基于两台主机规划）</a></li>
+    <li><a href="#网络基础配置">网络基础配置</a>
+      <ol>
+        <li><a href="#阿里云服务器环境配置openvpn-服务器">阿里云服务器环境配置（OpenVPN 服务器）</a>
+          <ol>
+            <li><a href="#创建专有网络与交换机">创建专有网络与交换机</a></li>
+            <li><a href="#安全组配置">安全组配置</a></li>
+            <li><a href="#服务器初始化">服务器初始化</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#安装-openvpn-软件包">安装 OpenVPN 软件包</a>
+      <ol>
+        <li><a href="#查看软件版本">查看软件版本</a></li>
+        <li><a href="#安装-openvpn-与证书工具">安装 OpenVPN 与证书工具</a></li>
+        <li><a href="#准备基础配置文件">准备基础配置文件</a></li>
+        <li><a href="#准备证书相关目录与文件">准备证书相关目录与文件</a></li>
+        <li><a href="#修改证书有效期配置">修改证书有效期配置</a></li>
+      </ol>
+    </li>
+    <li><a href="#证书制作与配置">证书制作与配置</a>
+      <ol>
+        <li><a href="#初始化-pki-与-ca-机构">初始化 PKI 与 CA 机构</a>
+          <ol>
+            <li><a href="#进入证书管理目录">进入证书管理目录</a></li>
+            <li><a href="#初始化-pki">初始化 PKI</a></li>
+            <li><a href="#创建-ca证书颁发机构">创建 CA（证书颁发机构）</a></li>
+            <li><a href="#生成服务端证书请求与私钥">生成服务端证书请求与私钥</a></li>
+          </ol>
+        </li>
+        <li><a href="#制作服务端证书">制作服务端证书</a>
+          <ol>
+            <li><a href="#签发服务端证书">签发服务端证书</a></li>
+            <li><a href="#验证创建证书的结果">验证创建证书的结果</a></li>
+            <li><a href="#生成-diffie-hellman-密钥">生成 Diffie-Hellman 密钥</a></li>
+            <li><a href="#证书吊销列表crl">证书吊销列表（CRL）</a></li>
+          </ol>
+        </li>
+        <li><a href="#整理证书文件">整理证书文件</a></li>
+      </ol>
+    </li>
+    <li><a href="#配置-openvpn-服务端">配置 OpenVPN 服务端</a>
+      <ol>
+        <li><a href="#编辑服务器配置文件">编辑服务器配置文件</a></li>
+        <li><a href="#生成-tls-认证密钥">生成 TLS 认证密钥</a></li>
+        <li><a href="#配置内核参数与防火墙规则">配置内核参数与防火墙规则</a>
+          <ol>
+            <li><a href="#开启-ip-转发功能">开启 IP 转发功能</a></li>
+            <li><a href="#配置-iptables-规则snat-转发">配置 iptables 规则（SNAT 转发）</a></li>
+          </ol>
+        </li>
+        <li><a href="#创建日志目录并授权">创建日志目录并授权</a></li>
+      </ol>
+    </li>
+    <li><a href="#启动-openvpn-服务">启动 OpenVPN 服务</a>
+      <ol>
+        <li><a href="#创建-service-服务管理配置文件">创建 Service 服务管理配置文件</a></li>
+        <li><a href="#启动并设置开机自启">启动并设置开机自启</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#制作客户端证书与配置文件">制作客户端证书与配置文件</a>
+      <ol>
+        <li><a href="#创建客户端证书管理目录">创建客户端证书管理目录</a></li>
+        <li><a href="#生成客户端证书请求与私钥">生成客户端证书请求与私钥</a></li>
+        <li><a href="#签发客户端证书">签发客户端证书</a></li>
+        <li><a href="#整理客户端文件">整理客户端文件</a></li>
+        <li><a href="#生成客户端配置文件">生成客户端配置文件</a></li>
+      </ol>
+    </li>
+    <li><a href="#客户端安装与配置">客户端安装与配置</a>
+      <ol>
+        <li><a href="#客户端连通性测试">客户端连通性测试</a></li>
+      </ol>
+    </li>
+    <li><a href="#用户管理添加--删除用户">用户管理（添加 / 删除用户）</a>
+      <ol>
+        <li><a href="#吊销用户证书">吊销用户证书</a></li>
+        <li><a href="#更新证书吊销列表crl">更新证书吊销列表（CRL）</a></li>
+        <li><a href="#重启-openvpn-服务使吊销生效">重启 OpenVPN 服务使吊销生效</a></li>
+        <li><a href="#清理用户文件可选">清理用户文件（可选）</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p>OpenVPN 是一款基于开源技术的虚拟专用网络（VPN）解决方案，通过 SSL/TLS 加密协议在公共网络（如互联网）中建立安全的“加密隧道”，实现远程设备与企业内网的安全互联。在企业场景中，它是解决“远程办公访问内网资源”“分支机构互联”“跨地域数据安全传输”的核心工具之一，兼具安全性、灵活性与低成本优势。</p>
+<p>OpenVpn客户端连接工具：<a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/zip/682281/1778029302544-f2c15a9f-e751-4d50-a02c-96c0f677293d.zip"  target="_blank" rel="noopener"
+    >OpenVPN-2.6.15-I001-amd64.zip</a></p>
+<h1 id="openvpn-简介">OpenVPN 简介
+</h1><h2 id="vpn-基础概念">VPN 基础概念
+</h2><ul>
+<li><strong>专用网</strong>：需向运营商租用专线，仅传输自身数据，安全稳定但成本高，适用于对安全性要求极高且预算充足的场景。</li>
+<li><strong>VPN（Virtual Private Network，虚拟私有网络）</strong>：能在不安全的公共网络（如互联网）上建立安全的数据传输通道，通过加密技术保障数据传输的机密性、完整性和可用性，成本远低于专用网，广泛应用于企业分公司互联、员工远程办公等场景。</li>
+</ul>
+<h2 id="openvpn-特点与优势">OpenVPN 特点与优势
+</h2><p>OpenVPN 是一款开源的 VPN 实现软件，具备以下核心特性：</p>
+<ul>
+<li><strong>安全性强</strong>：支持 SSL/TLS 协议进行身份认证和数据加密，可搭配 AES-256-CBC 等高强度加密算法，同时支持 Diffie-Hellman（DH）密钥交换、tls-auth 防 DoS 攻击等安全机制。</li>
+<li><strong>灵活性高</strong>：支持 TCP/UDP 两种传输协议，可通过代理建立隧道，兼容 NAT 环境，支持动态 IP 和 DHCP，能适应复杂网络场景。</li>
+<li><strong>可扩展性好</strong>：可支持数百至数千用户同时连接，适用于中小型到大型企业的规模需求。</li>
+<li><strong>跨平台兼容</strong>：可运行于 Windows、Linux（如 CentOS、Ubuntu）、macOS、Android、iOS 等主流操作系统。</li>
+<li><strong>开源免费</strong>：基于 GPL 协议开源，企业无需支付软件授权费用，可根据需求自定义修改代码。</li>
+</ul>
+<p>其官网地址为 <a class="link" href="https://openvpn.net/"  target="_blank" rel="noopener"
+    >https://openvpn.net</a>，
+GitHub 仓库地址为 <a class="link" href="https://github.com/OpenVPN/openvpn"  target="_blank" rel="noopener"
+    >https://github.com/OpenVPN/openvpn</a>，便于获取官方文档和最新版本。</p>
+<h1 id="openvpn-搭建详细步骤">OpenVPN 搭建详细步骤
+</h1><h2 id="部署环境准备基于两台主机规划">部署环境准备（基于两台主机规划）
+</h2><p>本次搭建基于两台主机，具体网络规划如下：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th style="text-align: left"><strong>主机角色</strong></th>
+					<th style="text-align: left"><strong>公网 IP</strong></th>
+					<th style="text-align: left"><strong>内网 IP</strong></th>
+					<th style="text-align: left"><strong>用途说明</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td style="text-align: left">OpenVPN 服务器</td>
+					<td style="text-align: left">120.27.157.182</td>
+					<td style="text-align: left">172.16.20.156</td>
+					<td style="text-align: left">提供 VPN 服务，对接公网与内网</td>
+			</tr>
+			<tr>
+					<td style="text-align: left">内网服务器</td>
+					<td style="text-align: left">-（无公网 IP）</td>
+					<td style="text-align: left">172.16.20.155</td>
+					<td style="text-align: left">企业内网服务节点（如 Web、数据库）</td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="网络基础配置">网络基础配置
+</h2><h3 id="阿里云服务器环境配置openvpn-服务器">阿里云服务器环境配置（OpenVPN 服务器）
+</h3><h4 id="创建专有网络与交换机">创建专有网络与交换机
+</h4><ul>
+<li>登录阿里云控制台，创建专有网络，指定所在城市和可用区，网段名称设为 “vpn-net”，地址段选择 “172.16.0.0/12”。</li>
+<li>在该专有网络下创建交换机，名称设为 “vpn-net-sw”，可用区与服务器一致，IPv4 地址段设为 “172.16.20.0/24”（需包含 OpenVPN 服务器和内网 Web 服务器的内网 IP）。</li>
+</ul>
+<h4 id="安全组配置">安全组配置
+</h4><p>为 OpenVPN 服务器所在安全组添加入方向规则，开放以下端口：</p>
+<ul>
+<li>协议类型：自定义 TCP，端口范围：1194/1194，授权对象：0.0.0.0/0</li>
+<li>协议类型：自定义 UDP，端口范围：1194/1194，授权对象：0.0.0.0/0</li>
+<li>协议类型：自定义 TCP，端口范围：22/22，授权对象：0.0.0.0/0</li>
+<li>协议类型：全部 ICMP（IPv4），授权对象：0.0.0.0/0</li>
+</ul>
+<p><img class="gallery-image" data-flex-basis="669px" data-flex-grow="278" height="491" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759546885445-05e7db56-65b9-4c2d-a62a-897c47965bbb.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759546885445-05e7db56-65b9-4c2d-a62a-897c47965bbb_hu_c5524bf634eaed22.png 800w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759546885445-05e7db56-65b9-4c2d-a62a-897c47965bbb.png 1369w" width="1369"></p>
+<h4 id="服务器初始化">服务器初始化
+</h4><ul>
+<li>重置两台服务器的登录密码，确保密码复杂度符合安全要求。</li>
+<li>登录 OpenVPN 服务器，关闭防火墙（或配置防火墙规则开放 1194 端口），执行命令：</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl stop firewalld
+</span></span><span class="line"><span class="cl">systemctl disable firewalld
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装-openvpn-软件包">安装 OpenVPN 软件包
+</h2><h3 id="查看软件版本">查看软件版本
+</h3><ol>
+<li><strong>查看官网最新版本</strong>：访问 <a class="link" href="https://openvpn.net/"  target="_blank" rel="noopener"
+    >https://openvpn.net</a>，可查看当前最新稳定版本。</li>
+<li><strong>查看系统仓库中的版本</strong>：Alibaba Cloud Linux 基于 CentOS，可通过 EPEL 源获取，执行以下命令：</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装EPEL源（若未安装）</span>
+</span></span><span class="line"><span class="cl">yum install -y epel-release
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看OpenVPN版本</span>
+</span></span><span class="line"><span class="cl">yum list openvpn
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看证书管理工具easy-rsa版本</span>
+</span></span><span class="line"><span class="cl">yum list easy-rsa
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="安装-openvpn-与证书工具">安装 OpenVPN 与证书工具
+</h3><p>在 OpenVPN 服务器上执行以下命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装OpenVPN</span>
+</span></span><span class="line"><span class="cl">yum install -y openvpn
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装证书管理工具easy-rsa</span>
+</span></span><span class="line"><span class="cl">yum install -y easy-rsa
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="准备基础配置文件">准备基础配置文件
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@openvpn-manager ~<span class="o">]</span><span class="c1"># cp /usr/share/doc/openvpn/sample/sample-config-files/server.conf /etc/openvpn/</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="准备证书相关目录与文件">准备证书相关目录与文件
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 创建服务端证书管理目录</span>
+</span></span><span class="line"><span class="cl">cp -r /usr/share/easy-rsa/ /etc/openvpn/easy-rsa-server
+</span></span><span class="line"><span class="cl"><span class="c1"># 复制证书变量配置模板</span>
+</span></span><span class="line"><span class="cl">cp /usr/share/doc/easy-rsa/vars.example /etc/openvpn/easy-rsa-server/3/vars
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="修改证书有效期配置">修改证书有效期配置
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vim /etc/openvpn/easy-rsa-server/3/vars
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>找到以下配置项并修改：</p>
+<ul>
+<li>将 <code>set_var EASYRSA_CA_EXPIRE 3650</code> 改为 <code>set_var EASYRSA_CA_EXPIRE 36500</code>（延长至 100 年）。</li>
+<li>将 <code>set_var EASYRSA_CERT_EXPIRE 825</code> 改为 <code>set_var EASYRSA_CERT_EXPIRE 3650</code>（延长至 10 年）。</li>
+</ul>
+<h2 id="证书制作与配置">证书制作与配置
+</h2><h3 id="初始化-pki-与-ca-机构">初始化 PKI 与 CA 机构
+</h3><h4 id="进入证书管理目录">进入证书管理目录
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/openvpn/easy-rsa-server/3
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="初始化-pki">初始化 PKI
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./easyrsa init-pki
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="创建-ca证书颁发机构">创建 CA（证书颁发机构）
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./easyrsa build-ca nopass
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="生成服务端证书请求与私钥">生成服务端证书请求与私钥
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./easyrsa gen-req server nopass
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="制作服务端证书">制作服务端证书
+</h3><h4 id="签发服务端证书">签发服务端证书
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./easyrsa sign server server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="589px" data-flex-grow="245" height="510" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548448778-c08c5944-7d95-4286-8d07-584c632e9750.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548448778-c08c5944-7d95-4286-8d07-584c632e9750_hu_2ca2faca695c992a.png 800w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548448778-c08c5944-7d95-4286-8d07-584c632e9750.png 1253w" width="1253"></p>
+<h4 id="验证创建证书的结果">验证创建证书的结果
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@openvpn 3<span class="o">]</span><span class="c1"># tree pki/</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="2389px" data-flex-grow="995" height="161" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548674173-3c2a911a-56d4-4a60-9f5d-893810791175.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548674173-3c2a911a-56d4-4a60-9f5d-893810791175_hu_5c9bee8b35f34cd4.png 800w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548674173-3c2a911a-56d4-4a60-9f5d-893810791175_hu_b7c904b2a17e9907.png 1600w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548674173-3c2a911a-56d4-4a60-9f5d-893810791175.png 1603w" width="1603"></p>
+<h4 id="生成-diffie-hellman-密钥">生成 Diffie-Hellman 密钥
+</h4><p>Diffie-Hellman 密钥交换方法是一种安全协议，让双方在完全没有对方任何预先信息的条件下通过不安全信道建立起一个密钥。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/openvpn/easy-rsa-server/3
+</span></span><span class="line"><span class="cl">./easyrsa gen-dh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="证书吊销列表crl">证书吊销列表（CRL）
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/openvpn/easy-rsa-server/3
+</span></span><span class="line"><span class="cl">./easyrsa gen-crl
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="整理证书文件">整理证书文件
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 创建证书存放目录</span>
+</span></span><span class="line"><span class="cl">mkdir /etc/openvpn/certs
+</span></span><span class="line"><span class="cl"><span class="c1"># 复制证书文件</span>
+</span></span><span class="line"><span class="cl">cp /etc/openvpn/easy-rsa-server/3/pki/ca.crt /etc/openvpn/certs/
+</span></span><span class="line"><span class="cl">cp /etc/openvpn/easy-rsa-server/3/pki/issued/server.crt /etc/openvpn/certs/
+</span></span><span class="line"><span class="cl">cp /etc/openvpn/easy-rsa-server/3/pki/private/server.key /etc/openvpn/certs/
+</span></span><span class="line"><span class="cl">cp /etc/openvpn/easy-rsa-server/3/pki/dh.pem /etc/openvpn/certs/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="1141px" data-flex-grow="475" height="305" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548943297-d2be1b5f-f928-4472-bcc1-303cd8efd43f.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548943297-d2be1b5f-f928-4472-bcc1-303cd8efd43f_hu_af17e4ddbb416f43.png 800w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759548943297-d2be1b5f-f928-4472-bcc1-303cd8efd43f.png 1451w" width="1451"></p>
+<h2 id="配置-openvpn-服务端">配置 OpenVPN 服务端
+</h2><h3 id="编辑服务器配置文件">编辑服务器配置文件
+</h3><p>打开服务器配置文件 <code>/etc/openvpn/server.conf</code>，修改内容如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">port <span class="m">1194</span>
+</span></span><span class="line"><span class="cl">proto tcp
+</span></span><span class="line"><span class="cl">dev tun
+</span></span><span class="line"><span class="cl">ca /etc/openvpn/certs/ca.crt
+</span></span><span class="line"><span class="cl">cert /etc/openvpn/certs/server.crt
+</span></span><span class="line"><span class="cl">key /etc/openvpn/certs/server.key
+</span></span><span class="line"><span class="cl">dh /etc/openvpn/certs/dh.pem
+</span></span><span class="line"><span class="cl">server 10.0.0.0 255.255.255.0
+</span></span><span class="line"><span class="cl">push <span class="s2">&#34;route 172.16.0.0 255.255.0.0&#34;</span>
+</span></span><span class="line"><span class="cl">keepalive <span class="m">10</span> <span class="m">120</span>
+</span></span><span class="line"><span class="cl">cipher AES-256-CBC
+</span></span><span class="line"><span class="cl">compress lz4-v2
+</span></span><span class="line"><span class="cl">push <span class="s2">&#34;compress lz4-v2&#34;</span>
+</span></span><span class="line"><span class="cl">max-clients <span class="m">2048</span>
+</span></span><span class="line"><span class="cl">user openvpn
+</span></span><span class="line"><span class="cl">group openvpn
+</span></span><span class="line"><span class="cl">status /var/log/openvpn/openvpn-status.log
+</span></span><span class="line"><span class="cl">log-append /var/log/openvpn/openvpn.log
+</span></span><span class="line"><span class="cl">verb <span class="m">3</span>
+</span></span><span class="line"><span class="cl">mute <span class="m">20</span>
+</span></span><span class="line"><span class="cl">tls-auth /etc/openvpn/certs/ta.key <span class="m">0</span>
+</span></span><span class="line"><span class="cl">crl-verify /etc/openvpn/easy-rsa-server/3/pki/crl.pem
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="生成-tls-认证密钥">生成 TLS 认证密钥
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">openvpn --genkey --secret /etc/openvpn/certs/ta.key
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="配置内核参数与防火墙规则">配置内核参数与防火墙规则
+</h3><h4 id="开启-ip-转发功能">开启 IP 转发功能
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;net.ipv4.ip_forward = 1&#34;</span> &gt;&gt; /etc/sysctl.conf
+</span></span><span class="line"><span class="cl">sysctl -p
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="配置-iptables-规则snat-转发">配置 iptables 规则（SNAT 转发）
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">yum install -y iptables iptables-services 
+</span></span><span class="line"><span class="cl">systemctl stop nftables
+</span></span><span class="line"><span class="cl">systemctl disable nftables
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> iptables
+</span></span><span class="line"><span class="cl">systemctl start iptables
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">iptables -F <span class="o">&amp;&amp;</span> iptables -t nat -F
+</span></span><span class="line"><span class="cl">iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -j MASQUERADE
+</span></span><span class="line"><span class="cl">service iptables save
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="创建日志目录并授权">创建日志目录并授权
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /var/log/openvpn
+</span></span><span class="line"><span class="cl">chown openvpn:openvpn /var/log/openvpn
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="启动-openvpn-服务">启动 OpenVPN 服务
+</h2><h3 id="创建-service-服务管理配置文件">创建 Service 服务管理配置文件
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>root@openvpn-manager openvpn<span class="o">]</span><span class="c1"># vim /usr/lib/systemd/system/openvpn@.service</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="启动并设置开机自启">启动并设置开机自启
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl start openvpn@server
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> openvpn@server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="469px" data-flex-grow="195" height="802" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759552524295-d7ae41a8-8902-4588-9ae0-a8fb1b972553.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759552524295-d7ae41a8-8902-4588-9ae0-a8fb1b972553_hu_c2c0ba18e3f52156.png 800w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759552524295-d7ae41a8-8902-4588-9ae0-a8fb1b972553.png 1570w" width="1570"></p>
+<h1 id="客户端配置以-windows-11-为例">客户端配置（以 Windows 11 为例）
+</h1><h2 id="制作客户端证书与配置文件">制作客户端证书与配置文件
+</h2><h3 id="创建客户端证书管理目录">创建客户端证书管理目录
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp -r /usr/share/easy-rsa/ /etc/openvpn/easy-rsa-client
+</span></span><span class="line"><span class="cl">cp /usr/share/doc/easy-rsa/vars.example /etc/openvpn/easy-rsa-client/3/vars
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /etc/openvpn/easy-rsa-client/3
+</span></span><span class="line"><span class="cl">./easyrsa init-pki
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="生成客户端证书请求与私钥">生成客户端证书请求与私钥
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 无需密码</span>
+</span></span><span class="line"><span class="cl">./easyrsa gen-req vpn-chenyang nopass 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="签发客户端证书">签发客户端证书
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/openvpn/easy-rsa-server/3
+</span></span><span class="line"><span class="cl">./easyrsa import-req /etc/openvpn/easy-rsa-client/3/pki/reqs/vpn-chenyang.req vpn-chenyang
+</span></span><span class="line"><span class="cl">./easyrsa sign client vpn-chenyang
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="355px" data-flex-grow="148" height="806" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553080319-5b12cc1d-0da4-4ea7-899f-8399d5f31d12.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553080319-5b12cc1d-0da4-4ea7-899f-8399d5f31d12_hu_898e943e41161000.png 800w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553080319-5b12cc1d-0da4-4ea7-899f-8399d5f31d12.png 1193w" width="1193"></p>
+<h3 id="整理客户端文件">整理客户端文件
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir /etc/openvpn/client/vpn-chenyang
+</span></span><span class="line"><span class="cl">cp /etc/openvpn/easy-rsa-server/3/pki/ca.crt /etc/openvpn/client/vpn-chenyang/
+</span></span><span class="line"><span class="cl">cp /etc/openvpn/easy-rsa-server/3/pki/issued/vpn-chenyang.crt /etc/openvpn/client/vpn-chenyang/
+</span></span><span class="line"><span class="cl">cp /etc/openvpn/easy-rsa-client/3/pki/private/vpn-chenyang.key /etc/openvpn/client/vpn-chenyang/
+</span></span><span class="line"><span class="cl">cp /etc/openvpn/certs/ta.key /etc/openvpn/client/vpn-chenyang/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="801px" data-flex-grow="333" height="231" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553180756-0c0c66b2-6db0-4e23-bdfd-e9b2851c65a1.png" width="771"></p>
+<h3 id="生成客户端配置文件">生成客户端配置文件
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cp /usr/share/doc/openvpn/sample/sample-config-files/client.conf /etc/openvpn/client/vpn-chenyang/client.ovpn
+</span></span><span class="line"><span class="cl">vim /etc/openvpn/client/vpn-chenyang/client.ovpn
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重命名客户端证书和私钥：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/openvpn/client/vpn-chenyang
+</span></span><span class="line"><span class="cl">mv vpn-chenyang.crt client.crt
+</span></span><span class="line"><span class="cl">mv vpn-chenyang.key client.key
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="1150px" data-flex-grow="479" height="254" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553354360-c721fbe6-ae88-4efa-bb8d-7a53a797e858.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553354360-c721fbe6-ae88-4efa-bb8d-7a53a797e858_hu_24ed125472d55cc4.png 800w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553354360-c721fbe6-ae88-4efa-bb8d-7a53a797e858.png 1218w" width="1218"></p>
+<h2 id="客户端安装与配置">客户端安装与配置
+</h2><ol>
+<li><strong>下载并安装 OpenVPN 客户端</strong>：访问 <a class="link" href="https://openvpn.net/community-downloads/"  target="_blank" rel="noopener"
+    >https://openvpn.net/community-downloads/</a>。</li>
+<li><strong>导入客户端配置文件</strong>：将服务器上的五个文件复制到 Windows 的 <code>C:\Program Files\OpenVPN\config</code> 目录中。</li>
+</ol>
+<p><img class="gallery-image" data-flex-basis="428px" data-flex-grow="178" height="379" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553663497-7df203bc-df96-4e88-8fef-18cfeee61edd.png" width="676"></p>
+<ol start="3">
+<li><strong>连接 VPN</strong>：运行 “OpenVPN GUI”，右键点击图标选择 “Connect”。</li>
+</ol>
+<p><img class="gallery-image" data-flex-basis="370px" data-flex-grow="154" height="369" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759553732956-69ff87be-4957-4bcc-83c1-6b914ecfbb0b.png" width="570">
+<img class="gallery-image" data-flex-basis="368px" data-flex-grow="153" height="373" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759554738395-7c7e61cd-4856-43b7-a36a-be23c18f7f33.png" width="572">
+<img class="gallery-image" data-flex-basis="492px" data-flex-grow="205" height="114" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759554989480-f148553a-9b04-4bfe-af26-40a261bae9bf.png" width="234"></p>
+<p>变为绿色即为VPN连接成功。</p>
+<h3 id="客户端连通性测试">客户端连通性测试
+</h3><ol>
+<li>在客户端打开 CMD，执行 <code>ping 172.16.20.155</code>。</li>
+<li>执行 <code>ipconfig</code> 查看是否获取到了内网 IP。</li>
+</ol>
+<p><img class="gallery-image" data-flex-basis="344px" data-flex-grow="143" height="655" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759554887152-9310983e-92f9-42a9-81b1-435791520ac1.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759554887152-9310983e-92f9-42a9-81b1-435791520ac1_hu_78683aa0ab9fa911.png 800w, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1759554887152-9310983e-92f9-42a9-81b1-435791520ac1.png 940w" width="940"></p>
+<h2 id="用户管理添加--删除用户">用户管理（添加 / 删除用户）
+</h2><h3 id="吊销用户证书">吊销用户证书
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/openvpn/easy-rsa-server/3
+</span></span><span class="line"><span class="cl">./easyrsa revoke vpn-chenyang
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="更新证书吊销列表crl">更新证书吊销列表（CRL）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./easyrsa gen-crl
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="重启-openvpn-服务使吊销生效">重启 OpenVPN 服务使吊销生效
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl restart openvpn@server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="清理用户文件可选">清理用户文件（可选）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">rm -rf /etc/openvpn/client/vpn-chenyang
+</span></span><span class="line"><span class="cl">rm -f /etc/openvpn/easy-rsa-client/3/pki/reqs/vpn-chenyang.req
+</span></span><span class="line"><span class="cl">rm -f /etc/openvpn/easy-rsa-client/3/pki/private/vpn-chenyang.key
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post mall-swarm K8s分布式部署" height="150" loading="lazy" src="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png" srcset="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png 1x, /p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_39118aa71ccd939b.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #239dde80 0%, #fafafaC0 100%);">
+            <h2 class="article-title">mall-swarm K8s分布式部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post 基于 K8S 的 RuoYi 微服务容器化部署" height="150" loading="lazy" src="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_803e133fac9ba9a2.png" srcset="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_803e133fac9ba9a2.png 1x, /p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_139fd7c9ca7c41a6.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #2271db80 0%, #74cdd0C0 100%);">
+            <h2 class="article-title">基于 K8S 的 RuoYi 微服务容器化部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post 基于 Docker 的 Ruoyi 微服务容器化部署" height="150" loading="lazy" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_65a2b0c24b11d32b.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_65a2b0c24b11d32b.png 1x, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_e4507ed3d3f2442b.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #0c8bc480 0%, #f8f7ecC0 100%);">
+            <h2 class="article-title">基于 Docker 的 Ruoyi 微服务容器化部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post 若依微服务 (RuoYi-Cloud) 传统部署" height="150" loading="lazy" src="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/Ruoyi_hu_9b20364d8388c296.png" srcset="/p/%E8%8B%A5%E4%BE%9D%E5%BE%AE%E6%9C%8D%E5%8A%A1-ruoyi-cloud-%E4%BC%A0%E7%BB%9F%E9%83%A8%E7%BD%B2/Ruoyi_hu_9b20364d8388c296.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #43b88680 0%, #131516C0 100%);">
+            <h2 class="article-title">若依微服务 (RuoYi-Cloud) 传统部署</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 80,
+                "density": {
+                    "enable": true,
+                    "value_area": 700
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.6,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 2,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 200,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 1.5,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": true,
+                    "rotateX": 600,
+                    "rotateY": 1200
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": true,
+                    "mode": "repulse"
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(4, 10) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(2, 5);
+            this.ay = this.getRandomValue(0.05, 0.2);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-5, -2);
+            this.ay = this.getRandomValue(-0.2, -0.05);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 20;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 30;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>

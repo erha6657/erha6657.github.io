@@ -2,24 +2,24 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="本次使用的是ubuntu系统 IP为192.168.10.45 已提前安装好docker 和 dockers-compose并进行好了相关配置里面的修改\n">
-<title>基于 Docker 的 Ruoyi微服务容器化部署</title>
+<title>基于 Docker 的 Ruoyi 微服务容器化部署</title>
 
 
-<link rel="canonical" href="https://erha6657.github.io/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+<link rel="canonical" href="https://erha6657.github.io/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="基于 Docker 的 Ruoyi微服务容器化部署">
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="基于 Docker 的 Ruoyi 微服务容器化部署">
 <meta property='og:description' content="本次使用的是ubuntu系统 IP为192.168.10.45 已提前安装好docker 和 dockers-compose并进行好了相关配置里面的修改\n">
-<meta property='og:url' content='https://erha6657.github.io/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/'>
+<meta property='og:url' content='https://erha6657.github.io/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/'>
 <meta property='og:site_name' content='Erha&#39;s Blog'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Docker' /><meta property='article:published_time' content='2026-05-22T18:30:00&#43;08:00'/><meta property='article:modified_time' content='2026-05-22T18:30:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker.png' />
-<meta name="twitter:title" content="基于 Docker 的 Ruoyi微服务容器化部署">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Docker' /><meta property='article:published_time' content='2026-05-22T18:30:00&#43;08:00'/><meta property='article:modified_time' content='2026-05-22T18:30:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker.png' />
+<meta name="twitter:title" content="基于 Docker 的 Ruoyi 微服务容器化部署">
 <meta name="twitter:description" content="本次使用的是ubuntu系统 IP为192.168.10.45 已提前安装好docker 和 dockers-compose并进行好了相关配置里面的修改\n"><meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content='https://erha6657.github.io/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker.png' />
+    <meta name="twitter:image" content='https://erha6657.github.io/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker.png' />
     <link rel="shortcut icon" href="img/avatar.png" />
 
 
@@ -225,8 +225,8 @@
     <article class="has-image main-article">
     <header class="article-header">
     <div class="article-image">
-        <a href="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
-            <img alt="Featured image of post 基于 Docker 的 Ruoyi微服务容器化部署" height="407" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_2852f7da991b579c.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker.png 928w" width="928">
+        <a href="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+            <img alt="Featured image of post 基于 Docker 的 Ruoyi 微服务容器化部署" height="407" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_2852f7da991b579c.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker.png 928w" width="928">
         </a>
     </div>
     
@@ -254,7 +254,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">基于 Docker 的 Ruoyi微服务容器化部署</a>
+            <a href="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">基于 Docker 的 Ruoyi 微服务容器化部署</a>
         </h2>
     
         
@@ -330,7 +330,7 @@
 </div>
 </div><p>已经手动把ruoyi里面部分配置进行修改</p>
 <p>手动上传软件到虚拟机中</p>
-<p><img alt="image-20260522204150715" class="gallery-image" data-flex-basis="5186px" data-flex-grow="2161" height="49" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522204150715.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522204150715_hu_1c685a458a8ceaa4.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522204150715.png 1059w" width="1059"></p>
+<p><img alt="image-20260522204150715" class="gallery-image" data-flex-basis="5186px" data-flex-grow="2161" height="49" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522204150715.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522204150715_hu_1c685a458a8ceaa4.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522204150715.png 1059w" width="1059"></p>
 <p>安装环境和编译工具</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -355,7 +355,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="nx">mvn</span><span class="w"> </span><span class="nx">clean</span><span class="w"> </span><span class="kn">package</span><span class="w"> 
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p><img alt="image-20260522181552503" class="gallery-image" data-flex-basis="263px" data-flex-grow="109" height="743" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522181552503.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522181552503_hu_d2d6c382c3d45e40.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522181552503.png 816w" width="816"></p>
+</div><p><img alt="image-20260522181552503" class="gallery-image" data-flex-basis="263px" data-flex-grow="109" height="743" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522181552503.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522181552503_hu_d2d6c382c3d45e40.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522181552503.png 816w" width="816"></p>
 <p>编译前端的包</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -371,9 +371,9 @@
 </span></span><span class="line"><span class="cl">npm run build:prod
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p><img alt="image-20260522182029498" class="gallery-image" data-flex-basis="1126px" data-flex-grow="469" height="157" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522182029498.png" width="737"></p>
+</div><p><img alt="image-20260522182029498" class="gallery-image" data-flex-basis="1126px" data-flex-grow="469" height="157" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522182029498.png" width="737"></p>
 <p>把打包好的jar包镜像包都挪到/data/ruoyi-docker/</p>
-<p><img alt="image-20260522183328676" class="gallery-image" data-flex-basis="378px" data-flex-grow="157" height="494" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522183328676.png" width="779"></p>
+<p><img alt="image-20260522183328676" class="gallery-image" data-flex-basis="378px" data-flex-grow="157" height="494" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522183328676.png" width="779"></p>
 <p>配置mysql配置和nginx配置</p>
 <p>vim /data/ruoyi-docker/mysql/conf/my.cnf</p>
 <div class="highlight"><div class="chroma">
@@ -795,10 +795,10 @@
 <pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker compose up -d mysql redis minio nacos sentinel
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p><img alt="image-20260522185139429" class="gallery-image" data-flex-basis="1269px" data-flex-grow="529" height="196" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185139429.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185139429_hu_f4d3a08c2615266f.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185139429.png 1037w" width="1037"></p>
+</div><p><img alt="image-20260522185139429" class="gallery-image" data-flex-basis="1269px" data-flex-grow="529" height="196" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185139429.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185139429_hu_f4d3a08c2615266f.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185139429.png 1037w" width="1037"></p>
 <p>登录minio,创建minio的桶,并且把他配置成Public</p>
-<p><img alt="image-20260522185544062" class="gallery-image" data-flex-basis="367px" data-flex-grow="153" height="453" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185544062.png" width="694"></p>
-<p><img alt="image-20260522185642080" class="gallery-image" data-flex-basis="529px" data-flex-grow="220" height="495" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185642080.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185642080_hu_92c915a50a74071e.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185642080.png 1092w" width="1092"></p>
+<p><img alt="image-20260522185544062" class="gallery-image" data-flex-basis="367px" data-flex-grow="153" height="453" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185544062.png" width="694"></p>
+<p><img alt="image-20260522185642080" class="gallery-image" data-flex-basis="529px" data-flex-grow="220" height="495" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185642080.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185642080_hu_92c915a50a74071e.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522185642080.png 1092w" width="1092"></p>
 <p>启动所有的业务以及前端</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -808,9 +808,9 @@
 <pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker compose up -d ruoyi-gateway ruoyi-auth ruoyi-system ruoyi-file ruoyi-job ruoyi-gen nginx
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p><img alt="image-20260522190057661" class="gallery-image" data-flex-basis="1195px" data-flex-grow="498" height="210" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522190057661.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522190057661_hu_535ef58ed60cf7b5.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522190057661.png 1046w" width="1046"></p>
+</div><p><img alt="image-20260522190057661" class="gallery-image" data-flex-basis="1195px" data-flex-grow="498" height="210" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522190057661.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522190057661_hu_535ef58ed60cf7b5.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522190057661.png 1046w" width="1046"></p>
 <p>去nacos里面 添加redis 账号密码 mysql数据库端口和密码 例下</p>
-<p><img alt="image-20260522202709405" class="gallery-image" data-flex-basis="503px" data-flex-grow="209" height="250" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202709405.png" width="524"></p>
+<p><img alt="image-20260522202709405" class="gallery-image" data-flex-basis="503px" data-flex-grow="209" height="250" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202709405.png" width="524"></p>
 <p>修改完以后重启</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -820,9 +820,9 @@
 <pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker compose restart ruoyi-gateway ruoyi-auth ruoyi-system ruoyi-file ruoyi-job ruoyi-gen
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p><img alt="image-20260522202328948" class="gallery-image" data-flex-basis="451px" data-flex-grow="187" height="972" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202328948.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202328948_hu_b1d90875c65c3118.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202328948_hu_abfdea4edb7df126.png 1600w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202328948.png 1827w" width="1827"></p>
-<p><img alt="image-20260522202755430" class="gallery-image" data-flex-basis="808px" data-flex-grow="336" height="388" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202755430.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202755430_hu_552311d8e5f0071b.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202755430.png 1307w" width="1307"></p>
-<p><img alt="image-20260522203208862" class="gallery-image" data-flex-basis="264px" data-flex-grow="110" height="1018" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522203208862.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522203208862_hu_ac9c161124688002.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522203208862.png 1123w" width="1123"></p>
+</div><p><img alt="image-20260522202328948" class="gallery-image" data-flex-basis="451px" data-flex-grow="187" height="972" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202328948.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202328948_hu_b1d90875c65c3118.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202328948_hu_abfdea4edb7df126.png 1600w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202328948.png 1827w" width="1827"></p>
+<p><img alt="image-20260522202755430" class="gallery-image" data-flex-basis="808px" data-flex-grow="336" height="388" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202755430.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202755430_hu_552311d8e5f0071b.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522202755430.png 1307w" width="1307"></p>
+<p><img alt="image-20260522203208862" class="gallery-image" data-flex-basis="264px" data-flex-grow="110" height="1018" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522203208862.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522203208862_hu_ac9c161124688002.png 800w, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/image-20260522203208862.png 1123w" width="1123"></p>
 <p>PS:下次就不用手动改了</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -935,16 +935,32 @@
             
                 
 <article class="has-image">
-    <a href="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+    <a href="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/">
         
         <div class="article-image">
-            <img alt="Featured image of post 基于 K8S 的 RuoYi 微服务架构容器化部署" height="150" loading="lazy" src="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_803e133fac9ba9a2.png" srcset="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_803e133fac9ba9a2.png 1x, /p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_139fd7c9ca7c41a6.png 2x" width="250">
+            <img alt="Featured image of post Openvpn 部署文档" height="150" loading="lazy" src="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1758985520478-b9223fab-0101-4596-a7d1-4e9b908b2893_hu_5f09e6699e62bbcd.png" srcset="/p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1758985520478-b9223fab-0101-4596-a7d1-4e9b908b2893_hu_5f09e6699e62bbcd.png 1x, /p/openvpn-%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/1758985520478-b9223fab-0101-4596-a7d1-4e9b908b2893_hu_d3f7a77e6443b6e4.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #abce1e80 0%, #f9f9f8C0 100%);">
+            <h2 class="article-title">Openvpn 部署文档</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post 基于 K8S 的 RuoYi 微服务容器化部署" height="150" loading="lazy" src="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_803e133fac9ba9a2.png" srcset="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_803e133fac9ba9a2.png 1x, /p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_139fd7c9ca7c41a6.png 2x" width="250">
 
         </div>
         
 
         <div class="article-details"style="background: linear-gradient(0deg, #2271db80 0%, #74cdd0C0 100%);">
-            <h2 class="article-title">基于 K8S 的 RuoYi 微服务架构容器化部署</h2>
+            <h2 class="article-title">基于 K8S 的 RuoYi 微服务容器化部署</h2>
         </div>
     </a>
 </article>
