@@ -13,7 +13,7 @@ pause
 exit /b
 #>
 
-# ---- 下面是 PowerShell 核心逻辑，不要修改 ----
+# ---- 下面是 PowerShell 核心逻辑 ----
 
 $mdPath = "index.md"
 
@@ -40,7 +40,6 @@ Write-Host "----------------------------------------------"
 
 foreach ($m in $matches) {
     $fullMatch = $m.Groups[0].Value       # 例如: ![img](C:\...\1.png)
-    $altText = $m.Groups[1].Value         # 例如: img
     $originalPath = $m.Groups[2].Value    # 例如: C:\...\1.png
     
     # 提取纯文件名
@@ -54,10 +53,11 @@ foreach ($m in $matches) {
             Copy-Item -Path $originalPath -Destination ".\$fileName" -Force
             
             # 替换 Markdown 文本里的绝对路径为相对路径 (文件名)
-            $newMatch = "![{0}]({1})" -f $altText, $fileName
+            # 【修改处】：在这里去掉了 $altText，直接生成 ![](文件名) 的格式，实现清空前缀备注
+            $newMatch = "![]({0})" -f $fileName
             $content = $content.Replace($fullMatch, $newMatch)
             
-            Write-Host "  [OK] 复制替换成功！" -ForegroundColor Green
+            Write-Host "  [OK] 复制替换成功，并已清除图片备注！" -ForegroundColor Green
             $successCount++
         } catch {
             Write-Host "  [Error] 复制失败: $_" -ForegroundColor Red
@@ -72,4 +72,4 @@ Write-Host "----------------------------------------------"
 Set-Content -Path $mdPath -Value $content -Encoding UTF8
 
 Write-Host "🎉 任务完成！成功复制并替换了 $successCount 张本地图片。" -ForegroundColor Green
-Write-Host "你可以打开 index.md 检查一下，现在图片路径全是相对路径了！" -ForegroundColor Yellow
+Write-Host "你可以打开 index.md 检查一下，现在图片路径全是相对路径，且备注已被清空！" -ForegroundColor Yellow
