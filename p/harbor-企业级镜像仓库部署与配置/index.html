@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Harbor 是一个用于存储和分发 Docker 镜像的企业级 Registry 服务器，由 vmware 开源，其通过添加一些企业必需的功能特性，例如安全、标识和管理等， 扩展了开源 Docker Distribution。作为一个企业级私有 Registry 服务器，Harbor 提供了更好的性能和安全。提升用户使用 Registry 构建和运行环境传输镜像的效率。Harbor 支持安装在多个 Registry 节点的镜像资源复制，镜像全部保存在私有 Registry 中， 确保数据和知识产权在公司内部网络中管控，另外，Harbor 也提供了高级的安全特性，诸如用户管理，访问控制和活动审计等。\n">
+<title>Harbor 企业级镜像仓库部署与配置</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Harbor 企业级镜像仓库部署与配置">
+<meta property='og:description' content="Harbor 是一个用于存储和分发 Docker 镜像的企业级 Registry 服务器，由 vmware 开源，其通过添加一些企业必需的功能特性，例如安全、标识和管理等， 扩展了开源 Docker Distribution。作为一个企业级私有 Registry 服务器，Harbor 提供了更好的性能和安全。提升用户使用 Registry 构建和运行环境传输镜像的效率。Harbor 支持安装在多个 Registry 节点的镜像资源复制，镜像全部保存在私有 Registry 中， 确保数据和知识产权在公司内部网络中管控，另外，Harbor 也提供了高级的安全特性，诸如用户管理，访问控制和活动审计等。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Docker' /><meta property='article:published_time' content='2026-06-25T16:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T16:00:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/52d5a28a-9c8b-48a3-b600-4cdd22d47329.png' />
+<meta name="twitter:title" content="Harbor 企业级镜像仓库部署与配置">
+<meta name="twitter:description" content="Harbor 是一个用于存储和分发 Docker 镜像的企业级 Registry 服务器，由 vmware 开源，其通过添加一些企业必需的功能特性，例如安全、标识和管理等， 扩展了开源 Docker Distribution。作为一个企业级私有 Registry 服务器，Harbor 提供了更好的性能和安全。提升用户使用 Registry 构建和运行环境传输镜像的效率。Harbor 支持安装在多个 Registry 节点的镜像资源复制，镜像全部保存在私有 Registry 中， 确保数据和知识产权在公司内部网络中管控，另外，Harbor 也提供了高级的安全特性，诸如用户管理，访问控制和活动审计等。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/52d5a28a-9c8b-48a3-b600-4cdd22d47329.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#安装-harbor">安装 Harbor</a>
+      <ol>
+        <li><a href="#配置-harbor">配置 Harbor</a></li>
+        <li><a href="#启动-harbor">启动 Harbor</a></li>
+      </ol>
+    </li>
+    <li><a href="#其他功能">其他功能</a>
+      <ol>
+        <li><a href="#停止与启动和重启harbor">停止与启动和重启Harbor</a></li>
+        <li><a href="#更新harbor配置文件">更新harbor配置文件</a></li>
+        <li><a href="#开启harbor镜像扫描功能">开启harbor镜像扫描功能</a></li>
+        <li><a href="#harbor的https配置">harbor的https配置</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/">
+            <img alt="Featured image of post Harbor 企业级镜像仓库部署与配置" height="474" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/52d5a28a-9c8b-48a3-b600-4cdd22d47329.png" width="474">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF/" style="background-color: hsl(58, 60%, 84%); color: hsl(58, 60%, 15%);">
+                容器技术
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/">Harbor 企业级镜像仓库部署与配置</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T16:00:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#安装-harbor">安装 Harbor</a>
+      <ol>
+        <li><a href="#配置-harbor">配置 Harbor</a></li>
+        <li><a href="#启动-harbor">启动 Harbor</a></li>
+      </ol>
+    </li>
+    <li><a href="#其他功能">其他功能</a>
+      <ol>
+        <li><a href="#停止与启动和重启harbor">停止与启动和重启Harbor</a></li>
+        <li><a href="#更新harbor配置文件">更新harbor配置文件</a></li>
+        <li><a href="#开启harbor镜像扫描功能">开启harbor镜像扫描功能</a></li>
+        <li><a href="#harbor的https配置">harbor的https配置</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p>Harbor 是一个用于存储和分发 Docker 镜像的企业级 Registry 服务器，由 vmware 开源，其通过添加一些企业必需的功能特性，例如安全、标识和管理等， 扩展了开源 Docker Distribution。作为一个企业级私有 Registry 服务器，Harbor 提供了更好的性能和安全。提升用户使用 Registry 构建和运行环境传输镜像的效率。Harbor 支持安装在多个 Registry 节点的镜像资源复制，镜像全部保存在私有 Registry 中， 确保数据和知识产权在公司内部网络中管控，另外，Harbor 也提供了高级的安全特性，诸如用户管理，访问控制和活动审计等。</p>
+<p>vmware 官方开源服务列表地址：<a class="link" href="https://vmware.github.io/harbor/cn/"  target="_blank" rel="noopener"
+    >https://vmware.github.io/harbor/cn/</a></p>
+<p>harbor 官方 github 地址：<a class="link" href="https://github.com/vmware/harbor"  target="_blank" rel="noopener"
+    >https://github.com/vmware/harbor</a></p>
+<p>harbor 官方网址：<a class="link" href="https://goharbor.io/"  target="_blank" rel="noopener"
+    >https://goharbor.io/</a></p>
+<img src="https://cdn.nlark.com/yuque/0/2025/png/682281/1762874283676-e27dc729-0b8d-4f35-a18c-230b1c89e7af.png" width="1267" title="" crop="0,0,1,1" id="u70aa45a3" class="ne-image">
+<p>基于角色的访问控制：用户与 Docker 镜像仓库通过“项目”进行组织管理， 一个用户可以对多个镜像仓库在同一命名空间（project）里有不同的权限。 镜像复制：镜像可以在多个 Registry 实例中复制（同步）。尤其适合于负载均衡，高可用，混合云和多云的场景。</p>
+<p>图形化用户界面：用户可以通过浏览器来浏览，检索当前 Docker 镜像仓库，管理项目和命名空间。</p>
+<p>AD/LDAP 支持：Harbor 可以集成企业内部已有的 AD/LDAP，用于鉴权认证管理。 审计管理：所有针对镜像仓库的操作都可以被记录追溯，用于审计管理。</p>
+<p>国际化：已拥有英文、中文、德文、日文和俄文的本地化版本。更多的语言将会添加进来。</p>
+<p>RESTful API - RESTful API ：提供给管理员对于 Harbor更多的操控, 使得与其它管理软件集成变得更容易。</p>
+<p>部署简单：提供在线和离线两种安装工具， 也可以安装 to vSphere 平台(OVA 方式)虚拟设备。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nginx：harbor 的一个反向代理组件，代理 registry、ui、token 等服务。这个代理会转发 harbor web 和 docker client 的各种请求到后端服务上。
+</span></span><span class="line"><span class="cl">harbor-adminserver：harbor 系统管理接口，可以修改系统配置以及获取系统信息。
+</span></span><span class="line"><span class="cl">harbor-db：存储项目的元数据、用户、规则、复制策略等信息。
+</span></span><span class="line"><span class="cl">harbor-jobservice：harbor 里面主要是为了镜像仓库之前同步使用的。
+</span></span><span class="line"><span class="cl">harbor-log：收集其他 harbor 的日志信息。
+</span></span><span class="line"><span class="cl">harbor-ui：一个用户界面模块，用来管理 registry。
+</span></span><span class="line"><span class="cl">registry：存储 docker images 的服务，并且提供 pull/push 服务。
+</span></span><span class="line"><span class="cl">redis：存储缓存信息
+</span></span><span class="line"><span class="cl">webhook：当 registry 中的 image 状态发生变化的时候去记录更新日志、复制等操作。
+</span></span><span class="line"><span class="cl">token service：在 docker client 进行 pull/push 的时候负责 token 的发放。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装-harbor">安装 Harbor
+</h2><p>下载地址：<a class="link" href="https://github.com/vmware/harbor/releases"  target="_blank" rel="noopener"
+    >https://github.com/vmware/harbor/releases</a></p>
+<p>安装文档： <a class="link" href="https://goharbor.io/docs/2.2.0/"  target="_blank" rel="noopener"
+    >https://goharbor.io/docs/2.2.0/</a></p>
+<p>本次使用当前harbor最新的稳定版本2.2.1离线安装包，具体名称为harbor-offline-installer-v2.2.1.tgz</p>
+<p>需要在部署的主机事先部署docker与docker-compose。</p>
+<h3 id="配置-harbor">配置 Harbor
+</h3><p>解压并编辑 harbor.yml配置文件，之前的版本配置文件名称为harbor.cfg</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>19:56:56 root@harbor1 src<span class="o">]</span><span class="c1">#tar xf harbor-offline-installer-v2.2.1.tgz </span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>19:58:15 root@harbor1 src<span class="o">]</span><span class="c1">#ln -s /usr/local/src/harbor /usr/local/</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>19:59:00 root@harbor1 harbor<span class="o">]</span><span class="c1">#ls</span>
+</span></span><span class="line"><span class="cl">common.sh  harbor.v2.2.1.tar.gz  harbor.yml.tmpl  install.sh  LICENSE  prepare
+</span></span><span class="line"><span class="cl"><span class="o">[</span>19:59:01 root@harbor1 harbor<span class="o">]</span><span class="c1">#cp harbor.yml.tmpl harbor.yml</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#安装python环境</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:00:00 root@harbor1 harbor<span class="o">]</span><span class="c1">#apt install python-pip -y</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#编辑配置文件</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:05:35 root@harbor1 harbor<span class="o">]</span><span class="c1">#grep -vE &#34;#|^$&#34; harbor.yml</span>
+</span></span><span class="line"><span class="cl">hostname: harbor1.zhangzhuo.org   <span class="c1">#这里修改</span>
+</span></span><span class="line"><span class="cl">http:
+</span></span><span class="line"><span class="cl">  port: <span class="m">80</span>
+</span></span><span class="line"><span class="cl">harbor_admin_password: <span class="m">123456</span>     <span class="c1">#admin管理员登录密码</span>
+</span></span><span class="line"><span class="cl">database:
+</span></span><span class="line"><span class="cl">  password: root123
+</span></span><span class="line"><span class="cl">  max_idle_conns: <span class="m">50</span>
+</span></span><span class="line"><span class="cl">  max_open_conns: <span class="m">1000</span>
+</span></span><span class="line"><span class="cl">data_volume: /docker/images       <span class="c1">#镜像存放位置</span>
+</span></span><span class="line"><span class="cl">trivy:
+</span></span><span class="line"><span class="cl">  ignore_unfixed: <span class="nb">false</span>
+</span></span><span class="line"><span class="cl">  skip_update: <span class="nb">false</span>
+</span></span><span class="line"><span class="cl">  insecure: <span class="nb">false</span>
+</span></span><span class="line"><span class="cl">jobservice:
+</span></span><span class="line"><span class="cl">  max_job_workers: <span class="m">10</span>
+</span></span><span class="line"><span class="cl">notification:
+</span></span><span class="line"><span class="cl">  webhook_job_max_retry: <span class="m">10</span>
+</span></span><span class="line"><span class="cl">chart:
+</span></span><span class="line"><span class="cl">  absolute_url: disabled
+</span></span><span class="line"><span class="cl">log:
+</span></span><span class="line"><span class="cl">  level: info
+</span></span><span class="line"><span class="cl">  local:
+</span></span><span class="line"><span class="cl">    rotate_count: <span class="m">50</span>
+</span></span><span class="line"><span class="cl">    rotate_size: 200M
+</span></span><span class="line"><span class="cl">    location: /var/log/harbor
+</span></span><span class="line"><span class="cl">_version: 2.2.0
+</span></span><span class="line"><span class="cl">proxy:
+</span></span><span class="line"><span class="cl">  http_proxy:
+</span></span><span class="line"><span class="cl">  https_proxy:
+</span></span><span class="line"><span class="cl">  no_proxy:
+</span></span><span class="line"><span class="cl">  components:
+</span></span><span class="line"><span class="cl">    - core
+</span></span><span class="line"><span class="cl">    - jobservice
+</span></span><span class="line"><span class="cl">    - trivy
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="启动-harbor">启动 Harbor
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>20:10:33 root@harbor1 harbor<span class="o">]</span><span class="c1">#pwd</span>
+</span></span><span class="line"><span class="cl">/usr/local/harbor
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:13:51 root@harbor1 harbor<span class="o">]</span><span class="c1">#./install.sh </span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Step 5<span class="o">]</span>: starting Harbor ...
+</span></span><span class="line"><span class="cl">Creating network <span class="s2">&#34;harbor_harbor&#34;</span> with the default driver
+</span></span><span class="line"><span class="cl">Creating harbor-log ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">Creating harbor-portal ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">Creating registryctl   ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">Creating harbor-db     ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">Creating registry      ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">Creating redis         ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">Creating harbor-core   ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">Creating harbor-jobservice ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">Creating nginx             ... <span class="k">done</span>
+</span></span><span class="line"><span class="cl">✔ ----Harbor has been installed and started successfully.----
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>登录web页面</p>
+<img src="https://cdn.nlark.com/yuque/0/2025/png/682281/1762874688061-d51d7982-4019-4466-87b1-3a44f024a4f4.png" width="1120" title="" crop="0,0,1,1" id="ued146d19" class="ne-image">
+<h2 id="其他功能">其他功能
+</h2><h3 id="停止与启动和重启harbor">停止与启动和重启Harbor
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>20:40:40 root@harbor1 ~<span class="o">]</span><span class="c1">#cd /usr/local/harbor</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:43:20 root@harbor1 harbor<span class="o">]</span><span class="c1">#pwd</span>
+</span></span><span class="line"><span class="cl">/usr/local/harbor
+</span></span><span class="line"><span class="cl"><span class="c1">#停止harbor</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:43:44 root@harbor1 harbor<span class="o">]</span><span class="c1">#docker-compose stop</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:45:46 root@harbor1 harbor<span class="o">]</span><span class="c1">#docker ps </span>
+</span></span><span class="line"><span class="cl">CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+</span></span><span class="line"><span class="cl"><span class="c1">#启动harbor</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:45:50 root@harbor1 harbor<span class="o">]</span><span class="c1">#docker-compose start</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#重启harbor</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:50:34 root@harbor1 harbor<span class="o">]</span><span class="c1">#docker-compose restart</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="更新harbor配置文件">更新harbor配置文件
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>20:43:20 root@harbor1 harbor<span class="o">]</span><span class="c1">#pwd</span>
+</span></span><span class="line"><span class="cl">/usr/local/harbor
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:47:45 root@harbor1 harbor<span class="o">]</span><span class="c1">#./prepare --help</span>
+</span></span><span class="line"><span class="cl">prepare base dir is <span class="nb">set</span> to /usr/local/src/harbor
+</span></span><span class="line"><span class="cl">Usage: main.py prepare <span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Options:
+</span></span><span class="line"><span class="cl">  --conf TEXT         the path of Harbor configuration file
+</span></span><span class="line"><span class="cl">  --with-notary       the Harbor instance is to be deployed with notary
+</span></span><span class="line"><span class="cl">  --with-trivy        the Harbor instance is to be deployed with Trivy
+</span></span><span class="line"><span class="cl">  --with-chartmuseum  the Harbor instance is to be deployed with chart
+</span></span><span class="line"><span class="cl">                      repository supporting
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  --help              Show this message and exit.
+</span></span><span class="line"><span class="cl">Clean up the input dir
+</span></span><span class="line"><span class="cl"><span class="c1">#如果配置文件修改需要直接执行./prepare，后执行</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="开启harbor镜像扫描功能">开启harbor镜像扫描功能
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>20:43:44 root@harbor1 harbor<span class="o">]</span><span class="c1">#docker-compose stop</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#删除所有镜像</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>20:43:44 root@harbor1 harbor<span class="o">]</span><span class="c1">#docker-compose rm</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#重新配置</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>21:04:52 root@harbor1 harbor<span class="o">]</span><span class="c1">#./install.sh --with-trivy</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="harbor的https配置">harbor的https配置
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>13:40:49 root@harbor1 harbor<span class="o">]</span><span class="c1">#pwd</span>
+</span></span><span class="line"><span class="cl">/etc
+</span></span><span class="line"><span class="cl"><span class="o">[</span>13:41:09 root@harbor1 harbor<span class="o">]</span><span class="c1">#mkdir certs</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#生成自签证书</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>13:41:09 root@harbor1 harbor<span class="o">]</span><span class="c1">#cd certs</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>13:41:22 root@harbor1 harbor<span class="o">]</span><span class="c1">#openssl genrsa -out harbor-ca.key 2048</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>13:47:07 root@harbor1 harbor<span class="o">]</span><span class="c1">#openssl req -x509 -new -nodes -key harbor-ca.key -subj &#34;/CN=harbor1.zhangzhuo.org&#34; -days 7120 -out harbor-ca.crt</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#修改harbor配置文件</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>13:50:27 root@harbor1 harbor<span class="o">]</span><span class="c1">#vim harbor.yml</span>
+</span></span><span class="line"><span class="cl">hostname: harbor1.zhangzhuo.org
+</span></span><span class="line"><span class="cl">https:
+</span></span><span class="line"><span class="cl">  port: <span class="m">443</span> 
+</span></span><span class="line"><span class="cl">  certificate: /etc/certs/harbor-ca.crt                        
+</span></span><span class="line"><span class="cl">  private_key: /etc/certs/harbor-ca.key
+</span></span><span class="line"><span class="cl"><span class="c1">#停止并删除harbor</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>13:51:56 root@harbor1 harbor<span class="o">]</span><span class="c1">#docker-compose stop </span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>13:52:40 root@harbor1 harbor<span class="o">]</span><span class="c1">#docker-compose rm</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#重新执行安装脚本</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>13:53:31 root@harbor1 harbor<span class="o">]</span><span class="c1">#./install.sh --with-trivy #--with-trivy这个参数为开启扫描功能</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#注意自签名证书是不被信任的所以，还需要配置 --insecure-registry harbor1.zhangzhuo.org才可以使用，或者直接使用授权证书</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/docker/">Docker</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM单卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png" srcset="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png 1x, /p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_dd42eb94b0975759.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #1aa7e380 0%, #05223aC0 100%);">
+            <h2 class="article-title">vLLM单卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM多卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png" srcset="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png 1x, /p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_dd42eb94b0975759.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #1aa7e380 0%, #05223aC0 100%);">
+            <h2 class="article-title">vLLM多卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post ELK+Kafka+Filebeat+Logstash分布式日志收集系统部署指南" height="150" loading="lazy" src="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/3afcb987-3bef-4ade-b343-93ad1b985424_hu_b9d002c66e4c5698.png" srcset="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/3afcb987-3bef-4ade-b343-93ad1b985424_hu_b9d002c66e4c5698.png 1x, /p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/3afcb987-3bef-4ade-b343-93ad1b985424_hu_4ef725f80554faa0.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #69b4bb80 0%, #ffffffC0 100%);">
+            <h2 class="article-title">ELK&#43;Kafka&#43;Filebeat&#43;Logstash分布式日志收集系统部署指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/mysql-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8F%8C%E4%B8%BB%E9%AB%98%E5%8F%AF%E7%94%A8%E4%B8%8E-shardingsphere-proxy-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AE%9E%E6%88%98/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post MySQL 主从复制、双主高可用与 ShardingSphere-Proxy 读写分离实战" height="150" loading="lazy" src="/p/mysql-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8F%8C%E4%B8%BB%E9%AB%98%E5%8F%AF%E7%94%A8%E4%B8%8E-shardingsphere-proxy-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AE%9E%E6%88%98/1634393009245-38a482e1-3988-4329-be85-d8403bc54da0_hu_9fea6c7583e044e1.jpeg" srcset="/p/mysql-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8F%8C%E4%B8%BB%E9%AB%98%E5%8F%AF%E7%94%A8%E4%B8%8E-shardingsphere-proxy-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AE%9E%E6%88%98/1634393009245-38a482e1-3988-4329-be85-d8403bc54da0_hu_9fea6c7583e044e1.jpeg 1x, /p/mysql-%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8F%8C%E4%B8%BB%E9%AB%98%E5%8F%AF%E7%94%A8%E4%B8%8E-shardingsphere-proxy-%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AE%9E%E6%88%98/1634393009245-38a482e1-3988-4329-be85-d8403bc54da0_hu_c177d46e3c62dc02.jpeg 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #42444580 0%, #fcfdfdC0 100%);">
+            <h2 class="article-title">MySQL 主从复制、双主高可用与 ShardingSphere-Proxy 读写分离实战</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/docker-%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E4%B8%8E-docker-compose-%E7%BC%96%E6%8E%92%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Docker 容器技术与 Docker Compose 编排指南" height="150" loading="lazy" src="/p/docker-%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E4%B8%8E-docker-compose-%E7%BC%96%E6%8E%92%E6%8C%87%E5%8D%97/docker_logo_hu_f8c72df5e33f2ef1.png" srcset="/p/docker-%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E4%B8%8E-docker-compose-%E7%BC%96%E6%8E%92%E6%8C%87%E5%8D%97/docker_logo_hu_f8c72df5e33f2ef1.png 1x, /p/docker-%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E4%B8%8E-docker-compose-%E7%BC%96%E6%8E%92%E6%8C%87%E5%8D%97/docker_logo_hu_82371a3d54d2a7a5.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #0092e680 0%, #0092e6C0 100%);">
+            <h2 class="article-title">Docker 容器技术与 Docker Compose 编排指南</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
