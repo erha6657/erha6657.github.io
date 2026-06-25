@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="DevOps 是&quot;Development&quot;（开发）和&quot;Operations&quot;（运维）的组合词，是一种文化理念、实践和工具的集合，旨在缩短软件开发生命周期，提高交付速度和质量。\n">
+<title>Jenkins 持续集成与权限管理实战：从安装、OpenResty 代理到 RBAC 权限控制</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Jenkins 持续集成与权限管理实战：从安装、OpenResty 代理到 RBAC 权限控制">
+<meta property='og:description' content="DevOps 是&quot;Development&quot;（开发）和&quot;Operations&quot;（运维）的组合词，是一种文化理念、实践和工具的集合，旨在缩短软件开发生命周期，提高交付速度和质量。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Jenkins' /><meta property='article:tag' content='DevOps' /><meta property='article:published_time' content='2026-06-25T17:15:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T17:15:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0.png' />
+<meta name="twitter:title" content="Jenkins 持续集成与权限管理实战：从安装、OpenResty 代理到 RBAC 权限控制">
+<meta name="twitter:description" content="DevOps 是&quot;Development&quot;（开发）和&quot;Operations&quot;（运维）的组合词，是一种文化理念、实践和工具的集合，旨在缩短软件开发生命周期，提高交付速度和质量。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li>
+      <ol>
+        <li><a href="#流水线pipeline">流水线（Pipeline）</a></li>
+        <li><a href="#任务job">任务（Job）</a></li>
+        <li><a href="#插件plugins">插件（Plugins）</a></li>
+        <li><a href="#节点nodes">节点（Nodes）</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#设置时区">设置时区</a></li>
+    <li><a href="#安装java">安装Java</a></li>
+    <li><a href="#部署jenkins">部署Jenkins</a></li>
+    <li><a href="#启动jenkins">启动Jenkins</a></li>
+    <li><a href="#访问jenkins">访问Jenkins</a></li>
+    <li><a href="#安装常用的插件">安装常用的插件</a></li>
+    <li><a href="#创建用户">创建用户</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装openresty">安装OpenResty</a></li>
+    <li><a href="#修改openresty的默认配置">修改Openresty的默认配置</a></li>
+    <li><a href="#创建openresty必要的目录">创建Openresty必要的目录</a></li>
+    <li><a href="#添加-jenkins-代理">添加 Jenkins 代理</a></li>
+    <li><a href="#启动openresty">启动Openresty</a></li>
+    <li><a href="#访问-jenkins">访问 Jenkins</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-role-based-authorization-strategy-插件并启用">安装 Role-based Authorization Strategy 插件并启用</a></li>
+    <li><a href="#创建用户-1">创建用户</a></li>
+    <li><a href="#创建两个测试job">创建两个测试JOB</a></li>
+    <li><a href="#创建权限">创建权限</a></li>
+    <li><a href="#权限解释">权限解释</a></li>
+    <li><a href="#为用户分配角色">为用户分配角色</a></li>
+    <li><a href="#测试权限">测试权限</a></li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/">
+            <img alt="Featured image of post Jenkins 持续集成与权限管理实战：从安装、OpenResty 代理到 RBAC 权限控制" height="587" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_5796045677a86d25.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0.png 1073w" width="1073">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90/" style="background-color: hsl(47, 60%, 84%); color: hsl(47, 60%, 15%);">
+                持续集成
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4/" style="background-color: hsl(291, 60%, 84%); color: hsl(291, 60%, 15%);">
+                自动化运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/">Jenkins 持续集成与权限管理实战：从安装、OpenResty 代理到 RBAC 权限控制</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T17:15:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 8 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li>
+      <ol>
+        <li><a href="#流水线pipeline">流水线（Pipeline）</a></li>
+        <li><a href="#任务job">任务（Job）</a></li>
+        <li><a href="#插件plugins">插件（Plugins）</a></li>
+        <li><a href="#节点nodes">节点（Nodes）</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#设置时区">设置时区</a></li>
+    <li><a href="#安装java">安装Java</a></li>
+    <li><a href="#部署jenkins">部署Jenkins</a></li>
+    <li><a href="#启动jenkins">启动Jenkins</a></li>
+    <li><a href="#访问jenkins">访问Jenkins</a></li>
+    <li><a href="#安装常用的插件">安装常用的插件</a></li>
+    <li><a href="#创建用户">创建用户</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装openresty">安装OpenResty</a></li>
+    <li><a href="#修改openresty的默认配置">修改Openresty的默认配置</a></li>
+    <li><a href="#创建openresty必要的目录">创建Openresty必要的目录</a></li>
+    <li><a href="#添加-jenkins-代理">添加 Jenkins 代理</a></li>
+    <li><a href="#启动openresty">启动Openresty</a></li>
+    <li><a href="#访问-jenkins">访问 Jenkins</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-role-based-authorization-strategy-插件并启用">安装 Role-based Authorization Strategy 插件并启用</a></li>
+    <li><a href="#创建用户-1">创建用户</a></li>
+    <li><a href="#创建两个测试job">创建两个测试JOB</a></li>
+    <li><a href="#创建权限">创建权限</a></li>
+    <li><a href="#权限解释">权限解释</a></li>
+    <li><a href="#为用户分配角色">为用户分配角色</a></li>
+    <li><a href="#测试权限">测试权限</a></li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p><strong>DevOps</strong> 是&quot;Development&quot;（开发）和&quot;Operations&quot;（运维）的组合词，是一种文化理念、实践和工具的集合，旨在缩短软件开发生命周期，提高交付速度和质量。</p>
+<h1 id="devops-的核心原则">DevOps 的核心原则
+</h1><ul>
+<li><strong>C</strong>ulture（文化）：打破部门墙，共享责任</li>
+<li><strong>A</strong>utomation（自动化）：流程自动化，减少人为错误</li>
+<li><strong>L</strong>ean（精益）：小批量工作，快速反馈</li>
+<li><strong>M</strong>easurement（度量）：数据驱动决策</li>
+<li><strong>S</strong>haring（共享）：知识共享，透明沟通</li>
+</ul>
+<h1 id="devops-生命周期cicd-流水线">DevOps 生命周期（CI/CD 流水线）
+</h1><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">计划<span class="o">(</span>Plan<span class="o">)</span> → 编码<span class="o">(</span>Code<span class="o">)</span> → 构建<span class="o">(</span>Build<span class="o">)</span> → 测试<span class="o">(</span>Test<span class="o">)</span> → 发布<span class="o">(</span>Release<span class="o">)</span> → 部署<span class="o">(</span>Deploy<span class="o">)</span> → 运营<span class="o">(</span>Operate<span class="o">)</span> → 监控<span class="o">(</span>Monitor<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="438px" data-flex-grow="182" height="587" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_5796045677a86d25.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0.png 1073w" width="1073"></p>
+<h1 id="持续集成的流程">持续集成的流程
+</h1><p><img class="gallery-image" data-flex-basis="753px" data-flex-grow="314" height="418" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1649216340717-c7fb4294-5f76-4bac-9f5c-5a0ba72dc089.webp" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1649216340717-c7fb4294-5f76-4bac-9f5c-5a0ba72dc089_hu_5d91926d774372b5.webp 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1649216340717-c7fb4294-5f76-4bac-9f5c-5a0ba72dc089.webp 1313w" width="1313"></p>
+<h1 id="什么是-jenkins">什么是 Jenkins？
+</h1><p>Jenkins 是一款<strong>开源的自动化部署服务器</strong>，主要用于实现软件开发中的<strong>持续集成（CI）</strong> 和<strong>持续部署（CD）</strong> 流程。简单来说，它能自动完成代码编译、测试、打包、部署等重复性工作，让开发团队更专注于代码编写，而非繁琐的流程操作。</p>
+<p>Jenkins 的核心价值在于：</p>
+<ul>
+<li><strong>自动化</strong>：替代人工执行构建、测试、部署等步骤</li>
+<li><strong>及时性</strong>：代码提交后立即触发自动化流程，快速发现问题</li>
+<li><strong>可扩展性</strong>：通过插件生态支持几乎所有主流开发工具和平台</li>
+</ul>
+<h1 id="jenkins-的核心概念">Jenkins 的核心概念
+</h1><h3 id="流水线pipeline">流水线（Pipeline）
+</h3><p>流水线是 Jenkins 的核心功能，用于定义从代码到部署的完整自动化流程。可以理解为 &ldquo;把开发流程的每一步（如拉取代码→编译→测试→部署）写成一个可执行的脚本&rdquo;，支持复杂的分支逻辑（如条件判断、循环）。</p>
+<p>流水线通常以代码形式（<code>Jenkinsfile</code>）存储在项目仓库中，实现 &ldquo;流水线即代码&rdquo;（Pipeline as Code），便于版本控制和团队协作。</p>
+<h3 id="任务job">任务（Job）
+</h3><p>任务是 Jenkins 中最基本的执行单元，代表一个具体的自动化任务（如 &ldquo;构建 Java 项目&rdquo;、&ldquo;运行 Python 测试&rdquo;）。常见任务类型包括：</p>
+<ul>
+<li>自由风格项目（Freestyle project）：适合简单流程</li>
+<li>流水线项目（Pipeline project）：适合复杂流程</li>
+<li>多配置项目（Multi-configuration project）：适合多环境 / 多版本并行测试</li>
+</ul>
+<h3 id="插件plugins">插件（Plugins）
+</h3><p>Jenkins 的强大之处在于其丰富的插件生态，通过插件可以扩展支持各种语言、工具和服务。例如：</p>
+<ul>
+<li>代码管理：Git插件</li>
+<li>构建工具：Maven、npm 插件</li>
+<li>测试工具：JUnit、pytest 插件</li>
+<li>部署工具：Docker、Kubernetes、SSH 插件</li>
+<li>通知工具：Email、Slack 插件</li>
+</ul>
+<h3 id="节点nodes">节点（Nodes）
+</h3><p>Jenkins 可以通过 &ldquo;节点&rdquo; 扩展计算能力：</p>
+<ul>
+<li><strong>主节点（Master）</strong>：运行 Jenkins 核心服务的服务器</li>
+<li><strong>代理节点（Agent）</strong>：分担主节点的任务执行压力，可分布在不同机器上（支持 Windows、Linux、macOS），适合多环境测试（如同时在 Python 3.8 和 3.9 上运行测试）</li>
+</ul>
+<h1 id="jenkins-安装">Jenkins 安装
+</h1>
+    <blockquote>
+        <p>Jenkins 服务器，只是有 4GB内存。</p>
+
+    </blockquote>
+<h2 id="设置时区">设置时区
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 设置时区</span>
+</span></span><span class="line"><span class="cl">timedatectl set-timezone Asia/Shanghai
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 ntpdate</span>
+</span></span><span class="line"><span class="cl">yum install -y ntpdate
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 写入定时任务，每小时同步一下时间</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;0 * * * * /usr/sbin/ntpdate ntp.aliyun.com &gt;/dev/null 2&gt;&amp;1&#34;</span> <span class="p">|</span> crontab -
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装java">安装Java
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 下载 Temurin 17（根据系统架构选择，此处为 x64）</span>
+</span></span><span class="line"><span class="cl">wget <span class="s2">&#34;https://v4.gh-proxy.org/https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.2%2B10/OpenJDK25U-jdk_x64_linux_hotspot_25.0.2_10.tar.gz&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 解压到 /usr/local</span>
+</span></span><span class="line"><span class="cl">tar -xf OpenJDK25U-jdk_x64_linux_hotspot_25.0.2_10.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">mv /usr/local/jdk-25.0.2+10 /usr/local/jdk25
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置环境变量</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export JAVA_HOME=/usr/local/jdk25&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export PATH=$JAVA_HOME/bin:$PATH&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> /etc/profile
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证 Java 版本</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出应包含 17.0.11 字样</span>
+</span></span><span class="line"><span class="cl">java -version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="部署jenkins">部署Jenkins
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+</span></span><span class="line"><span class="cl">sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+</span></span><span class="line"><span class="cl">sudo yum upgrade --exclude<span class="o">=</span>kernel* --exclude<span class="o">=</span>kernel-*
+</span></span><span class="line"><span class="cl">sudo yum install fontconfig jenkins
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="启动jenkins">启动Jenkins
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 修改 Service ，指定 jenkins</span>
+</span></span><span class="line"><span class="cl">sed -i <span class="s1">&#39;s|^#Environment=&#34;JAVA_HOME=.*&#34;|Environment=&#34;JAVA_HOME=/usr/local/jdk25&#34;|g&#39;</span> /usr/lib/systemd/system/jenkins.service
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl start jenkins 
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> jenkins 
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="访问jenkins">访问Jenkins
+</h2><p><img class="gallery-image" data-flex-basis="2612px" data-flex-grow="1088" height="88" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975750747-61241f0e-1649-43e3-a60e-3b8429bf836d.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975750747-61241f0e-1649-43e3-a60e-3b8429bf836d_hu_7756bd633e819e77.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975750747-61241f0e-1649-43e3-a60e-3b8429bf836d.png 958w" width="958"></p>
+<p><img class="gallery-image" data-flex-basis="480px" data-flex-grow="200" height="660" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975712979-8cbbbb97-e8fe-47da-994a-8b858ed4e206.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975712979-8cbbbb97-e8fe-47da-994a-8b858ed4e206_hu_5e0114f25c79bda4.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975712979-8cbbbb97-e8fe-47da-994a-8b858ed4e206.png 1322w" width="1322"></p>
+<h2 id="安装常用的插件">安装常用的插件
+</h2><p><img class="gallery-image" data-flex-basis="382px" data-flex-grow="159" height="611" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975788553-b2f3d567-0781-4a2b-924b-37e1de442dbe.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975788553-b2f3d567-0781-4a2b-924b-37e1de442dbe_hu_23786990db1a85ed.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975788553-b2f3d567-0781-4a2b-924b-37e1de442dbe.png 975w" width="975"></p>
+<p><img class="gallery-image" data-flex-basis="445px" data-flex-grow="185" height="597" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975824512-916f9200-df6d-401f-a49d-652a21ac2c55.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975824512-916f9200-df6d-401f-a49d-652a21ac2c55_hu_1c57e1930cd2a0d7.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975824512-916f9200-df6d-401f-a49d-652a21ac2c55.png 1108w" width="1108"></p>
+<p><img class="gallery-image" data-flex-basis="316px" data-flex-grow="131" height="832" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975853061-e47ff144-dee8-4b69-a115-1ffaec067bcc.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975853061-e47ff144-dee8-4b69-a115-1ffaec067bcc_hu_126051051d3f33b4.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975853061-e47ff144-dee8-4b69-a115-1ffaec067bcc.png 1096w" width="1096"></p>
+<p><img class="gallery-image" data-flex-basis="458px" data-flex-grow="191" height="579" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975873064-25f8d604-cf02-4806-a28c-219b83871650.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975873064-25f8d604-cf02-4806-a28c-219b83871650_hu_876c298e6cb6574b.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975873064-25f8d604-cf02-4806-a28c-219b83871650.png 1106w" width="1106"></p>
+<p><img class="gallery-image" data-flex-basis="922px" data-flex-grow="384" height="203" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975884063-0ec37c4b-6dec-47b5-81b6-2314c7e0e820.png" width="780"></p>
+<p><img class="gallery-image" data-flex-basis="620px" data-flex-grow="258" height="411" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975962728-22a03795-cd54-4972-8a51-c17888e89601.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975962728-22a03795-cd54-4972-8a51-c17888e89601_hu_88605e21081e0069.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761975962728-22a03795-cd54-4972-8a51-c17888e89601.png 1063w" width="1063"></p>
+<h2 id="创建用户">创建用户
+</h2><p><img class="gallery-image" data-flex-basis="264px" data-flex-grow="110" height="904" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976720230-d38f19f4-8b95-4919-9f75-b9aa29a6b9c7.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976720230-d38f19f4-8b95-4919-9f75-b9aa29a6b9c7_hu_4e4d433dc92dbf9d.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976720230-d38f19f4-8b95-4919-9f75-b9aa29a6b9c7.png 995w" width="995"></p>
+<p><img class="gallery-image" data-flex-basis="262px" data-flex-grow="109" height="908" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976740962-f60b77f3-c734-4812-953e-cf72f8411305.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976740962-f60b77f3-c734-4812-953e-cf72f8411305_hu_3be59f863e6dfd1d.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976740962-f60b77f3-c734-4812-953e-cf72f8411305.png 993w" width="993"></p>
+<p><img class="gallery-image" data-flex-basis="263px" data-flex-grow="109" height="906" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976757441-1abd4cfe-362f-45bb-87e4-04f566a7fcea.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976757441-1abd4cfe-362f-45bb-87e4-04f566a7fcea_hu_afedfd0df83993f2.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976757441-1abd4cfe-362f-45bb-87e4-04f566a7fcea.png 993w" width="993"></p>
+<p><img class="gallery-image" data-flex-basis="487px" data-flex-grow="203" height="945" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976766587-1ddde8f7-5184-43bd-9806-7fba09e67124.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976766587-1ddde8f7-5184-43bd-9806-7fba09e67124_hu_7a74d4871498c712.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976766587-1ddde8f7-5184-43bd-9806-7fba09e67124_hu_cb57630aa62063f6.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976766587-1ddde8f7-5184-43bd-9806-7fba09e67124.png 1920w" width="1920"></p>
+<h1 id="创建第一个job">创建第一个Job
+</h1><p><img class="gallery-image" data-flex-basis="357px" data-flex-grow="148" height="566" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976792580-88415089-2ccc-4987-bf6d-15c602eb17bf.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976792580-88415089-2ccc-4987-bf6d-15c602eb17bf_hu_b5c5f6fcb1f7ed06.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976792580-88415089-2ccc-4987-bf6d-15c602eb17bf.png 843w" width="843"></p>
+<p><img class="gallery-image" data-flex-basis="341px" data-flex-grow="142" height="790" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976903791-a33c3f2d-cb15-43dd-9b02-2576d1deec70.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976903791-a33c3f2d-cb15-43dd-9b02-2576d1deec70_hu_be437b556401c3ce.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761976903791-a33c3f2d-cb15-43dd-9b02-2576d1deec70.png 1123w" width="1123"></p>
+<p><img class="gallery-image" data-flex-basis="542px" data-flex-grow="226" height="612" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977014136-810f055b-4588-4f18-bdd2-ceb1e1073367.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977014136-810f055b-4588-4f18-bdd2-ceb1e1073367_hu_4b1325a7da4670f.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977014136-810f055b-4588-4f18-bdd2-ceb1e1073367.png 1384w" width="1384"></p>
+<p><img class="gallery-image" data-flex-basis="566px" data-flex-grow="236" height="434" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977029559-a4c4e4cf-8d91-4c68-b5b4-b15654b73fca.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977029559-a4c4e4cf-8d91-4c68-b5b4-b15654b73fca_hu_3b14acd9b15ba6e6.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977029559-a4c4e4cf-8d91-4c68-b5b4-b15654b73fca.png 1025w" width="1025"></p>
+<p><img class="gallery-image" data-flex-basis="365px" data-flex-grow="152" height="427" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977050951-5f33a3dc-3dbc-457f-a9fd-3c751628486c.png" width="651"></p>
+<p><img class="gallery-image" data-flex-basis="308px" data-flex-grow="128" height="730" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977064425-7fea76b9-56ab-430c-8f33-fef163e129c0.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977064425-7fea76b9-56ab-430c-8f33-fef163e129c0_hu_366a987b0cacce8b.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761977064425-7fea76b9-56ab-430c-8f33-fef163e129c0.png 939w" width="939"></p>
+<p>运行成功。</p>
+<h1 id="利用openresty代理jenkins服务">利用OpenResty代理Jenkins服务
+</h1><p>使用OpenResty代理Jenkins服务主要出于安全性、性能和功能扩展的考虑。在安全层面，OpenResty作为反向代理可以隐藏Jenkins直接暴露在公网，提供SSL终端、WAF防护和IP白名单等安全加固；在性能方面，它能缓存静态资源、实现负载均衡和连接复用，显著降低Jenkins服务器的直接压力；同时，借助Lua脚本引擎，OpenResty还能添加自定义认证、限流和监控等增强功能，实现统一的访问入口和管理界面。这种架构不仅提升了Jenkins的稳定性和安全性，还为整个持续集成平台提供了企业级的可靠保障。</p>
+<h2 id="安装openresty">安装OpenResty
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo yum install yum-utils
+</span></span><span class="line"><span class="cl">sudo yum-config-manager --add-repo https://openresty.org/package/centos/openresty.repo
+</span></span><span class="line"><span class="cl">sudo yum install openresty openresty-resty
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+    <blockquote>
+        <p><strong>openresty-resty</strong> 是 OpenResty 软件包中的一个命令行工具，它提供了一个完整的、立即可用的 Perl 风格的 <strong>LuaJIT 执行环境</strong>，专门用于运行基于 OpenResty 的 Lua 脚本和应用程序。</p>
+
+    </blockquote>
+<h2 id="修改openresty的默认配置">修改Openresty的默认配置
+</h2>
+    <blockquote>
+        <p>vi /usr/local/openresty/nginx/conf/nginx.conf</p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="c1"># 指定一个无法登录的系统用户作为启动用户
+</span></span></span><span class="line"><span class="cl"><span class="k">user</span> <span class="s">jenkins</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置 worker 进程数
+</span></span></span><span class="line"><span class="cl"><span class="k">worker_processes</span> <span class="s">auto</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 事件配置块
+</span></span></span><span class="line"><span class="cl"><span class="k">events</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 每一个 worker 进程能够同时处理的最大进程数
+</span></span></span><span class="line"><span class="cl">	<span class="kn">worker_connections</span>  <span class="mi">1024</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 指定 I/O 模型
+</span></span></span><span class="line"><span class="cl">	<span class="kn">use</span> <span class="s">epoll</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 防止惊群效应
+</span></span></span><span class="line"><span class="cl">	<span class="kn">accept_mutex</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 批量分配链接数
+</span></span></span><span class="line"><span class="cl">	<span class="kn">multi_accept</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># HTTP 配置块
+</span></span></span><span class="line"><span class="cl"><span class="k">http</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 指定字符编码
+</span></span></span><span class="line"><span class="cl">	<span class="kn">charset</span> <span class="s">utf-8</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 隐藏OpenResty的版本号
+</span></span></span><span class="line"><span class="cl">	<span class="kn">server_tokens</span> <span class="no">off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 定义缓存路径和区域（必须添加这部分）
+</span></span></span><span class="line"><span class="cl">    <span class="kn">proxy_cache_path</span> <span class="s">/var/cache/nginx</span> <span class="s">levels=1:2</span> <span class="s">keys_zone=static_cache:10m</span> <span class="s">max_size=1g</span> <span class="s">inactive=60m</span> <span class="s">use_temp_path=off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 设置日志格式
+</span></span></span><span class="line"><span class="cl">	<span class="c1"># escape=json 是 NGINX log_format 指令的一个参数，它告诉 NGINX 在生成 JSON 日志时自动转义特殊字符，确保输出的 JSON 格式是有效的、可解析的。
+</span></span></span><span class="line"><span class="cl">	<span class="kn">log_format</span> <span class="s">json_combined</span> <span class="s">escape=json</span> <span class="s">&#39;</span><span class="p">{</span><span class="kn">&#34;timestamp&#34;:&#34;$time_iso8601&#34;,&#34;remote_addr&#34;:&#34;$remote_addr&#34;,&#34;remote_user&#34;:&#34;$remote_user&#34;,&#34;request&#34;:&#34;$request&#34;,&#34;status&#34;:&#34;$status&#34;,&#34;body_bytes_sent&#34;:&#34;$body_bytes_sent&#34;,&#34;request_time&#34;:&#34;$request_time&#34;,&#34;http_referer&#34;:&#34;$http_referer&#34;,&#34;http_user_agent&#34;:&#34;$http_user_agent&#34;,&#34;http_x_forwarded_for&#34;:&#34;$http_x_forwarded_for&#34;,&#34;server_name&#34;:&#34;$server_name&#34;,&#34;server_protocol&#34;:&#34;$server_protocol&#34;,&#34;upstream_addr&#34;:&#34;$upstream_addr&#34;,&#34;upstream_status&#34;:&#34;$upstream_status&#34;,&#34;upstream_response_time&#34;:&#34;$upstream_response_time&#34;,&#34;upstream_connect_time&#34;:&#34;$upstream_connect_time&#34;,&#34;upstream_header_time&#34;:&#34;$upstream_header_time&#34;,&#34;request_length&#34;:&#34;$request_length&#34;,&#34;request_method&#34;:&#34;$request_method&#34;,&#34;uri&#34;:&#34;$uri&#34;,&#34;query_string&#34;:&#34;$query_string&#34;,&#34;http_host&#34;:&#34;$http_host&#34;,&#34;scheme&#34;:&#34;$scheme&#34;,&#34;gzip_ratio&#34;:&#34;$gzip_ratio&#34;,&#34;connection&#34;:&#34;$connection&#34;,&#34;connection_requests&#34;:&#34;$connection_requests&#34;,&#34;pipe&#34;:&#34;$pipe&#34;}&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 设置日志的路径
+</span></span></span><span class="line"><span class="cl">	<span class="kn">access_log</span> <span class="s">/var/log/openresty/access.log</span> <span class="s">json_combined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 错误日志
+</span></span></span><span class="line"><span class="cl">	<span class="kn">error_log</span> <span class="s">/var/log/openresty/error.log</span> <span class="s">warn</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 启用 gzip 压缩
+</span></span></span><span class="line"><span class="cl">	<span class="kn">gzip</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 压缩级别：1-9，推荐 4-6（平衡性能与压缩率）
+</span></span></span><span class="line"><span class="cl">	<span class="kn">gzip_comp_level</span> <span class="mi">6</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 最小压缩文件大小：小于 1k 的文件不压缩（避免压缩开销大于收益）
+</span></span></span><span class="line"><span class="cl">	<span class="kn">gzip_min_length</span> <span class="mi">1k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 压缩缓冲区：4 个 16k 大小的缓冲区
+</span></span></span><span class="line"><span class="cl">	<span class="kn">gzip_buffers</span> <span class="mi">4</span> <span class="mi">16k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 压缩协议版本：支持 HTTP/1.0 及以上
+</span></span></span><span class="line"><span class="cl">	<span class="kn">gzip_http_version</span> <span class="mi">1</span><span class="s">.0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 对代理请求启用压缩（如反向代理场景）
+</span></span></span><span class="line"><span class="cl">	<span class="kn">gzip_proxied</span> <span class="s">any</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 在响应头添加 Vary: Accept-Encoding，帮助代理服务器正确缓存
+</span></span></span><span class="line"><span class="cl">	<span class="kn">gzip_vary</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 指定需要压缩的 MIME 类型（按需添加）
+</span></span></span><span class="line"><span class="cl">	<span class="kn">gzip_types</span> <span class="s">text/css</span> <span class="s">text/xml</span> <span class="s">text/javascript</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 载入 OpenResty 能够识别的文件的类型
+</span></span></span><span class="line"><span class="cl">	<span class="kn">include</span> <span class="s">mime.types</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># OpenResty 无法识别文件类型时，默认的文件类型
+</span></span></span><span class="line"><span class="cl">	<span class="kn">default_type</span>  <span class="s">application/octet-stream</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 提升系统文件句柄效率
+</span></span></span><span class="line"><span class="cl">	<span class="kn">sendfile</span>        <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 65秒无请求则关闭连接
+</span></span></span><span class="line"><span class="cl">	<span class="kn">keepalive_timeout</span> <span class="s">65s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 最多处理1000个请求后关闭连接
+</span></span></span><span class="line"><span class="cl">	<span class="kn">keepalive_requests</span> <span class="mi">1000</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 合并数据包发送（适合静态资源）
+</span></span></span><span class="line"><span class="cl">	<span class="kn">tcp_nopush</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 减少交互延迟（适合动态内容）
+</span></span></span><span class="line"><span class="cl">	<span class="kn">tcp_nodelay</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="c1"># 载入外部的HTTP配置块内部的配置
+</span></span></span><span class="line"><span class="cl">	<span class="kn">include</span> <span class="s">/usr/local/openresty/nginx/conf/conf.d/*.conf</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="创建openresty必要的目录">创建Openresty必要的目录
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir -p /usr/local/openresty/nginx/conf/conf.d/
+</span></span><span class="line"><span class="cl">mkdir -p /var/log/openresty/
+</span></span><span class="line"><span class="cl">mkdir -p /var/cache/nginx
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">chown -R jenkins.jenkins /var/log/openresty/ /usr/local/openresty/nginx/conf/conf.d/ /var/cache/nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="添加-jenkins-代理">添加 Jenkins 代理
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="c1"># 预定义WebSocket连接升级变量（Nginx 1.13+支持）
+</span></span></span><span class="line"><span class="cl"><span class="k">map</span> <span class="nv">$http_upgrade</span> <span class="nv">$connection_upgrade</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kn">default</span> <span class="s">upgrade</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="kn">&#39;&#39;</span> <span class="s">close</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">server</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">listen</span> <span class="mi">80</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">server_name</span> <span class="s">_</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1"># 安全头部（保留原有）
+</span></span></span><span class="line"><span class="cl">    <span class="kn">add_header</span> <span class="s">X-Frame-Options</span> <span class="s">DENY</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">add_header</span> <span class="s">X-Content-Type-Options</span> <span class="s">nosniff</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">add_header</span> <span class="s">X-XSS-Protection</span> <span class="s">&#34;1</span><span class="p">;</span> <span class="kn">mode=block&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">add_header</span> <span class="s">Referrer-Policy</span> <span class="s">&#34;strict-origin-when-cross-origin&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1"># 隐藏 Jenkins 版本信息（保留原有）
+</span></span></span><span class="line"><span class="cl">    <span class="kn">proxy_hide_header</span> <span class="s">X-Jenkins</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">proxy_hide_header</span> <span class="s">X-Jenkins-Session</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">proxy_hide_header</span> <span class="s">X-Instance-Identity</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 若Jenkins上下文路径为根路径（无前缀），直接重写为代理服务器地址
+</span></span></span><span class="line"><span class="cl">    <span class="kn">proxy_redirect</span> <span class="s">http://localhost:8080/</span> <span class="s">/</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 兼容Jenkins可能的非标准端口跳转（兜底）
+</span></span></span><span class="line"><span class="cl">    <span class="kn">proxy_redirect</span> <span class="s">http://localhost:8080</span> <span class="nv">$scheme://$host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_pass</span> <span class="s">http://localhost:8080</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># 关键代理头部（补充官方要求的核心字段）
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-For</span> <span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			  <span class="c1"># 必设：告知Jenkins原始协议（HTTP/HTTPS）
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-Proto</span> <span class="nv">$scheme</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1"># 必设：告知Jenkins原始主机名
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-Host</span> <span class="nv">$host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1"># 必设：告知Jenkins原始端口
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-Port</span> <span class="nv">$server_port</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-Server</span> <span class="nv">$host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># Jenkins CSRF 支持（保留原有）
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-CSRF-Token</span> <span class="nv">$http_x_csrf_token</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># 缓冲区设置（保留原有，优化响应处理）
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_buffering</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_buffer_size</span> <span class="mi">128k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_buffers</span> <span class="mi">4</span> <span class="mi">256k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_busy_buffers_size</span> <span class="mi">256k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># 超时设置（延长，适配Jenkins慢操作）
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_connect_timeout</span> <span class="s">60s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1"># 适配大文件上传/构建日志输出
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_send_timeout</span> <span class="s">300s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_read_timeout</span> <span class="s">300s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># WebSocket 支持（强化Jenkins兼容性，如实时日志、Agent连接）
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_http_version</span> <span class="mi">1</span><span class="s">.1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Upgrade</span> <span class="nv">$http_upgrade</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		    <span class="c1"># 动态适配Upgrade请求
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Connection</span> <span class="nv">$connection_upgrade</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1"># 静态资源缓存（保留原有，优化加载速度）
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="p">~</span><span class="sr">*</span> <span class="s">\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)</span>$ <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_pass</span> <span class="s">http://localhost:8080</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_cache</span> <span class="s">static_cache</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1"># 延长静态资源缓存时间
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_cache_valid</span> <span class="mi">200</span> <span class="mi">302</span> <span class="s">24h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_cache_valid</span> <span class="mi">404</span> <span class="mi">10m</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">expires</span> <span class="s">7d</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">add_header</span> <span class="s">X-Cache-Status</span> <span class="nv">$upstream_cache_status</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1"># 静态资源也需传递Host头，避免路径错误
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-Proto</span> <span class="nv">$scheme</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="启动openresty">启动Openresty
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now openresty
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="访问-jenkins">访问 Jenkins
+</h2><p><img class="gallery-image" data-flex-basis="418px" data-flex-grow="174" height="829" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979032855-977f771c-09f7-40d2-9256-f9ddacba260e.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979032855-977f771c-09f7-40d2-9256-f9ddacba260e_hu_2cc2264f1d68c2fd.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979032855-977f771c-09f7-40d2-9256-f9ddacba260e.png 1444w" width="1444"></p>
+<h1 id="jenkins中的权限管理">Jenkins中的权限管理
+</h1><p><strong>Role-based Authorization Strategy</strong> 是 Jenkins 最流行的权限管理插件，提供基于角色的访问控制（RBAC）。</p>
+<h2 id="安装-role-based-authorization-strategy-插件并启用">安装 Role-based Authorization Strategy 插件并启用
+</h2><p><img class="gallery-image" data-flex-basis="854px" data-flex-grow="356" height="539" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979230116-f868ca45-d702-4e09-b878-0ea3d963b29d.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979230116-f868ca45-d702-4e09-b878-0ea3d963b29d_hu_48f6bd9591ff7ad.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979230116-f868ca45-d702-4e09-b878-0ea3d963b29d_hu_66115cca20c755ab.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979230116-f868ca45-d702-4e09-b878-0ea3d963b29d.png 1920w" width="1920"></p>
+<p><img class="gallery-image" data-flex-basis="1436px" data-flex-grow="598" height="307" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979253216-ef8af37d-0659-49f1-a206-adf8de838251.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979253216-ef8af37d-0659-49f1-a206-adf8de838251_hu_bab745ad84d079ac.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979253216-ef8af37d-0659-49f1-a206-adf8de838251_hu_e4f5edb092ca8c5f.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979253216-ef8af37d-0659-49f1-a206-adf8de838251.png 1837w" width="1837"></p>
+<p><img class="gallery-image" data-flex-basis="652px" data-flex-grow="271" height="680" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979266931-99082f2b-5091-4955-88bb-14fbda12692a.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979266931-99082f2b-5091-4955-88bb-14fbda12692a_hu_3910a808eca7469e.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979266931-99082f2b-5091-4955-88bb-14fbda12692a_hu_7bb67e9629341ecc.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979266931-99082f2b-5091-4955-88bb-14fbda12692a.png 1848w" width="1848"></p>
+<p><img class="gallery-image" data-flex-basis="1052px" data-flex-grow="438" height="253" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979289384-72fa49ad-c7ae-4da1-a524-c6eef949965b.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979289384-72fa49ad-c7ae-4da1-a524-c6eef949965b_hu_a82d5021d8a8fe8a.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979289384-72fa49ad-c7ae-4da1-a524-c6eef949965b.png 1109w" width="1109"></p>
+<p><img class="gallery-image" data-flex-basis="1233px" data-flex-grow="514" height="356" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979365443-7d970066-b5fe-439f-b7f9-e4df26b9994a.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979365443-7d970066-b5fe-439f-b7f9-e4df26b9994a_hu_123d1135988e62c4.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979365443-7d970066-b5fe-439f-b7f9-e4df26b9994a_hu_63a35ed5fb348012.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979365443-7d970066-b5fe-439f-b7f9-e4df26b9994a.png 1830w" width="1830"></p>
+<p><img class="gallery-image" data-flex-basis="1016px" data-flex-grow="423" height="354" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979378755-13a44641-c43e-4eba-8771-1adad4566711.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979378755-13a44641-c43e-4eba-8771-1adad4566711_hu_d1a5be1ed72b9cbe.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979378755-13a44641-c43e-4eba-8771-1adad4566711.png 1499w" width="1499"></p>
+<h2 id="创建用户-1">创建用户
+</h2><p><img class="gallery-image" data-flex-basis="1413px" data-flex-grow="589" height="320" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979477242-4844d70d-b589-4011-a504-92a818a23f17.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979477242-4844d70d-b589-4011-a504-92a818a23f17_hu_3feab2bf185a53d4.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979477242-4844d70d-b589-4011-a504-92a818a23f17_hu_30bf8513b2c4c915.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979477242-4844d70d-b589-4011-a504-92a818a23f17.png 1885w" width="1885"></p>
+<p><img class="gallery-image" data-flex-basis="875px" data-flex-grow="364" height="519" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979486947-ee5ad9ae-198a-4ea6-9469-1359a89a5878.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979486947-ee5ad9ae-198a-4ea6-9469-1359a89a5878_hu_7953d0d157ba4cf3.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979486947-ee5ad9ae-198a-4ea6-9469-1359a89a5878_hu_ef387b7ca72c8734.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979486947-ee5ad9ae-198a-4ea6-9469-1359a89a5878.png 1893w" width="1893"></p>
+<p><img class="gallery-image" data-flex-basis="397px" data-flex-grow="165" height="666" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979544842-16bc8064-af34-4f6e-8af6-c9c7d42de19f.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979544842-16bc8064-af34-4f6e-8af6-c9c7d42de19f_hu_16ced18bb40bedf0.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979544842-16bc8064-af34-4f6e-8af6-c9c7d42de19f.png 1103w" width="1103"></p>
+<p><img class="gallery-image" data-flex-basis="364px" data-flex-grow="152" height="613" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979574148-a00990c1-691d-4b01-84b2-ec14ca6586ff.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979574148-a00990c1-691d-4b01-84b2-ec14ca6586ff_hu_3c188ca256a245a9.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979574148-a00990c1-691d-4b01-84b2-ec14ca6586ff.png 932w" width="932"></p>
+<p><img class="gallery-image" data-flex-basis="952px" data-flex-grow="396" height="425" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979586543-2167ed1a-2078-4e81-8ac6-e60d2f171419.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979586543-2167ed1a-2078-4e81-8ac6-e60d2f171419_hu_f16ec3ada231bd49.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979586543-2167ed1a-2078-4e81-8ac6-e60d2f171419_hu_adc88d54390dd173.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979586543-2167ed1a-2078-4e81-8ac6-e60d2f171419.png 1686w" width="1686"></p>
+<h2 id="创建两个测试job">创建两个测试JOB
+</h2><p><img class="gallery-image" data-flex-basis="797px" data-flex-grow="332" height="425" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979648888-03ab1018-1879-4e53-9673-6443e64f419f.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979648888-03ab1018-1879-4e53-9673-6443e64f419f_hu_ad01fe2fba9e910d.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979648888-03ab1018-1879-4e53-9673-6443e64f419f.png 1412w" width="1412"></p>
+<h2 id="创建权限">创建权限
+</h2>
+    <blockquote>
+        <p>test01 用户对 test01-helloworld 项目有权限。<br>
+test02 用户对 test02-helloworld 项目有权限。</p>
+
+    </blockquote>
+<p><img class="gallery-image" data-flex-basis="1412px" data-flex-grow="588" height="326" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979744574-f4d8e299-305c-4d29-94b9-f3e79e6709ab.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979744574-f4d8e299-305c-4d29-94b9-f3e79e6709ab_hu_11457fb8f73b7b4a.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979744574-f4d8e299-305c-4d29-94b9-f3e79e6709ab_hu_6afa76d86ec7c8c5.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979744574-f4d8e299-305c-4d29-94b9-f3e79e6709ab.png 1919w" width="1919"></p>
+<p><img class="gallery-image" data-flex-basis="621px" data-flex-grow="258" height="542" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979867781-c81fec49-ae84-4a9b-a5fb-ada982b6cd43.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979867781-c81fec49-ae84-4a9b-a5fb-ada982b6cd43_hu_7b90fa24fde17d30.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979867781-c81fec49-ae84-4a9b-a5fb-ada982b6cd43.png 1403w" width="1403"></p>
+<p><img class="gallery-image" data-flex-basis="791px" data-flex-grow="329" height="463" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979905895-05264ea3-9ff6-405c-94e9-08fd3a523b4f.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979905895-05264ea3-9ff6-405c-94e9-08fd3a523b4f_hu_3d2e132acb9e0372.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761979905895-05264ea3-9ff6-405c-94e9-08fd3a523b4f.png 1526w" width="1526"></p>
+<p><img class="gallery-image" data-flex-basis="953px" data-flex-grow="397" height="331" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761980929742-56a89a4f-3f73-4aed-8e5a-cbee3333cde7.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761980929742-56a89a4f-3f73-4aed-8e5a-cbee3333cde7_hu_b4b6155ac70129ca.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761980929742-56a89a4f-3f73-4aed-8e5a-cbee3333cde7.png 1315w" width="1315"></p>
+<h2 id="权限解释">权限解释
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>权限类别</th>
+					<th>权限名称</th>
+					<th>英文名称</th>
+					<th>详细说明</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>凭据</strong></td>
+					<td>创建</td>
+					<td>Create</td>
+					<td>创建新的凭据（密码、SSH密钥、API令牌等）</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>删除</td>
+					<td>Delete</td>
+					<td>删除现有凭据</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>管理域</td>
+					<td>ManageDomains</td>
+					<td>管理凭据域（组织和管理凭据的命名空间）</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>更新</td>
+					<td>Update</td>
+					<td>修改现有凭据信息</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>查看</td>
+					<td>View</td>
+					<td>查看凭据信息（但看不到敏感内容如密码）</td>
+			</tr>
+			<tr>
+					<td><strong>任务</strong></td>
+					<td>构建</td>
+					<td>Build</td>
+					<td>触发任务执行构建过程</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>取消</td>
+					<td>Cancel</td>
+					<td>取消正在运行的构建任务</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>配置</td>
+					<td>Configure</td>
+					<td>修改任务的配置设置</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>创建</td>
+					<td>Create</td>
+					<td>创建新的任务</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>删除</td>
+					<td>Delete</td>
+					<td>永久删除任务及其构建历史</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>发现</td>
+					<td>Discover</td>
+					<td>在任务列表中看到任务（无Read权限时不能查看详情）</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>移动</td>
+					<td>Move</td>
+					<td>移动或重命名任务</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>读取</td>
+					<td>Read</td>
+					<td>查看任务详情、构建历史、控制台输出等</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>工作空间</td>
+					<td>Workspace</td>
+					<td>访问任务的工作空间文件和构建产物</td>
+			</tr>
+			<tr>
+					<td><strong>运行</strong></td>
+					<td>删除</td>
+					<td>Delete</td>
+					<td>删除构建记录和历史数据</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>重放</td>
+					<td>Replay</td>
+					<td>使用相同参数重新运行构建</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>更新</td>
+					<td>Update</td>
+					<td>更新构建信息（如描述、参数等）</td>
+			</tr>
+			<tr>
+					<td><strong>视图</strong></td>
+					<td>配置</td>
+					<td>Configure</td>
+					<td>配置视图（添加/移除任务，修改视图设置）</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>创建</td>
+					<td>Create</td>
+					<td>创建新的视图</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>删除</td>
+					<td>Delete</td>
+					<td>删除视图</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td>读取</td>
+					<td>Read</td>
+					<td>查看视图内容和包含的任务</td>
+			</tr>
+			<tr>
+					<td><strong>SCM</strong></td>
+					<td>标签</td>
+					<td>Tag</td>
+					<td>在源码管理系统中创建标签</td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="为用户分配角色">为用户分配角色
+</h2><p><img class="gallery-image" data-flex-basis="615px" data-flex-grow="256" height="372" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981064998-2ca11151-7c39-469f-825d-6d5162e61867.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981064998-2ca11151-7c39-469f-825d-6d5162e61867_hu_7fe1feb71abe0c0a.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981064998-2ca11151-7c39-469f-825d-6d5162e61867.png 954w" width="954"></p>
+<p><img class="gallery-image" data-flex-basis="521px" data-flex-grow="217" height="368" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981092077-0cc0c77e-6e83-4e5b-824d-926b89f7ea00.png" width="799"></p>
+<p><img class="gallery-image" data-flex-basis="574px" data-flex-grow="239" height="331" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981119784-31b9ac2b-13dd-4256-8417-8a3179a7fd31.png" width="793"></p>
+<h2 id="测试权限">测试权限
+</h2><p><img class="gallery-image" data-flex-basis="602px" data-flex-grow="251" height="596" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761980965568-dc7ff574-8ec3-4c27-b060-547e19be7b40.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761980965568-dc7ff574-8ec3-4c27-b060-547e19be7b40_hu_35680f8e2442bb2e.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761980965568-dc7ff574-8ec3-4c27-b060-547e19be7b40.png 1497w" width="1497"></p>
+<p><img class="gallery-image" data-flex-basis="854px" data-flex-grow="356" height="539" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981157021-08f350b4-98ee-454a-b278-8faa0f78eeba.png" srcset="/p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981157021-08f350b4-98ee-454a-b278-8faa0f78eeba_hu_76bb9d5fa8ec1eda.png 800w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981157021-08f350b4-98ee-454a-b278-8faa0f78eeba_hu_9e433a5958d38ea1.png 1600w, /p/jenkins-%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E4%B8%8E%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E5%AE%9E%E6%88%98%E4%BB%8E%E5%AE%89%E8%A3%85openresty-%E4%BB%A3%E7%90%86%E5%88%B0-rbac-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6/1761981157021-08f350b4-98ee-454a-b278-8faa0f78eeba.png 1920w" width="1920"></p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/jenkins/">Jenkins</a>
+        
+            <a href="/tags/devops/">DevOps</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Ansible 自动化运维工具完整指南：从入门到进阶" height="150" loading="lazy" src="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_e2a1bee1fe3585f8.png" srcset="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_e2a1bee1fe3585f8.png 1x, /p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_de650e022964904a.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #34343480 0%, #fcfcfcC0 100%);">
+            <h2 class="article-title">Ansible 自动化运维工具完整指南：从入门到进阶</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8s 高级调度策略：标签、亲和性、污点与容忍度" height="150" loading="lazy" src="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_5f4a284001b09311.png" srcset="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_5f4a284001b09311.png 1x, /p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_38900f2844a9c2a7.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #336ee580 0%, #fefeffC0 100%);">
+            <h2 class="article-title">K8s 高级调度策略：标签、亲和性、污点与容忍度</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8S入门与快速部署" height="150" loading="lazy" src="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png" srcset="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png 1x, /p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_38900f2844a9c2a7.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #336ee580 0%, #fefeffC0 100%);">
+            <h2 class="article-title">K8S入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Harbor 企业级镜像仓库部署与配置" height="150" loading="lazy" src="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/52d5a28a-9c8b-48a3-b600-4cdd22d47329_hu_7f2a34b91b26509.png" srcset="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/52d5a28a-9c8b-48a3-b600-4cdd22d47329_hu_7f2a34b91b26509.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #69666780 0%, #fafbfcC0 100%);">
+            <h2 class="article-title">Harbor 企业级镜像仓库部署与配置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/docker-%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E4%B8%8E-docker-compose-%E7%BC%96%E6%8E%92%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Docker 容器技术与 Docker Compose 编排指南" height="150" loading="lazy" src="/p/docker-%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E4%B8%8E-docker-compose-%E7%BC%96%E6%8E%92%E6%8C%87%E5%8D%97/docker_logo_hu_f8c72df5e33f2ef1.png" srcset="/p/docker-%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E4%B8%8E-docker-compose-%E7%BC%96%E6%8E%92%E6%8C%87%E5%8D%97/docker_logo_hu_f8c72df5e33f2ef1.png 1x, /p/docker-%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E4%B8%8E-docker-compose-%E7%BC%96%E6%8E%92%E6%8C%87%E5%8D%97/docker_logo_hu_82371a3d54d2a7a5.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #0092e680 0%, #0092e6C0 100%);">
+            <h2 class="article-title">Docker 容器技术与 Docker Compose 编排指南</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
