@@ -1,0 +1,2502 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="在 Kubernetes 中，手动维护 Prometheus 的配置文件（ConfigMap）和自建服务发现非常繁琐。\nPrometheus Operator 的核心思想是引入 Custom Resource Definitions (CRDs)。你不再需要直接修改 Prometheus 配置文件，而是通过声明 Kubernetes 资源来管理监控：\n">
+<title>Kubernetes 声明式监控：Prometheus Operator 完整实战指南</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Kubernetes 声明式监控：Prometheus Operator 完整实战指南">
+<meta property='og:description' content="在 Kubernetes 中，手动维护 Prometheus 的配置文件（ConfigMap）和自建服务发现非常繁琐。\nPrometheus Operator 的核心思想是引入 Custom Resource Definitions (CRDs)。你不再需要直接修改 Prometheus 配置文件，而是通过声明 Kubernetes 资源来管理监控：\n">
+<meta property='og:url' content='https://erha6657.github.io/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='K8S' /><meta property='article:tag' content='监控' /><meta property='article:published_time' content='2026-06-25T19:30:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T19:30:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/prometheus_logo.png' />
+<meta name="twitter:title" content="Kubernetes 声明式监控：Prometheus Operator 完整实战指南">
+<meta name="twitter:description" content="在 Kubernetes 中，手动维护 Prometheus 的配置文件（ConfigMap）和自建服务发现非常繁琐。\nPrometheus Operator 的核心思想是引入 Custom Resource Definitions (CRDs)。你不再需要直接修改 Prometheus 配置文件，而是通过声明 Kubernetes 资源来管理监控：\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/prometheus_logo.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#下载清单文件">下载清单文件</a></li>
+    <li><a href="#移除-kube-prometheus">移除 Kube-Prometheus</a></li>
+    <li><a href="#添加网络策略">添加网络策略</a></li>
+    <li><a href="#添加-ingress">添加 Ingress</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#部署被监控的服务">部署被监控的服务</a></li>
+    <li><a href="#添加-mysql-exporter">添加 MySQL Exporter</a></li>
+    <li><a href="#创建-servicemonitor">创建 ServiceMonitor</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#创建告警规则-prometheusrule">创建告警规则 (PrometheusRule)</a></li>
+    <li><a href="#手动触发告警">手动触发告警</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#添加-alertmanager-的配置文件">添加 Alertmanager 的配置文件</a></li>
+    <li><a href="#修改-alertmanager-pod-模版配置文件">修改 Alertmanager Pod 模版配置文件</a></li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/">
+            <img alt="Featured image of post Kubernetes 声明式监控：Prometheus Operator 完整实战指南" height="450" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/prometheus_logo.png" width="750">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E7%9B%91%E6%8E%A7/" style="background-color: hsl(51, 60%, 84%); color: hsl(51, 60%, 15%);">
+                监控
+            </a>
+        
+            
+            
+            
+            <a href="/categories/k8s/" style="background-color: hsl(343, 60%, 84%); color: hsl(343, 60%, 15%);">
+                K8s
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/">Kubernetes 声明式监控：Prometheus Operator 完整实战指南</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T19:30:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 10 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#下载清单文件">下载清单文件</a></li>
+    <li><a href="#移除-kube-prometheus">移除 Kube-Prometheus</a></li>
+    <li><a href="#添加网络策略">添加网络策略</a></li>
+    <li><a href="#添加-ingress">添加 Ingress</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#部署被监控的服务">部署被监控的服务</a></li>
+    <li><a href="#添加-mysql-exporter">添加 MySQL Exporter</a></li>
+    <li><a href="#创建-servicemonitor">创建 ServiceMonitor</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#创建告警规则-prometheusrule">创建告警规则 (PrometheusRule)</a></li>
+    <li><a href="#手动触发告警">手动触发告警</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#添加-alertmanager-的配置文件">添加 Alertmanager 的配置文件</a></li>
+    <li><a href="#修改-alertmanager-pod-模版配置文件">修改 Alertmanager Pod 模版配置文件</a></li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p>在 Kubernetes 中，手动维护 Prometheus 的配置文件（ConfigMap）和自建服务发现非常繁琐。</p>
+<p>Prometheus Operator 的核心思想是引入 Custom Resource Definitions (CRDs)。你不再需要直接修改 Prometheus 配置文件，而是通过声明 Kubernetes 资源来管理监控：</p>
+<ul>
+<li><strong>Prometheus</strong>: 定义一个 Prometheus 实例。</li>
+<li><strong>ServiceMonitor / PodMonitor</strong>: 声明式地定义谁需要被监控（通过 Label 筛选 Service）。</li>
+<li><strong>PrometheusRule</strong>: 定义告警规则。</li>
+<li><strong>Alertmanager</strong>: 定义告警通知实例。</li>
+</ul>
+<hr>
+<h1 id="安装-prometheus-operator">安装 Prometheus Operator
+</h1><p>我们将使用官方提供的 <code>kube-prometheus</code> 项目中的清单文件进行快速部署。</p>
+
+    <blockquote>
+        <p>官网链接：<a class="link" href="https://prometheus-operator.dev/docs/getting-started/installation/"  target="_blank" rel="noopener"
+    >https://prometheus-operator.dev/docs/getting-started/installation/</a></p>
+
+    </blockquote>
+<h2 id="下载清单文件">下载清单文件
+</h2><p>你可以从 GitHub 克隆 kube-prometheus：</p>
+<p>没有外网的同学可以直接下载：<a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/zip/682281/1780491343779-d6e4a3c5-3f7e-4816-9119-e850b2c0c0e3.zip"  target="_blank" rel="noopener"
+    >kube-prometheus-release-0.16.zip</a></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git clone https://github.com/prometheus-operator/kube-prometheus.git
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>文件下载到电脑后，切换到项目根目录并运行以下命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 创建命名空间和 CRDs，并等待直到它们就绪</span>
+</span></span><span class="line"><span class="cl">kubectl apply --server-side -f manifests/setup
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 等待“servicemonitors”CRD（Custom Resource Definition，自定义资源定义）创建完成。</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 在此上下文中，“No resources found”消息表示创建成功。</span>
+</span></span><span class="line"><span class="cl"><span class="k">until</span> kubectl get servicemonitors --all-namespaces <span class="p">;</span> <span class="k">do</span> date<span class="p">;</span> sleep 1<span class="p">;</span> <span class="nb">echo</span> <span class="s2">&#34;&#34;</span><span class="p">;</span> <span class="k">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>部署 kube-prometheus：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">kubectl apply -f manifests/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">kubectl --namespace monitoring port-forward --address 0.0.0.0 svc/grafana <span class="m">3000</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">kubectl --namespace monitoring port-forward --address 0.0.0.0 svc/prometheus-k8s <span class="m">9090</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>验证其正确性：</p>
+<p><img class="gallery-image" data-flex-basis="827px" data-flex-grow="344" height="279" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771902771280-70f94573-033c-4889-80e9-15c7f28949ef.png" srcset="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771902771280-70f94573-033c-4889-80e9-15c7f28949ef_hu_d2da4e5acf6fa74e.png 800w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771902771280-70f94573-033c-4889-80e9-15c7f28949ef.png 962w" width="962"></p>
+<h2 id="移除-kube-prometheus">移除 Kube-Prometheus
+</h2><p>如果您已完成 kube-prometheus 和 Prometheus Operator 的实验，可以通过运行以下命令来简单地销毁部署：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">kubectl delete --ignore-not-found<span class="o">=</span><span class="nb">true</span> -f manifests/ -f manifests/setup
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="添加网络策略">添加网络策略
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.k8s.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">NetworkPolicy</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">allow-ingress-global</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{}<span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">policyTypes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">Egress</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">Ingress</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ingress</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">from</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">namespaceSelector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">kubernetes.io/metadata.name</span><span class="p">:</span><span class="w"> </span><span class="l">ingress-nginx</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">TCP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">9090</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">TCP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">8080</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">TCP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">3000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">TCP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">9093</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="添加-ingress">添加 Ingress
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.k8s.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Ingress</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">monitor-ingress</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ingressClassName</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;nginx&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">rules</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Prometheus</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l">prom.monitor.local</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">http</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">paths</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">/</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l">Prefix</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">backend</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">service</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">prometheus-k8s</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">port</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">number</span><span class="p">:</span><span class="w"> </span><span class="m">9090</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Grafana</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l">grafana.monitor.local</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">http</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">paths</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">/</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l">Prefix</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">backend</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">service</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">grafana</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">port</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">number</span><span class="p">:</span><span class="w"> </span><span class="m">3000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Alertmanager</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l">alert.monitor.local</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">http</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">paths</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">/</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l">Prefix</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">backend</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">service</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager-main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">port</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">number</span><span class="p">:</span><span class="w"> </span><span class="m">9093</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h1 id="添加监控">添加监控
+</h1><p>将我们的业务容器添加到 Prometheus 监控项之中。</p>
+<h2 id="部署被监控的服务">部署被监控的服务
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Secret</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-secret</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">Opaque</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">data</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">mysql-root-password</span><span class="p">:</span><span class="w"> </span><span class="l">Q2hlbjEyMzQ1NiE=</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Deployment</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">crpi-wl4a34mb2jmdfya1.cn-hangzhou.personal.cr.aliyuncs.com/chenyang-hellochina/mysql:8.4.7</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">MYSQL_ROOT_PASSWORD</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">valueFrom</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-secret</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-root-password</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">requests</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l">100m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l">256Mi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l">500m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l">512Mi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">livenessProbe</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">tcpSocket</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="m">30</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="m">10</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">readinessProbe</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">tcpSocket</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">ClusterIP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">targetPort</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">TCP</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="添加-mysql-exporter">添加 MySQL Exporter
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Secret</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-secret</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">Opaque</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">data</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">mysql-root-password</span><span class="p">:</span><span class="w"> </span><span class="l">Q2hlbjEyMzQ1NiE=</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Deployment</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">crpi-wl4a34mb2jmdfya1.cn-hangzhou.personal.cr.aliyuncs.com/chenyang-hellochina/mysql:8.4.7</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">MYSQL_ROOT_PASSWORD</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">valueFrom</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-secret</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-root-password</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">requests</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l">100m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l">256Mi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l">500m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l">512Mi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">livenessProbe</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">tcpSocket</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="m">50</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="m">10</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">readinessProbe</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">tcpSocket</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysqld-exporter</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/prom/mysqld-exporter:v0.17.2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">9104</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">metrics</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="s2">&#34;--mysqld.address=localhost:3306&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="s2">&#34;--mysqld.username=root&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">MYSQLD_EXPORTER_PASSWORD</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">valueFrom</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-secret</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-root-password</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">requests</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l">50m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l">64Mi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l">100m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l">128Mi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">livenessProbe</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">httpGet</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">/metrics</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l">metrics</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="m">15</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="m">15</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-svc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">ClusterIP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">targetPort</span><span class="p">:</span><span class="w"> </span><span class="m">3306</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">TCP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">metrics</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">9104</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">targetPort</span><span class="p">:</span><span class="w"> </span><span class="m">9104</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="创建-servicemonitor">创建 ServiceMonitor
+</h2><p>这是 Prometheus Operator 的核心。它会告诉 Prometheus ：“去抓取带有 <code>app: mysql</code> 标签的服务”。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring.coreos.com/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ServiceMonitor</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-monitor</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">release</span><span class="p">:</span><span class="w"> </span><span class="l">prometheus</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-svc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespaceSelector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchNames</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">endpoints</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l">metrics</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l">30s</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">/metrics</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="1221px" data-flex-grow="509" height="377" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771906974828-236ccfcc-f0d7-45a0-84fd-ba7aec7b6335.png" srcset="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771906974828-236ccfcc-f0d7-45a0-84fd-ba7aec7b6335_hu_87c156154a3eb7f0.png 800w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771906974828-236ccfcc-f0d7-45a0-84fd-ba7aec7b6335_hu_10072f73f79be917.png 1600w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771906974828-236ccfcc-f0d7-45a0-84fd-ba7aec7b6335.png 1919w" width="1919"></p>
+<hr>
+<h1 id="添加告警规则">添加告警规则
+</h1><p>在 Prometheus Operator 中，告警规则通过 <code>PrometheusRule</code> 这个 CRD 来实现。它会自动被 Operator 发现并注入到 Prometheus 的配置文件中。</p>
+<h2 id="创建告警规则-prometheusrule">创建告警规则 (PrometheusRule)
+</h2><p>请将以下内容保存为 <code>mysql-alerts.yaml</code> 并执行 <code>kubectl apply -f mysql-alerts.yaml</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring.coreos.com/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">PrometheusRule</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql-up-alerts</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">release</span><span class="p">:</span><span class="w"> </span><span class="l">prometheus</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l">alert-rules</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">groups</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mysql.rules</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">rules</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">alert</span><span class="p">:</span><span class="w"> </span><span class="l">MySQLDown</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">expr</span><span class="p">:</span><span class="w"> </span><span class="l">mysql_up == 0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">for</span><span class="p">:</span><span class="w"> </span><span class="l">1m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="l">critical</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">annotations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">summary</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;MySQL 实例挂了！ (实例: {{ $labels.instance }})&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;MySQL 服务 {{ $labels.job }} 在命名空间 {{ $labels.namespace }} 中已停止运行或无法连接。&#34;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="672px" data-flex-grow="280" height="684" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771907318195-4d7638dc-a68d-4c5f-8355-1bd890707807.png" srcset="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771907318195-4d7638dc-a68d-4c5f-8355-1bd890707807_hu_a032074aa4f0d561.png 800w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771907318195-4d7638dc-a68d-4c5f-8355-1bd890707807_hu_31179e766b6bd474.png 1600w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771907318195-4d7638dc-a68d-4c5f-8355-1bd890707807.png 1918w" width="1918"></p>
+<h2 id="手动触发告警">手动触发告警
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">kubectl scale deployment mysql --replicas<span class="o">=</span><span class="m">0</span> -n default
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="522px" data-flex-grow="217" height="881" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771909761463-0e477a88-55a3-417f-bf18-072e01cfae74.png" srcset="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771909761463-0e477a88-55a3-417f-bf18-072e01cfae74_hu_acc2796b3969581e.png 800w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771909761463-0e477a88-55a3-417f-bf18-072e01cfae74_hu_339ffa5fa4c0be2e.png 1600w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771909761463-0e477a88-55a3-417f-bf18-072e01cfae74.png 1917w" width="1917"></p>
+<hr>
+<h1 id="添加通知规则">添加通知规则
+</h1><h2 id="添加-alertmanager-的配置文件">添加 Alertmanager 的配置文件
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span><span class="lnt">158
+</span><span class="lnt">159
+</span><span class="lnt">160
+</span><span class="lnt">161
+</span><span class="lnt">162
+</span><span class="lnt">163
+</span><span class="lnt">164
+</span><span class="lnt">165
+</span><span class="lnt">166
+</span><span class="lnt">167
+</span><span class="lnt">168
+</span><span class="lnt">169
+</span><span class="lnt">170
+</span><span class="lnt">171
+</span><span class="lnt">172
+</span><span class="lnt">173
+</span><span class="lnt">174
+</span><span class="lnt">175
+</span><span class="lnt">176
+</span><span class="lnt">177
+</span><span class="lnt">178
+</span><span class="lnt">179
+</span><span class="lnt">180
+</span><span class="lnt">181
+</span><span class="lnt">182
+</span><span class="lnt">183
+</span><span class="lnt">184
+</span><span class="lnt">185
+</span><span class="lnt">186
+</span><span class="lnt">187
+</span><span class="lnt">188
+</span><span class="lnt">189
+</span><span class="lnt">190
+</span><span class="lnt">191
+</span><span class="lnt">192
+</span><span class="lnt">193
+</span><span class="lnt">194
+</span><span class="lnt">195
+</span><span class="lnt">196
+</span><span class="lnt">197
+</span><span class="lnt">198
+</span><span class="lnt">199
+</span><span class="lnt">200
+</span><span class="lnt">201
+</span><span class="lnt">202
+</span><span class="lnt">203
+</span><span class="lnt">204
+</span><span class="lnt">205
+</span><span class="lnt">206
+</span><span class="lnt">207
+</span><span class="lnt">208
+</span><span class="lnt">209
+</span><span class="lnt">210
+</span><span class="lnt">211
+</span><span class="lnt">212
+</span><span class="lnt">213
+</span><span class="lnt">214
+</span><span class="lnt">215
+</span><span class="lnt">216
+</span><span class="lnt">217
+</span><span class="lnt">218
+</span><span class="lnt">219
+</span><span class="lnt">220
+</span><span class="lnt">221
+</span><span class="lnt">222
+</span><span class="lnt">223
+</span><span class="lnt">224
+</span><span class="lnt">225
+</span><span class="lnt">226
+</span><span class="lnt">227
+</span><span class="lnt">228
+</span><span class="lnt">229
+</span><span class="lnt">230
+</span><span class="lnt">231
+</span><span class="lnt">232
+</span><span class="lnt">233
+</span><span class="lnt">234
+</span><span class="lnt">235
+</span><span class="lnt">236
+</span><span class="lnt">237
+</span><span class="lnt">238
+</span><span class="lnt">239
+</span><span class="lnt">240
+</span><span class="lnt">241
+</span><span class="lnt">242
+</span><span class="lnt">243
+</span><span class="lnt">244
+</span><span class="lnt">245
+</span><span class="lnt">246
+</span><span class="lnt">247
+</span><span class="lnt">248
+</span><span class="lnt">249
+</span><span class="lnt">250
+</span><span class="lnt">251
+</span><span class="lnt">252
+</span><span class="lnt">253
+</span><span class="lnt">254
+</span><span class="lnt">255
+</span><span class="lnt">256
+</span><span class="lnt">257
+</span><span class="lnt">258
+</span><span class="lnt">259
+</span><span class="lnt">260
+</span><span class="lnt">261
+</span><span class="lnt">262
+</span><span class="lnt">263
+</span><span class="lnt">264
+</span><span class="lnt">265
+</span><span class="lnt">266
+</span><span class="lnt">267
+</span><span class="lnt">268
+</span><span class="lnt">269
+</span><span class="lnt">270
+</span><span class="lnt">271
+</span><span class="lnt">272
+</span><span class="lnt">273
+</span><span class="lnt">274
+</span><span class="lnt">275
+</span><span class="lnt">276
+</span><span class="lnt">277
+</span><span class="lnt">278
+</span><span class="lnt">279
+</span><span class="lnt">280
+</span><span class="lnt">281
+</span><span class="lnt">282
+</span><span class="lnt">283
+</span><span class="lnt">284
+</span><span class="lnt">285
+</span><span class="lnt">286
+</span><span class="lnt">287
+</span><span class="lnt">288
+</span><span class="lnt">289
+</span><span class="lnt">290
+</span><span class="lnt">291
+</span><span class="lnt">292
+</span><span class="lnt">293
+</span><span class="lnt">294
+</span><span class="lnt">295
+</span><span class="lnt">296
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Secret</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager-main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">Opaque</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">stringData</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">alertmanager.yaml</span><span class="p">:</span><span class="w"> </span><span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # Alertmanager 全局配置
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    global:
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # SMTP 服务器地址和端口
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 格式: &#39;主机名:端口&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 465端口是SSL加密端口，587端口是STARTTLS端口
+</span></span></span><span class="line"><span class="cl"><span class="sd">      smtp_smarthost: &#39;smtp.163.com:465&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 发件人邮箱地址
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 必须与smtp_auth_username一致或属于同一账户
+</span></span></span><span class="line"><span class="cl"><span class="sd">      smtp_from: &#39;chenyangqit@163.com&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # SMTP认证用户名（通常是完整的邮箱地址）
+</span></span></span><span class="line"><span class="cl"><span class="sd">      smtp_auth_username: &#39;chenyangqit@163.com&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # SMTP认证密码或授权码
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 对于163邮箱，需要使用授权码而不是登录密码
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 授权码可以在邮箱设置中生成
+</span></span></span><span class="line"><span class="cl"><span class="sd">      smtp_auth_password: &#39;PTsexxxxx95panw&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 是否要求TLS加密
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 使用465端口时设为false（因为465端口使用隐式SSL）
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 使用587端口时设为true（因为587端口使用显式STARTTLS）
+</span></span></span><span class="line"><span class="cl"><span class="sd">      smtp_require_tls: false
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 告警路由配置
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    route:
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 告警分组依据的标签列表
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 具有相同这些标签值的告警会被分到同一组
+</span></span></span><span class="line"><span class="cl"><span class="sd">      group_by: [&#39;alertname&#39;, &#39;namespace&#39;]
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 初次等待时间：当第一个告警到达后，等待多长时间才发送通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 这样可以将同一时间段的多个相关告警合并发送
+</span></span></span><span class="line"><span class="cl"><span class="sd">      group_wait: 10s
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 组间隔时间：在发送第一个通知后，等待多长时间才发送更新的通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 用于控制告警更新的频率
+</span></span></span><span class="line"><span class="cl"><span class="sd">      group_interval: 10s
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 重复间隔：如果告警持续触发，重复发送通知的时间间隔
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 避免对持续存在的问题发送过多通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">      repeat_interval: 1h
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 默认接收器：当告警不匹配任何子路由时使用的接收器
+</span></span></span><span class="line"><span class="cl"><span class="sd">      receiver: &#39;email-163&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 子路由规则列表（按顺序匹配）
+</span></span></span><span class="line"><span class="cl"><span class="sd">      routes:
+</span></span></span><span class="line"><span class="cl"><span class="sd">        # 第一条子路由：处理严重( critical )级别的告警
+</span></span></span><span class="line"><span class="cl"><span class="sd">        - matchers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 匹配条件：severity标签值为&#34;critical&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 语法说明：
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # =   : 精确等于
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # !=  : 不等于  
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # =~  : 正则匹配
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # !~  : 正则不匹配
+</span></span></span><span class="line"><span class="cl"><span class="sd">            - severity=&#34;critical&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 使用哪个接收器发送通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">          receiver: &#39;email-163&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 严重告警的组间隔更短（30秒），响应更快
+</span></span></span><span class="line"><span class="cl"><span class="sd">          group_interval: 30s
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 严重告警的重复间隔更短（10分钟），提醒更频繁
+</span></span></span><span class="line"><span class="cl"><span class="sd">          repeat_interval: 10m
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 严重告警的分组方式：只按告警名称分组
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 这样每个严重告警都会单独发送，不会被其他标签分组
+</span></span></span><span class="line"><span class="cl"><span class="sd">          group_by: [&#39;alertname&#39;, &#39;namespace&#39;]
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 是否继续匹配后续路由
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # false: 匹配到此路由后停止继续匹配
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # true:  匹配到此路由后继续匹配其他路由
+</span></span></span><span class="line"><span class="cl"><span class="sd">          continue: false
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 模板文件配置
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    templates:
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 自定义模板文件路径
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 支持通配符，如: &#34;/etc/alertmanager/template/*.tmpl&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 模板文件用于定义邮件主题、HTML内容、文本内容等的格式
+</span></span></span><span class="line"><span class="cl"><span class="sd">      - &#34;/etc/alertmanager/template/email-html.tmpl&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 接收器配置
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    receivers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 接收器名称，在路由中引用
+</span></span></span><span class="line"><span class="cl"><span class="sd">      - name: &#39;email-163&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        
+</span></span></span><span class="line"><span class="cl"><span class="sd">        # 邮件配置列表（可以配置多个邮件接收配置）
+</span></span></span><span class="line"><span class="cl"><span class="sd">        email_configs:
+</span></span></span><span class="line"><span class="cl"><span class="sd">        - to: &#34;chenyangqit@163.com&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 是否在告警恢复时发送解决通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">          send_resolved: true
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 邮件头配置
+</span></span></span><span class="line"><span class="cl"><span class="sd">          headers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 邮件主题模板
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 使用模板语法动态生成主题
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # {{ template &#34;email.custom.subject&#34; . }} 调用自定义主题模板
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # . 表示传递给模板的上下文数据
+</span></span></span><span class="line"><span class="cl"><span class="sd">            Subject: &#39;{{ template &#34;email.custom.subject&#34; . }}&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # HTML格式的邮件内容模板
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 用于支持HTML的邮件客户端显示富文本内容
+</span></span></span><span class="line"><span class="cl"><span class="sd">          html: &#39;{{ template &#34;email.custom.html&#34; . }}&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 纯文本格式的邮件内容模板  
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 用于不支持HTML的邮件客户端或作为备选显示
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 提供更好的兼容性
+</span></span></span><span class="line"><span class="cl"><span class="sd">          text: &#39;{{ template &#34;email.custom.text&#34; . }}&#39;
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 告警抑制规则（Inhibit Rules）
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 核心作用：当高级别/特定告警触发时，抑制低级别/关联告警的发送，减少冗余通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 执行逻辑：源告警（source）满足条件时，抑制目标告警（target）的发送
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 匹配规则：只有源告警和目标告警在 &#34;equal&#34; 字段的标签上完全一致，规则才生效
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    inhibit_rules:
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 规则1：Critical级别告警抑制同类型的Warning/Info级别告警
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 场景：如MySQLDown(critical)触发时，不再发送MySQLDown(warning/info)告警
+</span></span></span><span class="line"><span class="cl"><span class="sd">      - equal:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 源/目标告警必须同命名空间（如default）
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;namespace&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 源/目标告警必须同名（如MySQLDown）
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;alertname&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        # 源告警匹配条件（触发抑制的告警）
+</span></span></span><span class="line"><span class="cl"><span class="sd">        source_matchers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 源告警是critical级别
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;severity = critical&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        # 目标告警匹配条件（被抑制的告警）
+</span></span></span><span class="line"><span class="cl"><span class="sd">        target_matchers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 目标告警是warning或info级别
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;severity =~ warning|info&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 规则2：Warning级别告警抑制同类型的Info级别告警
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 场景：如MySQLHighCPU(warning)触发时，不再发送MySQLHighCPU(info)告警
+</span></span></span><span class="line"><span class="cl"><span class="sd">      - equal:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 源/目标告警必须同命名空间
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;namespace&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 源/目标告警必须同名
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;alertname&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        # 源告警匹配条件
+</span></span></span><span class="line"><span class="cl"><span class="sd">        source_matchers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 源告警是warning级别
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;severity = warning&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        # 目标告警匹配条件
+</span></span></span><span class="line"><span class="cl"><span class="sd">        target_matchers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 目标告警是info级别
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;severity = info&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 规则3：InfoInhibitor告警抑制同命名空间下所有Info级别告警
+</span></span></span><span class="line"><span class="cl"><span class="sd">      # 场景：手动触发InfoInhibitor告警时，屏蔽该命名空间所有info级告警（如维护期间）
+</span></span></span><span class="line"><span class="cl"><span class="sd">      - equal:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 仅要求同命名空间（不要求告警名相同）
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;namespace&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        # 源告警匹配条件
+</span></span></span><span class="line"><span class="cl"><span class="sd">        source_matchers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 源告警是自定义的&#34;抑制开关&#34;告警
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;alertname = InfoInhibitor&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        # 目标告警匹配条件
+</span></span></span><span class="line"><span class="cl"><span class="sd">        target_matchers:
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 目标告警是info级别
+</span></span></span><span class="line"><span class="cl"><span class="sd">          - &#34;severity = info&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 配置说明总结
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # =============================================================================
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 1. 邮件服务：使用163邮箱SMTP服务，465端口SSL加密
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 2. 路由策略：
+</span></span></span><span class="line"><span class="cl"><span class="sd">    #    - 默认分组：按告警名称和集群分组
+</span></span></span><span class="line"><span class="cl"><span class="sd">    #    - 严重告警：单独处理，响应更快，提醒更频繁
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 3. 通知频率：
+</span></span></span><span class="line"><span class="cl"><span class="sd">    #    - 普通告警：最多每小时重复一次
+</span></span></span><span class="line"><span class="cl"><span class="sd">    #    - 严重告警：最多每10分钟重复一次
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 4. 邮件内容：使用自定义模板，支持HTML和纯文本双版本
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 5. 恢复通知：告警解决时会发送恢复通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">    # 6. 抑制规则：
+</span></span></span><span class="line"><span class="cl"><span class="sd">    #    - 高级别告警抑制低级别同类型告警，减少冗余
+</span></span></span><span class="line"><span class="cl"><span class="sd">    #    - 支持命名空间级别的Info告警全局屏蔽</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">email-html.tmpl</span><span class="p">:</span><span class="w"> </span><span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    {{ define &#34;email.custom.subject&#34; }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">    {{ if eq .Status &#34;firing&#34; }}🚨 告警触发{{ else }}✅ 告警恢复{{ end }}: {{ .GroupLabels.alertname }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">    {{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">    {{ define &#34;email.custom.html&#34; }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">    &lt;!DOCTYPE html&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    &lt;html lang=&#34;zh-CN&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    &lt;head&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        &lt;meta charset=&#34;UTF-8&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        &lt;meta name=&#34;viewport&#34; content=&#34;width=device-width, initial-scale=1.0&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        &lt;title&gt;Prometheus 告警通知&lt;/title&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        &lt;style&gt; *{margin:0;padding:0;box-sizing:border-box}body{font-family:&#39;Segoe UI&#39;,&#39;Microsoft YaHei&#39;,sans-serif;line-height:1.6;color:#333;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px}.container{max-width:800px;margin:0 auto;background:white;border-radius:15px;box-shadow:0 20px 40px rgba(0,0,0,0.1);overflow:hidden}.header{background:linear-gradient(135deg,#ff6b6b,#ee5a24);color:white;padding:30px;text-align:center}.header.firing{background:linear-gradient(135deg,#ff6b6b,#ee5a24)}.header.resolved{background:linear-gradient(135deg,#00d2ff,#3a7bd5)}.header h1{font-size:28px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px}.alert-count{background:rgba(255,255,255,0.2);padding:5px 15px;border-radius:20px;font-size:14px;margin-top:10px}.alert-content{padding:30px}.alert-item{background:#f8f9fa;border-radius:10px;padding:25px;margin-bottom:20px;border-left:5px solid;box-shadow:0 5px 15px rgba(0,0,0,0.08);transition:transform 0.2s ease}.alert-item:hover{transform:translateY(-2px)}.alert-item.critical{border-left-color:#e74c3c;background:linear-gradient(135deg,#fff5f5,#fed7d7)}.alert-item.warning{border-left-color:#f39c12;background:linear-gradient(135deg,#fffaf0,#feebc8)}.alert-item.info{border-left-color:#3498db;background:linear-gradient(135deg,#f0f9ff,#e0f2fe)}.alert-title{font-size:20px;font-weight:600;margin-bottom:15px;color:#2c3e50;display:flex;align-items:center;justify-content:space-between}.alert-status{padding:4px 12px;border-radius:15px;font-size:12px;font-weight:bold;text-transform:uppercase}.status-firing{background:#e74c3c;color:white}.status-resolved{background:#27ae60;color:white}.alert-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px;margin-top:15px}.detail-item{display:flex;flex-direction:column}.detail-label{font-size:12px;color:#7f8c8d;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}.detail-value{font-size:14px;color:#2c3e50;font-weight:500}.footer{background:#34495e;color:#bdc3c7;padding:20px;text-align:center;font-size:12px}.timestamp{background:#2c3e50;color:#ecf0f1;padding:10px;border-radius:5px;display:inline-block;margin-top:10px}.divider{height:1px;background:linear-gradient(90deg,transparent,#bdc3c7,transparent);margin:25px 0}&lt;/style&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    &lt;/head&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    &lt;body&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        &lt;div class=&#34;container&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">            &lt;div class=&#34;header {{ if eq .Status &#34;firing&#34; }}firing{{ else }}resolved{{ end }}&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;h1&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    {{ if eq .Status &#34;firing&#34; }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    🔴 告警触发通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    {{ else }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    ✅ 告警恢复通知
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    {{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;/h1&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;p&gt;Prometheus 监控系统检测到以下告警事件&lt;/p&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;div class=&#34;alert-count&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    共 {{ len .Alerts }} 个告警事件
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">            &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">            
+</span></span></span><span class="line"><span class="cl"><span class="sd">            &lt;div class=&#34;alert-content&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                {{ range .Alerts }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;div class=&#34;alert-item {{ .Labels.severity }}&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    &lt;div class=&#34;alert-title&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;span&gt;{{ .Labels.alertname }}&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;span class=&#34;alert-status {{ if eq .Status &#34;firing&#34; }}status-firing{{ else }}status-resolved{{ end }}&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            {{ if eq .Status &#34;firing&#34; }}触发中{{ else }}已恢复{{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    &lt;div class=&#34;alert-details&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;div class=&#34;detail-item&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;span class=&#34;detail-label&#34;&gt;告警类型&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;span class=&#34;detail-value&#34;&gt;{{ .Annotations.summary }}&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;div class=&#34;detail-item&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;span class=&#34;detail-label&#34;&gt;严重级别&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;span class=&#34;detail-value&#34; style=&#34;color: 
+</span></span></span><span class="line"><span class="cl"><span class="sd">                                {{ if eq .Labels.severity &#34;critical&#34; }}#e74c3c
+</span></span></span><span class="line"><span class="cl"><span class="sd">                                {{ else if eq .Labels.severity &#34;warning&#34; }}#f39c12
+</span></span></span><span class="line"><span class="cl"><span class="sd">                                {{ else }}#3498db{{ end }}; font-weight: bold;&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                                {{ .Labels.severity }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;div class=&#34;detail-item&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;span class=&#34;detail-label&#34;&gt;故障实例&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;span class=&#34;detail-value&#34;&gt;{{ .Labels.instance }}&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;div class=&#34;detail-item&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;span class=&#34;detail-label&#34;&gt;发生时间&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            &lt;span class=&#34;detail-value&#34;&gt;{{ .StartsAt.Format &#34;2006-01-02 15:04:05&#34; }}&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    {{ if .Annotations.description }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    &lt;div style=&#34;margin-top: 15px;&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;span class=&#34;detail-label&#34;&gt;告警描述&lt;/span&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;div class=&#34;detail-value&#34; style=&#34;background: rgba(255,255,255,0.7); padding: 10px; border-radius: 5px; margin-top: 5px;&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                            {{ .Annotations.description }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                        &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    {{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                {{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">            &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">            
+</span></span></span><span class="line"><span class="cl"><span class="sd">            &lt;div class=&#34;footer&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;p&gt;此邮件由 Prometheus Alertmanager 自动发送，请勿直接回复&lt;/p&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;div class=&#34;timestamp&#34;&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">                    发送时间: {{ (index .Alerts 0).StartsAt.Format &#34;2006-01-02 15:04:05&#34; }} 
+</span></span></span><span class="line"><span class="cl"><span class="sd">                &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">            &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">        &lt;/div&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    &lt;/body&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    &lt;/html&gt;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    {{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">    {{ define &#34;email.custom.text&#34; }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      {{ if eq .Status &#34;firing&#34; }}🚨 告警触发{{ else }}✅ 告警恢复{{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      {{ range .Alerts }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      告警: {{ .Labels.alertname }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      状态: {{ .Status }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      实例: {{ .Labels.instance }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      级别: {{ .Labels.severity }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      时间: {{ .StartsAt.Format &#34;2006-01-02 15:04:05&#34; }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      {{ if .Annotations.summary }}摘要: {{ .Annotations.summary }}{{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      {{ if .Annotations.description }}描述: {{ .Annotations.description }}{{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">      ---
+</span></span></span><span class="line"><span class="cl"><span class="sd">      {{ end }}
+</span></span></span><span class="line"><span class="cl"><span class="sd">    {{ end }}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="修改-alertmanager-pod-模版配置文件">修改 Alertmanager Pod 模版配置文件
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring.coreos.com/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Alertmanager</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app.kubernetes.io/component</span><span class="p">:</span><span class="w"> </span><span class="l">alert-router</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app.kubernetes.io/part-of</span><span class="p">:</span><span class="w"> </span><span class="l">kube-prometheus</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app.kubernetes.io/version</span><span class="p">:</span><span class="w"> </span><span class="m">0.28.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">quay.io/prometheus/alertmanager:v0.28.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">nodeSelector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">kubernetes.io/os</span><span class="p">:</span><span class="w"> </span><span class="l">linux</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">podMetadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app.kubernetes.io/component</span><span class="p">:</span><span class="w"> </span><span class="l">alert-router</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app.kubernetes.io/part-of</span><span class="p">:</span><span class="w"> </span><span class="l">kube-prometheus</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="m">3</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l">100m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l">100Mi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">requests</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l">4m</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l">100Mi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">secrets</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">securityContext</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">fsGroup</span><span class="p">:</span><span class="w"> </span><span class="m">2000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="m">1000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">serviceAccountName</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager-main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="m">0.28.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">configSecret</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager-main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager-templates</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">secret</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager-main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">items</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l">email-html.tmpl</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">email-html.tmpl</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">volumeMounts</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">alertmanager-templates</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l">/etc/alertmanager/template</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">readOnly</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>验证结果：</p>
+<p><img class="gallery-image" data-flex-basis="711px" data-flex-grow="296" height="297" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771910640419-4d70b68a-47ac-4f5b-939c-3156d4a9f0d6.png" srcset="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771910640419-4d70b68a-47ac-4f5b-939c-3156d4a9f0d6_hu_2b214da4259799bf.png 800w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771910640419-4d70b68a-47ac-4f5b-939c-3156d4a9f0d6.png 881w" width="881"></p>
+<p><img class="gallery-image" data-flex-basis="643px" data-flex-grow="268" height="363" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771911358779-f8c653e9-d8d2-46c9-87fe-18cd6058acd6.png" srcset="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771911358779-f8c653e9-d8d2-46c9-87fe-18cd6058acd6_hu_21eaf9b08b63a4c3.png 800w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771911358779-f8c653e9-d8d2-46c9-87fe-18cd6058acd6.png 973w" width="973"></p>
+<p><img class="gallery-image" data-flex-basis="296px" data-flex-grow="123" height="684" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771913089592-311d34d3-f7de-427b-9248-fb8e9a9fd825.png" srcset="/p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771913089592-311d34d3-f7de-427b-9248-fb8e9a9fd825_hu_de0aedefbaa2f178.png 800w, /p/kubernetes-%E5%A3%B0%E6%98%8E%E5%BC%8F%E7%9B%91%E6%8E%A7prometheus-operator-%E5%AE%8C%E6%95%B4%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97/1771913089592-311d34d3-f7de-427b-9248-fb8e9a9fd825.png 845w" width="845"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/k8s/">K8s</a>
+        
+            <a href="/tags/%E7%9B%91%E6%8E%A7/">监控</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Prometheus 常用 Exporter 安装与配置" height="150" loading="lazy" src="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo_hu_d3ed806a757a47e8.png" srcset="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo_hu_d3ed806a757a47e8.png 1x, /p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo_hu_e6e6345858b987f9.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #eee8e780 0%, #e55333C0 100%);">
+            <h2 class="article-title">Prometheus 常用 Exporter 安装与配置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/prometheus-%E4%B8%8E-alertmanager-%E5%91%8A%E8%AD%A6%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E5%8F%8A%E8%87%AA%E5%AE%9A%E4%B9%89%E9%82%AE%E4%BB%B6%E6%A8%A1%E6%9D%BF%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Prometheus 与 Alertmanager 告警系统配置及自定义邮件模板指南" height="150" loading="lazy" src="/p/prometheus-%E4%B8%8E-alertmanager-%E5%91%8A%E8%AD%A6%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E5%8F%8A%E8%87%AA%E5%AE%9A%E4%B9%89%E9%82%AE%E4%BB%B6%E6%A8%A1%E6%9D%BF%E6%8C%87%E5%8D%97/altermanager_hu_c1a0966c2305bc8e.png" srcset="/p/prometheus-%E4%B8%8E-alertmanager-%E5%91%8A%E8%AD%A6%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E5%8F%8A%E8%87%AA%E5%AE%9A%E4%B9%89%E9%82%AE%E4%BB%B6%E6%A8%A1%E6%9D%BF%E6%8C%87%E5%8D%97/altermanager_hu_c1a0966c2305bc8e.png 1x, /p/prometheus-%E4%B8%8E-alertmanager-%E5%91%8A%E8%AD%A6%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E5%8F%8A%E8%87%AA%E5%AE%9A%E4%B9%89%E9%82%AE%E4%BB%B6%E6%A8%A1%E6%9D%BF%E6%8C%87%E5%8D%97/altermanager_hu_939caaa1daaf702d.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #cf353680 0%, #2e76b6C0 100%);">
+            <h2 class="article-title">Prometheus 与 Alertmanager 告警系统配置及自定义邮件模板指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/prometheus%E4%B8%8Egrafana%E7%9B%91%E6%8E%A7%E5%8F%AF%E8%A7%86%E5%8C%96%E9%83%A8%E7%BD%B2%E9%85%8D%E7%BD%AE/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Prometheus与Grafana监控可视化部署配置" height="150" loading="lazy" src="/p/prometheus%E4%B8%8Egrafana%E7%9B%91%E6%8E%A7%E5%8F%AF%E8%A7%86%E5%8C%96%E9%83%A8%E7%BD%B2%E9%85%8D%E7%BD%AE/grafana_hu_25633959bb857fa8.png" srcset="/p/prometheus%E4%B8%8Egrafana%E7%9B%91%E6%8E%A7%E5%8F%AF%E8%A7%86%E5%8C%96%E9%83%A8%E7%BD%B2%E9%85%8D%E7%BD%AE/grafana_hu_25633959bb857fa8.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11111180 0%, #fefefeC0 100%);">
+            <h2 class="article-title">Prometheus与Grafana监控可视化部署配置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Prometheus 监控系统从入门到进阶" height="150" loading="lazy" src="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo_hu_d3ed806a757a47e8.png" srcset="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo_hu_d3ed806a757a47e8.png 1x, /p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo_hu_e6e6345858b987f9.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #eee8e780 0%, #e55333C0 100%);">
+            <h2 class="article-title">Prometheus 监控系统从入门到进阶</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8S入门与快速部署" height="150" loading="lazy" src="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png" srcset="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png 1x, /p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_38900f2844a9c2a7.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #336ee580 0%, #fefeffC0 100%);">
+            <h2 class="article-title">K8S入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
