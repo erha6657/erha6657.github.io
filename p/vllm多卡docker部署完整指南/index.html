@@ -1,0 +1,2936 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="vLLM核心参数 参数分类概览 vLLM 0.17.1 提供了丰富的参数配置，主要分为以下几类：\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 vLLM参数分类 ├── 模型加载参数 │ ├── --model 模型路径 │ ├── --tokenizer 分词器路径 │ ├── --revision 模型版本 │ └── --load-format 加载格式 ├── GPU与显存参数 │ ├── --tensor-parallel-size 张量并行数 │ ├── --gpu-memory-utilization 显存利用率 │ ├── --max-model-len 最大上下文长度 │ └── --enforce-eager 强制eager模式 ├── 并发与批处理参数 │ ├── --max-num-seqs 最大并发数 │ ├── --max-num-batched-tokens 批处理Token数 │ └── --enable-chunked-prefill 分块预填充 ├── 网络服务参数 │ ├── --host 监听地址 │ ├── --port 服务端口 │ └── --api-key API密钥 └── 量化参数 ├── --quantization 量化方法 └── --load-format 加载格式 模型加载参数详解 &ndash;model（必填） 指定模型路径，可以是：\n">
+<title>vLLM多卡Docker部署完整指南</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="vLLM多卡Docker部署完整指南">
+<meta property='og:description' content="vLLM核心参数 参数分类概览 vLLM 0.17.1 提供了丰富的参数配置，主要分为以下几类：\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 vLLM参数分类 ├── 模型加载参数 │ ├── --model 模型路径 │ ├── --tokenizer 分词器路径 │ ├── --revision 模型版本 │ └── --load-format 加载格式 ├── GPU与显存参数 │ ├── --tensor-parallel-size 张量并行数 │ ├── --gpu-memory-utilization 显存利用率 │ ├── --max-model-len 最大上下文长度 │ └── --enforce-eager 强制eager模式 ├── 并发与批处理参数 │ ├── --max-num-seqs 最大并发数 │ ├── --max-num-batched-tokens 批处理Token数 │ └── --enable-chunked-prefill 分块预填充 ├── 网络服务参数 │ ├── --host 监听地址 │ ├── --port 服务端口 │ └── --api-key API密钥 └── 量化参数 ├── --quantization 量化方法 └── --load-format 加载格式 模型加载参数详解 &ndash;model（必填） 指定模型路径，可以是：\n">
+<meta property='og:url' content='https://erha6657.github.io/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='vLLM' /><meta property='article:tag' content='大模型' /><meta property='article:tag' content='Docker' /><meta property='article:published_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='article:modified_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed.png' />
+<meta name="twitter:title" content="vLLM多卡Docker部署完整指南">
+<meta name="twitter:description" content="vLLM核心参数 参数分类概览 vLLM 0.17.1 提供了丰富的参数配置，主要分为以下几类：\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 vLLM参数分类 ├── 模型加载参数 │ ├── --model 模型路径 │ ├── --tokenizer 分词器路径 │ ├── --revision 模型版本 │ └── --load-format 加载格式 ├── GPU与显存参数 │ ├── --tensor-parallel-size 张量并行数 │ ├── --gpu-memory-utilization 显存利用率 │ ├── --max-model-len 最大上下文长度 │ └── --enforce-eager 强制eager模式 ├── 并发与批处理参数 │ ├── --max-num-seqs 最大并发数 │ ├── --max-num-batched-tokens 批处理Token数 │ └── --enable-chunked-prefill 分块预填充 ├── 网络服务参数 │ ├── --host 监听地址 │ ├── --port 服务端口 │ └── --api-key API密钥 └── 量化参数 ├── --quantization 量化方法 └── --load-format 加载格式 模型加载参数详解 &ndash;model（必填） 指定模型路径，可以是：\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#参数分类概览">参数分类概览</a></li>
+    <li><a href="#模型加载参数详解">模型加载参数详解</a>
+      <ol>
+        <li><a href="#model必填">&ndash;model（必填）</a></li>
+        <li><a href="#tokenizer可选">&ndash;tokenizer（可选）</a></li>
+        <li><a href="#revision可选">&ndash;revision（可选）</a></li>
+        <li><a href="#trust-remote-code常用">&ndash;trust-remote-code（常用）</a></li>
+      </ol>
+    </li>
+    <li><a href="#查看所有可用参数">查看所有可用参数</a></li>
+    <li><a href="#显存管理参数">显存管理参数</a>
+      <ol>
+        <li><a href="#理解显存使用">理解显存使用</a></li>
+        <li><a href="#gpu-memory-utilization-参数">gpu-memory-utilization 参数</a></li>
+        <li><a href="#max-model-len-参数">max-model-len 参数</a></li>
+        <li><a href="#enforce-eager-参数">enforce-eager 参数</a></li>
+      </ol>
+    </li>
+    <li><a href="#并发与批处理参数">并发与批处理参数</a>
+      <ol>
+        <li><a href="#max-num-seqs-参数">max-num-seqs 参数</a></li>
+        <li><a href="#max-num-batched-tokens-参数">max-num-batched-tokens 参数</a></li>
+        <li><a href="#enable-chunked-prefill-参数重要">enable-chunked-prefill 参数（重要）</a></li>
+        <li><a href="#生产环境推荐配置">生产环境推荐配置</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#量化模型回顾">量化模型回顾</a></li>
+    <li><a href="#gptq量化模型部署">GPTQ量化模型部署</a></li>
+    <li><a href="#awq量化模型部署">AWQ量化模型部署</a></li>
+    <li><a href="#量化模型对比测试">量化模型对比测试</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#什么时候需要多卡">什么时候需要多卡</a></li>
+    <li><a href="#张量并行tensor-parallelism概念">张量并行（Tensor Parallelism）概念</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#检查多卡环境">检查多卡环境</a></li>
+    <li><a href="#基础多卡启动命令">基础多卡启动命令</a></li>
+    <li><a href="#指定使用部分gpu">指定使用部分GPU</a></li>
+    <li><a href="#多卡部署配置模板">多卡部署配置模板</a>
+      <ol>
+        <li><a href="#2卡部署常用">2卡部署（常用）</a></li>
+        <li><a href="#4卡部署">4卡部署</a></li>
+        <li><a href="#验证多卡部署">验证多卡部署</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#单模型多卡配置">单模型多卡配置</a></li>
+    <li><a href="#多模型部署配置">多模型部署配置</a></li>
+    <li><a href="#nginx负载均衡配置">Nginx负载均衡配置</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#gpu监控">GPU监控</a></li>
+    <li><a href="#vllm指标监控">vLLM指标监控</a></li>
+    <li><a href="#性能测试脚本">性能测试脚本</a></li>
+    <li><a href="#性能调优建议">性能调优建议</a></li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+            <img alt="Featured image of post vLLM多卡Docker部署完整指南" height="860" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed.png" srcset="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_20163e08b4a0420f.png 800w, /p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_9d83c1b74eddf3bd.png 1600w, /p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_9cd3ab9e090f4086.png 2400w, /p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed.png 3000w" width="3000">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/ai/" style="background-color: hsl(167, 60%, 84%); color: hsl(167, 60%, 15%);">
+                AI
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%A4%A7%E6%A8%A1%E5%9E%8B/" style="background-color: hsl(286, 60%, 84%); color: hsl(286, 60%, 15%);">
+                大模型
+            </a>
+        
+            
+            
+            
+            <a href="/categories/docker/" style="background-color: hsl(205, 60%, 84%); color: hsl(205, 60%, 15%);">
+                Docker
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">vLLM多卡Docker部署完整指南</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-24T21:14:22&#43;08:00'>2026年6月24日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 12 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#参数分类概览">参数分类概览</a></li>
+    <li><a href="#模型加载参数详解">模型加载参数详解</a>
+      <ol>
+        <li><a href="#model必填">&ndash;model（必填）</a></li>
+        <li><a href="#tokenizer可选">&ndash;tokenizer（可选）</a></li>
+        <li><a href="#revision可选">&ndash;revision（可选）</a></li>
+        <li><a href="#trust-remote-code常用">&ndash;trust-remote-code（常用）</a></li>
+      </ol>
+    </li>
+    <li><a href="#查看所有可用参数">查看所有可用参数</a></li>
+    <li><a href="#显存管理参数">显存管理参数</a>
+      <ol>
+        <li><a href="#理解显存使用">理解显存使用</a></li>
+        <li><a href="#gpu-memory-utilization-参数">gpu-memory-utilization 参数</a></li>
+        <li><a href="#max-model-len-参数">max-model-len 参数</a></li>
+        <li><a href="#enforce-eager-参数">enforce-eager 参数</a></li>
+      </ol>
+    </li>
+    <li><a href="#并发与批处理参数">并发与批处理参数</a>
+      <ol>
+        <li><a href="#max-num-seqs-参数">max-num-seqs 参数</a></li>
+        <li><a href="#max-num-batched-tokens-参数">max-num-batched-tokens 参数</a></li>
+        <li><a href="#enable-chunked-prefill-参数重要">enable-chunked-prefill 参数（重要）</a></li>
+        <li><a href="#生产环境推荐配置">生产环境推荐配置</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#量化模型回顾">量化模型回顾</a></li>
+    <li><a href="#gptq量化模型部署">GPTQ量化模型部署</a></li>
+    <li><a href="#awq量化模型部署">AWQ量化模型部署</a></li>
+    <li><a href="#量化模型对比测试">量化模型对比测试</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#什么时候需要多卡">什么时候需要多卡</a></li>
+    <li><a href="#张量并行tensor-parallelism概念">张量并行（Tensor Parallelism）概念</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#检查多卡环境">检查多卡环境</a></li>
+    <li><a href="#基础多卡启动命令">基础多卡启动命令</a></li>
+    <li><a href="#指定使用部分gpu">指定使用部分GPU</a></li>
+    <li><a href="#多卡部署配置模板">多卡部署配置模板</a>
+      <ol>
+        <li><a href="#2卡部署常用">2卡部署（常用）</a></li>
+        <li><a href="#4卡部署">4卡部署</a></li>
+        <li><a href="#验证多卡部署">验证多卡部署</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#单模型多卡配置">单模型多卡配置</a></li>
+    <li><a href="#多模型部署配置">多模型部署配置</a></li>
+    <li><a href="#nginx负载均衡配置">Nginx负载均衡配置</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#gpu监控">GPU监控</a></li>
+    <li><a href="#vllm指标监控">vLLM指标监控</a></li>
+    <li><a href="#性能测试脚本">性能测试脚本</a></li>
+    <li><a href="#性能调优建议">性能调优建议</a></li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h1 id="vllm核心参数">vLLM核心参数
+</h1><h2 id="参数分类概览">参数分类概览
+</h2><p>vLLM 0.17.1 提供了丰富的参数配置，主要分为以下几类：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vLLM参数分类
+</span></span><span class="line"><span class="cl">├── 模型加载参数
+</span></span><span class="line"><span class="cl">│   ├── --model          模型路径
+</span></span><span class="line"><span class="cl">│   ├── --tokenizer      分词器路径
+</span></span><span class="line"><span class="cl">│   ├── --revision       模型版本
+</span></span><span class="line"><span class="cl">│   └── --load-format    加载格式
+</span></span><span class="line"><span class="cl">├── GPU与显存参数
+</span></span><span class="line"><span class="cl">│   ├── --tensor-parallel-size     张量并行数
+</span></span><span class="line"><span class="cl">│   ├── --gpu-memory-utilization   显存利用率
+</span></span><span class="line"><span class="cl">│   ├── --max-model-len            最大上下文长度
+</span></span><span class="line"><span class="cl">│   └── --enforce-eager            强制eager模式
+</span></span><span class="line"><span class="cl">├── 并发与批处理参数
+</span></span><span class="line"><span class="cl">│   ├── --max-num-seqs             最大并发数
+</span></span><span class="line"><span class="cl">│   ├── --max-num-batched-tokens   批处理Token数
+</span></span><span class="line"><span class="cl">│   └── --enable-chunked-prefill   分块预填充
+</span></span><span class="line"><span class="cl">├── 网络服务参数
+</span></span><span class="line"><span class="cl">│   ├── --host          监听地址
+</span></span><span class="line"><span class="cl">│   ├── --port          服务端口
+</span></span><span class="line"><span class="cl">│   └── --api-key       API密钥
+</span></span><span class="line"><span class="cl">└── 量化参数
+</span></span><span class="line"><span class="cl">    ├── --quantization      量化方法
+</span></span><span class="line"><span class="cl">    └── --load-format       加载格式
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="模型加载参数详解">模型加载参数详解
+</h2><h3 id="model必填">&ndash;model（必填）
+</h3><p>指定模型路径，可以是：</p>
+<ul>
+<li>本地路径：<code>/models/Qwen2-7B-Instruct</code></li>
+<li>Hugging Face ID：<code>Qwen/Qwen2-7B-Instruct</code></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 本地路径（推荐，避免重复下载）</span>
+</span></span><span class="line"><span class="cl">--model /models/Qwen2-7B-Instruct
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Hugging Face ID（首次会自动下载）</span>
+</span></span><span class="line"><span class="cl">--model Qwen/Qwen2-7B-Instruct
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="tokenizer可选">&ndash;tokenizer（可选）
+</h3><p>分词器路径，默认与model相同。特殊场景可单独指定。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 通常不需要单独指定</span>
+</span></span><span class="line"><span class="cl">--tokenizer /models/Qwen2-7B-Instruct
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="revision可选">&ndash;revision（可选）
+</h3><p>指定模型版本/分支，用于加载特定版本。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 加载特定分支</span>
+</span></span><span class="line"><span class="cl">--revision v1.0.0
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 加载main分支</span>
+</span></span><span class="line"><span class="cl">--revision main
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="trust-remote-code常用">&ndash;trust-remote-code（常用）
+</h3><p>信任远程代码，Qwen等模型需要此参数。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Qwen、ChatGLM等模型必须添加</span>
+</span></span><span class="line"><span class="cl">--trust-remote-code
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="查看所有可用参数">查看所有可用参数
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看vLLM所有参数</span>
+</span></span><span class="line"><span class="cl">docker run --rm vllm/vllm-openai:v0.17.1 --help
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看特定参数帮助</span>
+</span></span><span class="line"><span class="cl">docker run --rm vllm/vllm-openai:v0.17.1 --help <span class="p">|</span> grep -A <span class="m">5</span> <span class="s2">&#34;gpu-memory&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>常用参数速查表</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>参数</strong></th>
+					<th><strong>默认值</strong></th>
+					<th><strong>说明</strong></th>
+					<th><strong>调优建议</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>**--model**</code></td>
+					<td><strong>必填</strong></td>
+					<td><strong>模型路径</strong></td>
+					<td><strong>使用本地路径更快</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--tensor-parallel-size**</code></td>
+					<td><strong>1</strong></td>
+					<td><strong>张量并行GPU数</strong></td>
+					<td><strong>多卡时设置</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--gpu-memory-utilization**</code></td>
+					<td><strong>0.9</strong></td>
+					<td><strong>GPU显存利用率</strong></td>
+					<td><strong>测试0.9，生产0.95</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--max-model-len**</code></td>
+					<td><strong>自动</strong></td>
+					<td><strong>最大上下文长度</strong></td>
+					<td><strong>根据显存调整</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--max-num-seqs**</code></td>
+					<td><strong>256</strong></td>
+					<td><strong>最大并发序列数</strong></td>
+					<td><strong>高并发时增大</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--host**</code></td>
+					<td><strong>127.0.0.1</strong></td>
+					<td><strong>监听地址</strong></td>
+					<td><strong>生产用0.0.0.0</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--port**</code></td>
+					<td><strong>8000</strong></td>
+					<td><strong>服务端口</strong></td>
+					<td><strong>避免冲突</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--trust-remote-code**</code></td>
+					<td><strong>False</strong></td>
+					<td><strong>信任远程代码</strong></td>
+					<td><strong>Qwen等需要</strong></td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="显存管理参数">显存管理参数
+</h2><h3 id="理解显存使用">理解显存使用
+</h3><p>vLLM运行时，显存主要被以下部分占用：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">GPU显存分配
+</span></span><span class="line"><span class="cl">├── 模型权重（固定）
+</span></span><span class="line"><span class="cl">│   └── 7B FP16 ≈ 14GB
+</span></span><span class="line"><span class="cl">├── KV Cache（动态）
+</span></span><span class="line"><span class="cl">│   ├── PagedAttention管理
+</span></span><span class="line"><span class="cl">│   └── 随并发和上下文长度增长
+</span></span><span class="line"><span class="cl">├── 激活值（临时）
+</span></span><span class="line"><span class="cl">│   └── 推理过程中的中间结果
+</span></span><span class="line"><span class="cl">└── 预留空间
+</span></span><span class="line"><span class="cl">    └── 约10%的安全余量
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="gpu-memory-utilization-参数">gpu-memory-utilization 参数
+</h3><p><strong>作用</strong>：控制vLLM使用的GPU显存比例</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 使用90%的GPU显存（默认）</span>
+</span></span><span class="line"><span class="cl">--gpu-memory-utilization 0.9
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 使用95%的GPU显存（生产环境推荐）</span>
+</span></span><span class="line"><span class="cl">--gpu-memory-utilization 0.95
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 使用80%的GPU显存（显存紧张时）</span>
+</span></span><span class="line"><span class="cl">--gpu-memory-utilization 0.8
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>选择建议</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>场景</strong></th>
+					<th><strong>推荐值</strong></th>
+					<th><strong>原因</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>测试开发</strong></td>
+					<td><strong>0.9</strong></td>
+					<td><strong>平衡性能和稳定性</strong></td>
+			</tr>
+			<tr>
+					<td><strong>生产环境</strong></td>
+					<td><strong>0.95</strong></td>
+					<td><strong>最大化资源利用</strong></td>
+			</tr>
+			<tr>
+					<td><strong>显存紧张</strong></td>
+					<td><strong>0.8</strong></td>
+					<td><strong>避免OOM</strong></td>
+			</tr>
+			<tr>
+					<td><strong>多服务共存</strong></td>
+					<td><strong>0.7</strong></td>
+					<td><strong>给其他服务留空间</strong></td>
+			</tr>
+	</tbody>
+</table></div>
+<p><strong>监控显存使用</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 实时监控GPU显存</span>
+</span></span><span class="line"><span class="cl">watch -n <span class="m">1</span> nvidia-smi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看显存使用详情</span>
+</span></span><span class="line"><span class="cl">nvidia-smi --query-gpu<span class="o">=</span>memory.used,memory.total,memory.free --format<span class="o">=</span>csv
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># memory.used [MiB], memory.total [MiB], memory.free [MiB]</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 20480 MiB, 24564 MiB, 4084 MiB</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="max-model-len-参数">max-model-len 参数
+</h3><p><strong>作用</strong>：设置模型的最大上下文长度（Token数）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 设置最大上下文为4096 tokens</span>
+</span></span><span class="line"><span class="cl">--max-model-len <span class="m">4096</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 设置最大上下文为8192 tokens</span>
+</span></span><span class="line"><span class="cl">--max-model-len <span class="m">8192</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 设置最大上下文为32768 tokens（长文本场景）</span>
+</span></span><span class="line"><span class="cl">--max-model-len <span class="m">32768</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>上下文长度与显存关系</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>上下文长度</strong></th>
+					<th><strong>额外显存需求（7B）</strong></th>
+					<th><strong>适用场景</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>2048</strong></td>
+					<td><strong>约2GB</strong></td>
+					<td><strong>简单对话</strong></td>
+			</tr>
+			<tr>
+					<td><strong>4096</strong></td>
+					<td><strong>约4GB</strong></td>
+					<td><strong>日常使用</strong></td>
+			</tr>
+			<tr>
+					<td><strong>8192</strong></td>
+					<td><strong>约8GB</strong></td>
+					<td><strong>文档处理</strong></td>
+			</tr>
+			<tr>
+					<td><strong>16384</strong></td>
+					<td><strong>约16GB</strong></td>
+					<td><strong>长文本分析</strong></td>
+			</tr>
+			<tr>
+					<td><strong>32768</strong></td>
+					<td><strong>约32GB</strong></td>
+					<td><strong>超长文档</strong></td>
+			</tr>
+	</tbody>
+</table></div>
+<p><strong>💡</strong>** 重要提示**：上下文长度越大，KV Cache占用显存越多。根据实际需求设置，不要盲目追求最大值。</p>
+<h3 id="enforce-eager-参数">enforce-eager 参数
+</h3><p><strong>作用</strong>：强制使用PyTorch的eager模式，禁用CUDA图优化</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 启用eager模式（调试时使用）</span>
+</span></span><span class="line"><span class="cl">--enforce-eager
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 默认：使用CUDA图优化（性能更好）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 不添加此参数即可</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>使用场景</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>模式</strong></th>
+					<th><strong>性能</strong></th>
+					<th><strong>适用场景</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>CUDA图（默认）</strong></td>
+					<td><strong>高</strong></td>
+					<td><strong>生产环境</strong></td>
+			</tr>
+			<tr>
+					<td><strong>Eager模式</strong></td>
+					<td><strong>低</strong></td>
+					<td><strong>调试、问题排查</strong></td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="并发与批处理参数">并发与批处理参数
+</h2><h3 id="max-num-seqs-参数">max-num-seqs 参数
+</h3><p><strong>作用</strong>：设置同一时刻最大处理的序列数（并发请求数）</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 默认值256，适合大多数场景</span>
+</span></span><span class="line"><span class="cl">--max-num-seqs <span class="m">256</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 高并发场景</span>
+</span></span><span class="line"><span class="cl">--max-num-seqs <span class="m">512</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 低配机器</span>
+</span></span><span class="line"><span class="cl">--max-num-seqs <span class="m">64</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>并发数与资源关系</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">并发数 ↑ → KV Cache ↑ → 显存占用 ↑
+</span></span><span class="line"><span class="cl">并发数 ↓ → KV Cache ↓ → 显存占用 ↓
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>计算建议</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 粗略估算：每个序列约占用 0.5-1GB 显存（取决于上下文长度）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 24GB显存机器建议：128-256 并发</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 80GB显存机器建议：256-512 并发</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="max-num-batched-tokens-参数">max-num-batched-tokens 参数
+</h3><p><strong>作用</strong>：设置批处理的最大Token数</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 默认值（自动根据max-model-len计算）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 通常不需要手动设置</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 手动设置（特殊场景）</span>
+</span></span><span class="line"><span class="cl">--max-num-batched-tokens <span class="m">8192</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="enable-chunked-prefill-参数重要">enable-chunked-prefill 参数（重要）
+</h3><p><strong>作用</strong>：启用分块预填充，提升吞吐量</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 启用分块预填充（生产环境推荐）</span>
+</span></span><span class="line"><span class="cl">--enable-chunked-prefill
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>什么是分块预填充？</strong></p>
+<ul>
+<li><strong>传统方式：处理长上下文时，会阻塞其他请求</strong></li>
+<li><strong>分块预填充：将长上下文切分成小块，交替处理</strong></li>
+</ul>
+<p><strong>性能提升</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>场景</strong></th>
+					<th><strong>吞吐量提升</strong></th>
+					<th><strong>延迟变化</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>长短请求混合</strong></td>
+					<td><strong>20-40%</strong></td>
+					<td><strong>短请求延迟降低</strong></td>
+			</tr>
+			<tr>
+					<td><strong>请求长度均匀</strong></td>
+					<td><strong>10-20%</strong></td>
+					<td><strong>基本不变</strong></td>
+			</tr>
+	</tbody>
+</table></div>
+<h3 id="生产环境推荐配置">生产环境推荐配置
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 生产环境推荐配置模板</span>
+</span></span><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-server <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus all <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>32g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --restart unless-stopped <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v /data/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8000:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  vllm/vllm-openai:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-7B-Instruct <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --host 0.0.0.0 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --port <span class="m">8000</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpu-memory-utilization 0.95 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --max-model-len <span class="m">8192</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --max-num-seqs <span class="m">256</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --enable-chunked-prefill
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="量化模型部署">量化模型部署
+</h1><h2 id="量化模型回顾">量化模型回顾
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>量化类型</th>
+					<th>显存占用</th>
+					<th>质量损失</th>
+					<th>适用场景</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>FP16</td>
+					<td>100%</td>
+					<td>无</td>
+					<td>生产环境、高质量要求</td>
+			</tr>
+			<tr>
+					<td>INT8</td>
+					<td>50%</td>
+					<td>极小</td>
+					<td>生产环境、性价比</td>
+			</tr>
+			<tr>
+					<td>INT4</td>
+					<td>25%</td>
+					<td>轻微</td>
+					<td>测试开发、显存紧张</td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="gptq量化模型部署">GPTQ量化模型部署
+</h2><p>GPTQ是一种常用的量化方法，社区有很多预量化的模型。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 下载GPTQ量化模型</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">HF_ENDPOINT</span><span class="o">=</span>https://hf-mirror.com
+</span></span><span class="line"><span class="cl">hf download Qwen/Qwen2-7B-Instruct-GPTQ-Int4 --local-dir /models/Qwen2-7B-Instruct-GPTQ-Int4
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动GPTQ量化模型</span>
+</span></span><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-gptq <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus all <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>16g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v /data/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8001:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  vllm/vllm-openai:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-7B-Instruct-GPTQ-Int4 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --quantization gptq
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="awq量化模型部署">AWQ量化模型部署
+</h2><p>AWQ是另一种量化方法，通常性能更好。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 下载AWQ量化模型</span>
+</span></span><span class="line"><span class="cl">huggingface-cli download Qwen/Qwen2-7B-Instruct-AWQ <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --local-dir /data/models/Qwen2-7B-Instruct-AWQ
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动AWQ量化模型</span>
+</span></span><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-awq <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus all <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>16g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v /data/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8002:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  vllm/vllm-openai:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-7B-Instruct-AWQ <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --quantization awq
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="量化模型对比测试"><font style="color:rgb(38, 38, 38);">量化模型对比测试</font>
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="c1"># quantization_test.sh - 量化模型对比测试</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;=== FP16模型测试 ===&#34;</span>
+</span></span><span class="line"><span class="cl">curl -s http://localhost:8000/v1/chat/completions <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -H <span class="s2">&#34;Content-Type: application/json&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -d <span class="s1">&#39;{&#34;model&#34;:&#34;Qwen/Qwen2-7B-Instruct&#34;,&#34;messages&#34;:[{&#34;role&#34;:&#34;user&#34;,&#34;content&#34;:&#34;请写一首关于AI的诗&#34;}],&#34;max_tokens&#34;:100}&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  <span class="p">|</span> jq -r <span class="s1">&#39;.choices[0].message.content&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> -e <span class="s2">&#34;\n=== GPTQ-Int4模型测试 ===&#34;</span>
+</span></span><span class="line"><span class="cl">curl -s http://localhost:8001/v1/chat/completions <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -H <span class="s2">&#34;Content-Type: application/json&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -d <span class="s1">&#39;{&#34;model&#34;:&#34;Qwen/Qwen2-7B-Instruct-GPTQ-Int4&#34;,&#34;messages&#34;:[{&#34;role&#34;:&#34;user&#34;,&#34;content&#34;:&#34;请写一首关于AI的诗&#34;}],&#34;max_tokens&#34;:100}&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  <span class="p">|</span> jq -r <span class="s1">&#39;.choices[0].message.content&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="单机多卡部署">单机多卡部署
+</h1><h2 id="什么时候需要多卡">什么时候需要多卡
+</h2><p><strong>场景一：单卡显存不够</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">70B模型 FP16 ≈ 140GB
+</span></span><span class="line"><span class="cl">单张A100 80GB → 放不下
+</span></span><span class="line"><span class="cl">需要 2张A100 80GB → 每张70GB，可以放下
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>场景二：提升吞吐量</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">单卡处理能力：50 tokens/s
+</span></span><span class="line"><span class="cl">4卡并行：150-200 tokens/s（接近线性扩展）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>场景三：高可用（多副本）</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">单卡故障 → 服务中断
+</span></span><span class="line"><span class="cl">多卡多副本 → 单卡故障不影响服务
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="张量并行tensor-parallelism概念">张量并行（Tensor Parallelism）概念
+</h2><p><strong>什么是张量并行？</strong></p>
+<p>将模型的参数切分到多张GPU上，每张GPU只存储和处理部分参数。</p>
+<p><strong>类比理解</strong></p>
+<p>【类比】张量并行就像<strong>多人搬运大件物品</strong>：</p>
+<ul>
+<li>一个人搬不动700斤的柜子</li>
+<li>4个人一起搬，每人承担175斤</li>
+<li>大家协调配合，一起完成任务</li>
+</ul>
+<p><strong>与数据并行的区别</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>特性</strong></th>
+					<th><strong>张量并行</strong></th>
+					<th><strong>数据并行</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>模型存储</strong></td>
+					<td><strong>切分到多卡</strong></td>
+					<td><strong>每卡完整模型</strong></td>
+			</tr>
+			<tr>
+					<td><strong>适用场景</strong></td>
+					<td><strong>模型太大单卡放不下</strong></td>
+					<td><strong>提升吞吐量</strong></td>
+			</tr>
+			<tr>
+					<td><strong>通信开销</strong></td>
+					<td><strong>较高</strong></td>
+					<td><strong>较低</strong></td>
+			</tr>
+			<tr>
+					<td><strong>vLLM支持</strong></td>
+					<td>✅** tensor-parallel-size**</td>
+					<td>❌** 不支持**</td>
+			</tr>
+	</tbody>
+</table></div>
+<h1 id="vllm多卡部署实践">vLLM多卡部署实践
+</h1><h2 id="检查多卡环境">检查多卡环境
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看GPU数量</span>
+</span></span><span class="line"><span class="cl">nvidia-smi -L
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例（4卡机器）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># GPU 0: NVIDIA A100-SXM4-80GB (UUID: xxx)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># GPU 1: NVIDIA A100-SXM4-80GB (UUID: xxx)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># GPU 2: NVIDIA A100-SXM4-80GB (UUID: xxx)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># GPU 3: NVIDIA A100-SXM4-80GB (UUID: xxx)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看GPU详细信息</span>
+</span></span><span class="line"><span class="cl">nvidia-smi --query-gpu<span class="o">=</span>index,name,memory.total --format<span class="o">=</span>csv
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="基础多卡启动命令">基础多卡启动命令
+</h2><p><strong>使用所有GPU</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 使用所有GPU，tensor-parallel-size=4</span>
+</span></span><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-multigpu <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus all <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>32g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v /data/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8000:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  vllm/vllm-openai:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-72B-Instruct <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --tensor-parallel-size <span class="m">4</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --host 0.0.0.0 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --port <span class="m">8000</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>参数说明</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>参数</strong></th>
+					<th><strong>说明</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>**--gpus all**</code></td>
+					<td><strong>Docker使用所有GPU</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--tensor-parallel-size 4**</code></td>
+					<td><strong>使用4张GPU做张量并行</strong></td>
+			</tr>
+			<tr>
+					<td><code>**--shm-size=32g**</code></td>
+					<td><strong>多卡需要更大的共享内存</strong></td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="指定使用部分gpu">指定使用部分GPU
+</h2><p><strong>场景</strong>：机器有4张GPU，只想用其中2张</p>
+<p><strong>方法一：使用CUDA_VISIBLE_DEVICES</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 只使用GPU 0和GPU 1</span>
+</span></span><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-2gpu <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus all <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>32g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -e <span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span>0,1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v /data/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8000:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  vllm/vllm-openai:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-7B-Instruct <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --tensor-parallel-size <span class="m">2</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>方法二：Docker GPU指定</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Docker层面限制GPU</span>
+</span></span><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-2gpu <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus <span class="s1">&#39;&#34;device=0,1&#34;&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>32g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v /data/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8000:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  vllm/vllm-openai:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-7B-Instruct <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --tensor-parallel-size <span class="m">2</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="多卡部署配置模板">多卡部署配置模板
+</h2><h3 id="2卡部署常用">2卡部署（常用）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="c1"># deploy_2gpu.sh - 2卡部署脚本</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-2gpu <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus <span class="s1">&#39;&#34;device=0,1&#34;&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>32g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --restart unless-stopped <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v /data/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8000:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  vllm/vllm-openai:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-72B-Instruct <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --tensor-parallel-size <span class="m">2</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --host 0.0.0.0 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --port <span class="m">8000</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpu-memory-utilization 0.95 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --max-model-len <span class="m">8192</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --enable-chunked-prefill
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="4卡部署">4卡部署
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="c1"># deploy_4gpu.sh - 4卡部署脚本</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-4gpu <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus all <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>64g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --restart unless-stopped <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v /data/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8000:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  vllm/vllm-openai:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-72B-Instruct <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --tensor-parallel-size <span class="m">4</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --host 0.0.0.0 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --port <span class="m">8000</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpu-memory-utilization 0.95 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --max-model-len <span class="m">16384</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --enable-chunked-prefill
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="验证多卡部署">验证多卡部署
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 查看容器日志，确认多卡加载</span>
+</span></span><span class="line"><span class="cl">docker logs -f vllm-4gpu
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 正常输出应包含：</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># INFO: Using 4 GPUs for tensor parallelism</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># INFO: Loading model weights on GPUs [0, 1, 2, 3]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 查看GPU使用情况</span>
+</span></span><span class="line"><span class="cl">nvidia-smi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 应该看到4张GPU都有显存占用</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 测试API</span>
+</span></span><span class="line"><span class="cl">curl http://localhost:8000/v1/models
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 性能测试</span>
+</span></span><span class="line"><span class="cl"><span class="nb">time</span> curl -s http://localhost:8000/v1/chat/completions <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -H <span class="s2">&#34;Content-Type: application/json&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -d <span class="s1">&#39;{&#34;model&#34;:&#34;Qwen/Qwen2-72B-Instruct&#34;,&#34;messages&#34;:[{&#34;role&#34;:&#34;user&#34;,&#34;content&#34;:&#34;你好&#34;}],&#34;max_tokens&#34;:50}&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  <span class="p">|</span> jq <span class="s1">&#39;.choices[0].message.content&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="docker-compose多卡编排">Docker Compose多卡编排
+</h1><h2 id="单模型多卡配置">单模型多卡配置
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># docker-compose.yml - 单模型4卡部署</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;3.8&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">services</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">vllm-server</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">vllm/vllm-openai:v0.17.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-4gpu</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">unless-stopped</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;8000:8000&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">/data/models:/models</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">CUDA_VISIBLE_DEVICES=0,1,2,3</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">deploy</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">reservations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">devices</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">driver</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="m">4</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">capabilities</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">gpu]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">shm_size</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;32gb&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">&gt;</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --model /models/Qwen2-72B-Instruct
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --tensor-parallel-size 4
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --trust-remote-code
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --host 0.0.0.0
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --port 8000
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --gpu-memory-utilization 0.95
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --max-model-len 8192
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --enable-chunked-prefill</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>启动命令</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># 启动服务</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="l">docker-compose up -d</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c"># 查看日志</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="l">docker-compose logs -f</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c"># 停止服务</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="l">docker-compose down</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="多模型部署配置">多模型部署配置
+</h2><p><strong>场景</strong>：同时部署多个模型，服务不同业务</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># docker-compose.yml - 多模型部署</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;3.8&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">services</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># 7B模型 - 用GPU 0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">vllm-7b</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">vllm/vllm-openai:v0.17.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-7b</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">unless-stopped</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;8001:8000&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">/data/models:/models</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">CUDA_VISIBLE_DEVICES=0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">deploy</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">reservations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">devices</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">driver</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">device_ids</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">capabilities</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">gpu]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">shm_size</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;16gb&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">&gt;</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --model /models/Qwen2-7B-Instruct
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --trust-remote-code
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --host 0.0.0.0
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --port 8000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># 14B模型 - 用GPU 1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">vllm-14b</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">vllm/vllm-openai:v0.17.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-14b</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">unless-stopped</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;8002:8000&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">/data/models:/models</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">CUDA_VISIBLE_DEVICES=1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">deploy</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">reservations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">devices</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">driver</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">device_ids</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">capabilities</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">gpu]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">shm_size</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;24gb&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">&gt;</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --model /models/Qwen2-14B-Instruct
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --trust-remote-code
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --host 0.0.0.0
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --port 8000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># 72B模型 - 用GPU 2和3</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">vllm-72b</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">vllm/vllm-openai:v0.17.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-72b</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">unless-stopped</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;8003:8000&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">/data/models:/models</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">CUDA_VISIBLE_DEVICES=2,3</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">deploy</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">reservations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">devices</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">driver</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">device_ids</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;3&#39;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">capabilities</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">gpu]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">shm_size</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;32gb&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">&gt;</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --model /models/Qwen2-72B-Instruct
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --tensor-parallel-size 2
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --trust-remote-code
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --host 0.0.0.0
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --port 8000</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>使用方式</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># 调用7B模型</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="l">curl http://localhost:8001/v1/chat/completions ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c"># 调用14B模型</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="l">curl http://localhost:8002/v1/chat/completions ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c"># 调用72B模型</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="l">curl http://localhost:8003/v1/chat/completions ...</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="nginx负载均衡配置">Nginx负载均衡配置
+</h2><p><strong>场景</strong>：多个相同模型的实例，通过Nginx做负载均衡</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># docker-compose.yml - 多实例+负载均衡</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;3.8&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">services</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># vLLM实例1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">vllm-1</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">vllm/vllm-openai:v0.17.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-instance-1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">unless-stopped</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;8001:8000&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">/data/models:/models</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">CUDA_VISIBLE_DEVICES=0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">shm_size</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;16gb&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">&gt;</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --model /models/Qwen2-7B-Instruct
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --trust-remote-code
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --host 0.0.0.0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># vLLM实例2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">vllm-2</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">vllm/vllm-openai:v0.17.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-instance-2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">unless-stopped</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;8002:8000&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">/data/models:/models</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">CUDA_VISIBLE_DEVICES=1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">shm_size</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;16gb&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">&gt;</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --model /models/Qwen2-7B-Instruct
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --trust-remote-code
+</span></span></span><span class="line"><span class="cl"><span class="sd">      --host 0.0.0.0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Nginx负载均衡</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">nginx</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">nginx:alpine</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-nginx</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">unless-stopped</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;8000:80&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">./nginx.conf:/etc/nginx/nginx.conf:ro</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">vllm-1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">vllm-2</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>nginx.conf</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="k">events</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kn">worker_connections</span> <span class="mi">1024</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">http</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kn">upstream</span> <span class="s">vllm_backend</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">least_conn</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="kn">server</span> <span class="n">vllm-1</span><span class="p">:</span><span class="mi">8000</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">server</span> <span class="n">vllm-2</span><span class="p">:</span><span class="mi">8000</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kn">server</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">listen</span> <span class="mi">80</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="kn">proxy_pass</span> <span class="s">http://vllm_backend</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="kn">proxy_set_header</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="kn">proxy_read_timeout</span> <span class="s">300s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="kn">proxy_connect_timeout</span> <span class="s">75s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 健康检查端点
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/health</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="kn">proxy_pass</span> <span class="s">http://vllm_backend/health</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="性能监控与调优">性能监控与调优
+</h1><h2 id="gpu监控">GPU监控
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="c1"># 实时监控GPU
+</span></span></span><span class="line"><span class="cl"><span class="k">watch</span> <span class="s">-n</span> <span class="mi">1</span> <span class="s">nvidia-smi</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看详细GPU信息
+</span></span></span><span class="line"><span class="cl"><span class="s">nvidia-smi</span> <span class="s">-a</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看特定GPU的计算和显存使用
+</span></span></span><span class="line"><span class="cl"><span class="s">nvidia-smi</span> <span class="s">--query-gpu=index,utilization.gpu,memory.used,memory.total</span> <span class="s">--format=csv</span> <span class="s">-l</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例
+</span></span></span><span class="line"><span class="cl"><span class="c1"># index, utilization.gpu [%], memory.used [MiB], memory.total [MiB]
+</span></span></span><span class="line"><span class="cl"><span class="c1"># 0, 85 %, 20480 MiB, 24564 MiB
+</span></span></span><span class="line"><span class="cl"><span class="c1"># 1, 82 %, 20160 MiB, 24564 MiB
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="vllm指标监控">vLLM指标监控
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="c1"># 获取vLLM Prometheus指标
+</span></span></span><span class="line"><span class="cl"><span class="k">curl</span> <span class="s">http://localhost:8000/metrics</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 关键指标说明
+</span></span></span><span class="line"><span class="cl"><span class="c1"># vllm:num_requests_running      - 运行中的请求数
+</span></span></span><span class="line"><span class="cl"><span class="c1"># vllm:num_requests_waiting      - 等待中的请求数
+</span></span></span><span class="line"><span class="cl"><span class="c1"># vllm:gpu_cache_usage_perc      - KV Cache使用率
+</span></span></span><span class="line"><span class="cl"><span class="c1"># vllm:time_to_first_token_seconds - 首字延迟
+</span></span></span><span class="line"><span class="cl"><span class="c1"># vllm:e2e_request_latency_seconds - 端到端延迟
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="性能测试脚本">性能测试脚本
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="c1">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="c1"># performance_test.sh - vLLM性能测试脚本
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">VLLM_URL=&#34;http://localhost:8000/v1/chat/completions&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">MODEL=&#34;Qwen/Qwen2-7B-Instruct&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;===</span> <span class="s">vLLM性能测试</span> <span class="p">===</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;服务地址:</span> <span class="nv">$VLLM_URL&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;模型:</span> <span class="nv">$MODEL&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 测试1：单次请求延迟
+</span></span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;===</span> <span class="s">测试1：单次请求延迟</span> <span class="p">===</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">START=</span>$<span class="s">(date</span> <span class="s">+%s.%N)</span>
+</span></span><span class="line"><span class="cl"><span class="s">RESPONSE=</span>$<span class="s">(curl</span> <span class="s">-s</span> <span class="s">&#34;</span><span class="nv">$VLLM_URL&#34;</span> <span class="s">\</span>
+</span></span><span class="line"><span class="cl">  <span class="s">-H</span> <span class="s">&#34;Content-Type:</span> <span class="s">application/json&#34;</span> <span class="s">\</span>
+</span></span><span class="line"><span class="cl">  <span class="s">-d</span> <span class="s">&#34;</span><span class="p">{</span><span class="kn">\&#34;model\&#34;:\&#34;$MODEL\&#34;,\&#34;messages\&#34;:[{\&#34;role\&#34;:\&#34;user\&#34;,\&#34;content\&#34;:\&#34;你好\&#34;}],\&#34;max_tokens\&#34;:50}&#34;)</span>
+</span></span><span class="line"><span class="cl"><span class="s">END=</span>$<span class="s">(date</span> <span class="s">+%s.%N)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="s">LATENCY=</span>$<span class="s">(awk</span> <span class="s">&#34;BEGIN</span> <span class="p">{</span><span class="kn">printf</span> <span class="s">\&#34;%.3f\&#34;,</span> <span class="nv">$END</span> <span class="s">-</span> <span class="nv">$START}&#34;</span><span class="s">)</span>
+</span></span><span class="line"><span class="cl"><span class="s">TOKENS=</span>$<span class="s">(echo</span> <span class="s">&#34;</span><span class="nv">$RESPONSE&#34;</span> <span class="s">|</span> <span class="s">jq</span> <span class="s">-r</span> <span class="s">&#39;.usage.completion_tokens</span> <span class="s">//</span> <span class="mi">0</span><span class="s">&#39;)</span>
+</span></span><span class="line"><span class="cl"><span class="s">SPEED=</span>$<span class="s">(awk</span> <span class="s">&#34;BEGIN</span> <span class="p">{</span><span class="kn">printf</span> <span class="s">\&#34;%.1f\&#34;,</span> <span class="nv">$TOKENS</span> <span class="s">/</span> <span class="nv">$LATENCY}&#34;</span> <span class="mi">2</span><span class="s">&gt;/dev/null</span> <span class="s">||</span> <span class="s">echo</span> <span class="s">&#34;N/A&#34;)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;延迟:</span> <span class="nv">${LATENCY}s&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;生成Tokens:</span> <span class="nv">$TOKENS&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;生成速度:</span> <span class="nv">${SPEED}</span> <span class="s">tokens/s&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 测试2：不同长度请求
+</span></span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;===</span> <span class="s">测试2：不同长度请求对比</span> <span class="p">===</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">for</span> <span class="s">LEN</span> <span class="s">in</span> <span class="mi">50</span> <span class="mi">100</span> <span class="mi">200</span> <span class="mi">500</span><span class="p">;</span> <span class="kn">do</span>
+</span></span><span class="line"><span class="cl">  <span class="s">START=</span>$<span class="s">(date</span> <span class="s">+%s.%N)</span>
+</span></span><span class="line"><span class="cl">  <span class="s">RESP=</span>$<span class="s">(curl</span> <span class="s">-s</span> <span class="s">&#34;</span><span class="nv">$VLLM_URL&#34;</span> <span class="s">\</span>
+</span></span><span class="line"><span class="cl">    <span class="s">-H</span> <span class="s">&#34;Content-Type:</span> <span class="s">application/json&#34;</span> <span class="s">\</span>
+</span></span><span class="line"><span class="cl">    <span class="s">-d</span> <span class="s">&#34;</span><span class="p">{</span><span class="kn">\&#34;model\&#34;:\&#34;$MODEL\&#34;,\&#34;messages\&#34;:[{\&#34;role\&#34;:\&#34;user\&#34;,\&#34;content\&#34;:\&#34;请写一个${LEN}字左右的短文\&#34;}],\&#34;max_tokens\&#34;:$LEN}&#34;)</span>
+</span></span><span class="line"><span class="cl">  <span class="s">END=</span>$<span class="s">(date</span> <span class="s">+%s.%N)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="s">LAT=</span>$<span class="s">(awk</span> <span class="s">&#34;BEGIN</span> <span class="p">{</span><span class="kn">printf</span> <span class="s">\&#34;%.3f\&#34;,</span> <span class="nv">$END</span> <span class="s">-</span> <span class="nv">$START}&#34;</span><span class="s">)</span>
+</span></span><span class="line"><span class="cl">  <span class="s">TOK=</span>$<span class="s">(echo</span> <span class="s">&#34;</span><span class="nv">$RESP&#34;</span> <span class="s">|</span> <span class="s">jq</span> <span class="s">-r</span> <span class="s">&#39;.usage.completion_tokens</span> <span class="s">//</span> <span class="mi">0</span><span class="s">&#39;)</span>
+</span></span><span class="line"><span class="cl">  <span class="s">SPD=</span>$<span class="s">(awk</span> <span class="s">&#34;BEGIN</span> <span class="p">{</span><span class="kn">printf</span> <span class="s">\&#34;%.1f\&#34;,</span> <span class="nv">$TOK</span> <span class="s">/</span> <span class="nv">$LAT}&#34;</span> <span class="mi">2</span><span class="s">&gt;/dev/null</span> <span class="s">||</span> <span class="s">echo</span> <span class="s">&#34;N/A&#34;)</span>
+</span></span><span class="line"><span class="cl">  <span class="s">echo</span> <span class="s">&#34;max_tokens=</span><span class="nv">$LEN:</span> <span class="s">延迟=</span><span class="nv">${LAT}s,</span> <span class="s">tokens=</span><span class="nv">$TOK,</span> <span class="s">速度=</span><span class="nv">${SPD}</span> <span class="s">tokens/s&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">done</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 测试3：并发测试（简单版）
+</span></span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;===</span> <span class="s">测试3：并发测试（10个并发请求）===&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">START=</span>$<span class="s">(date</span> <span class="s">+%s.%N)</span>
+</span></span><span class="line"><span class="cl"><span class="s">for</span> <span class="s">i</span> <span class="s">in</span> <span class="p">{</span><span class="kn">1..10}</span><span class="p">;</span> <span class="kn">do</span>
+</span></span><span class="line"><span class="cl">  <span class="s">curl</span> <span class="s">-s</span> <span class="s">&#34;</span><span class="nv">$VLLM_URL&#34;</span> <span class="s">\</span>
+</span></span><span class="line"><span class="cl">    <span class="s">-H</span> <span class="s">&#34;Content-Type:</span> <span class="s">application/json&#34;</span> <span class="s">\</span>
+</span></span><span class="line"><span class="cl">    <span class="s">-d</span> <span class="s">&#34;</span><span class="p">{</span><span class="kn">\&#34;model\&#34;:\&#34;$MODEL\&#34;,\&#34;messages\&#34;:[{\&#34;role\&#34;:\&#34;user\&#34;,\&#34;content\&#34;:\&#34;请求$i:</span> <span class="s">你好\&#34;</span><span class="err">}</span><span class="s">],\&#34;max_tokens\&#34;:20</span><span class="err">}</span><span class="s">&#34;</span> <span class="s">\</span>
+</span></span><span class="line"><span class="cl">    <span class="s">&gt;</span> <span class="s">/dev/null</span> <span class="s">&amp;</span>
+</span></span><span class="line"><span class="cl"><span class="s">done</span>
+</span></span><span class="line"><span class="cl"><span class="s">wait</span>
+</span></span><span class="line"><span class="cl"><span class="s">END=</span>$<span class="s">(date</span> <span class="s">+%s.%N)</span>
+</span></span><span class="line"><span class="cl"><span class="s">TOTAL=</span>$<span class="s">(awk</span> <span class="s">&#34;BEGIN</span> <span class="p">{</span><span class="kn">printf</span> <span class="s">\&#34;%.3f\&#34;,</span> <span class="nv">$END</span> <span class="s">-</span> <span class="nv">$START}&#34;</span><span class="s">)</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;10个并发请求总耗时:</span> <span class="nv">${TOTAL}s&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="s">echo</span> <span class="s">&#34;平均每请求:</span> $<span class="s">(awk</span> <span class="s">&#34;BEGIN</span> <span class="p">{</span><span class="kn">printf</span> <span class="s">\&#34;%.2f\&#34;,</span> <span class="nv">$TOTAL</span> <span class="s">/</span> <span class="mi">10</span><span class="err">}</span><span class="s">&#34;)s&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="性能调优建议">性能调优建议
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>问题</strong></th>
+					<th><strong>现象</strong></th>
+					<th><strong>解决方案</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>GPU利用率低</td>
+					<td>&lt;50%</td>
+					<td>增大max-num-seqs，启用chunked-prefill</td>
+			</tr>
+			<tr>
+					<td>显存不足</td>
+					<td>OOM错误</td>
+					<td>降低gpu-memory-utilization，减小max-model-len</td>
+			</tr>
+			<tr>
+					<td>首字延迟高</td>
+					<td>TTFT&gt;2s</td>
+					<td>检查模型加载，减少并发</td>
+			</tr>
+			<tr>
+					<td>吞吐量低</td>
+					<td>tokens/s&lt;30</td>
+					<td>增加并发，使用多卡</td>
+			</tr>
+			<tr>
+					<td>请求排队</td>
+					<td>等待时间长</td>
+					<td>增加副本数，负载均衡</td>
+			</tr>
+	</tbody>
+</table></div>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/vllm/">VLLM</a>
+        
+            <a href="/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/">大模型</a>
+        
+            <a href="/tags/docker/">Docker</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM单卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db_hu_1c9127d01cd86c9.png" srcset="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db_hu_1c9127d01cd86c9.png 1x, /p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db_hu_b6f169fd95014555.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #f7f4fc80 0%, #624cffC0 100%);">
+            <h2 class="article-title">vLLM单卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post 基于 Docker 的 Ruoyi 微服务容器化部署" height="150" loading="lazy" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_65a2b0c24b11d32b.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_65a2b0c24b11d32b.png 1x, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_e4507ed3d3f2442b.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #0c8bc480 0%, #f8f7ecC0 100%);">
+            <h2 class="article-title">基于 Docker 的 Ruoyi 微服务容器化部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post ELK+Kafka+Filebeat+Logstash分布式日志收集系统部署指南" height="150" loading="lazy" src="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/1761482020512-a8d98d5d-862c-463a-8534-641cf9f9fb9d_hu_57c44f3e4c07bf22.png" srcset="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/1761482020512-a8d98d5d-862c-463a-8534-641cf9f9fb9d_hu_57c44f3e4c07bf22.png 1x, /p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/1761482020512-a8d98d5d-862c-463a-8534-641cf9f9fb9d_hu_89e4a1de2f924fd2.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #29283180 0%, #f3f6f9C0 100%);">
+            <h2 class="article-title">ELK&#43;Kafka&#43;Filebeat&#43;Logstash分布式日志收集系统部署指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障" height="150" loading="lazy" src="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_f28026e359ada8d5.png" srcset="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_f28026e359ada8d5.png 1x, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_de4f9a419797cea4.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #252d3280 0%, #f5f7f5C0 100%);">
+            <h2 class="article-title">Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post mall-swarm K8s分布式部署" height="150" loading="lazy" src="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png" srcset="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png 1x, /p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_39118aa71ccd939b.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #239dde80 0%, #fafafaC0 100%);">
+            <h2 class="article-title">mall-swarm K8s分布式部署</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>

@@ -5,7 +5,55 @@
         <description>Recent content in Tags on Erha&#39;s Blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Wed, 24 Jun 2026 21:14:22 +0800</lastBuildDate><atom:link href="https://erha6657.github.io/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Thu, 25 Jun 2026 10:00:00 +0800</lastBuildDate><atom:link href="https://erha6657.github.io/tags/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>Docker</title>
+            <link>https://erha6657.github.io/tags/docker/</link>
+            <pubDate>Thu, 25 Jun 2026 10:00:00 +0800</pubDate>
+            <guid>https://erha6657.github.io/tags/docker/</guid>
+            <description></description>
+        </item><item>
+            <title>VLLM</title>
+            <link>https://erha6657.github.io/tags/vllm/</link>
+            <pubDate>Thu, 25 Jun 2026 10:00:00 +0800</pubDate>
+            <guid>https://erha6657.github.io/tags/vllm/</guid>
+            <description></description>
+        </item><item>
+            <title>大模型</title>
+            <link>https://erha6657.github.io/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/</link>
+            <pubDate>Thu, 25 Jun 2026 10:00:00 +0800</pubDate>
+            <guid>https://erha6657.github.io/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/</guid>
+            <description></description>
+        </item><item>
+            <title>ELK</title>
+            <link>https://erha6657.github.io/tags/elk/</link>
+            <pubDate>Thu, 25 Jun 2026 09:53:45 +0800</pubDate>
+            <guid>https://erha6657.github.io/tags/elk/</guid>
+            <description></description>
+        </item><item>
+            <title>AlmaLinux</title>
+            <link>https://erha6657.github.io/tags/almalinux/</link>
+            <pubDate>Wed, 24 Jun 2026 21:14:22 +0800</pubDate>
+            <guid>https://erha6657.github.io/tags/almalinux/</guid>
+            <description></description>
+        </item><item>
+            <title>CUDA</title>
+            <link>https://erha6657.github.io/tags/cuda/</link>
+            <pubDate>Wed, 24 Jun 2026 21:14:22 +0800</pubDate>
+            <guid>https://erha6657.github.io/tags/cuda/</guid>
+            <description></description>
+        </item><item>
+            <title>GPU</title>
+            <link>https://erha6657.github.io/tags/gpu/</link>
+            <pubDate>Wed, 24 Jun 2026 21:14:22 +0800</pubDate>
+            <guid>https://erha6657.github.io/tags/gpu/</guid>
+            <description></description>
+        </item><item>
+            <title>NVIDIA</title>
+            <link>https://erha6657.github.io/tags/nvidia/</link>
+            <pubDate>Wed, 24 Jun 2026 21:14:22 +0800</pubDate>
+            <guid>https://erha6657.github.io/tags/nvidia/</guid>
+            <description></description>
+        </item><item>
             <title>自动化运维</title>
             <link>https://erha6657.github.io/tags/%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4/</link>
             <pubDate>Wed, 24 Jun 2026 21:14:22 +0800</pubDate>
@@ -16,12 +64,6 @@
             <link>https://erha6657.github.io/tags/k8s/</link>
             <pubDate>Mon, 25 May 2026 18:30:00 +0800</pubDate>
             <guid>https://erha6657.github.io/tags/k8s/</guid>
-            <description></description>
-        </item><item>
-            <title>Docker</title>
-            <link>https://erha6657.github.io/tags/docker/</link>
-            <pubDate>Fri, 22 May 2026 18:30:00 +0800</pubDate>
-            <guid>https://erha6657.github.io/tags/docker/</guid>
             <description></description>
         </item><item>
             <title>GitHub</title>

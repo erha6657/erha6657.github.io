@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="实验环境 Alma Linux 10，需 NVIDIA GPU 硬件，firewalld/SELinux 关闭\n实验前准备：安装实验所需工具。\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 sed -e &#39;s|^mirrorlist=|#mirrorlist=|g&#39; \\ -e &#39;s|^# baseurl=https://repo.almalinux.org|baseurl=https://mirrors.aliyun.com|g&#39; \\ -i.bak \\ /etc/yum.repos.d/almalinux*.repo dnf makecache # 关闭防火墙 systemctl disable firewalld # 关闭selinux sed -i &#39;s/SELINUX=enforcing/SELINUX=disabled/g&#39; /etc/selinux/config # 编辑SSH配置文件 sed -i &#39;s/#UseDNS yes/UseDNS no/g&#39; /etc/ssh/sshd_config # 重启SSH服务 systemctl restart sshd # 设置时区 timedatectl set-timezone &#34;Asia/Shanghai&#34; # 安装 chrony dnf install chrony -y systemctl enable --now chronyd # 同步时间 # 立即校准系统时间，解决时间偏差过大场景 chronyc makestep # 安装常用软件包 dnf -y install wget psmisc vim net-tools telnet yum-utils device-mapper-persistent-data lvm2 git tar curl bind-utils unzip dnf install -y epel-release dnf install -y pciutils kernel-devel-$(uname -r) gcc make dkms mokutil 部分操作（驱动安装、内核参数修改、systemd 服务配置）需要 root 权限，请使用 sudo 或以 root 执行。\n">
+<title>Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障">
+<meta property='og:description' content="实验环境 Alma Linux 10，需 NVIDIA GPU 硬件，firewalld/SELinux 关闭\n实验前准备：安装实验所需工具。\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 sed -e &#39;s|^mirrorlist=|#mirrorlist=|g&#39; \\ -e &#39;s|^# baseurl=https://repo.almalinux.org|baseurl=https://mirrors.aliyun.com|g&#39; \\ -i.bak \\ /etc/yum.repos.d/almalinux*.repo dnf makecache # 关闭防火墙 systemctl disable firewalld # 关闭selinux sed -i &#39;s/SELINUX=enforcing/SELINUX=disabled/g&#39; /etc/selinux/config # 编辑SSH配置文件 sed -i &#39;s/#UseDNS yes/UseDNS no/g&#39; /etc/ssh/sshd_config # 重启SSH服务 systemctl restart sshd # 设置时区 timedatectl set-timezone &#34;Asia/Shanghai&#34; # 安装 chrony dnf install chrony -y systemctl enable --now chronyd # 同步时间 # 立即校准系统时间，解决时间偏差过大场景 chronyc makestep # 安装常用软件包 dnf -y install wget psmisc vim net-tools telnet yum-utils device-mapper-persistent-data lvm2 git tar curl bind-utils unzip dnf install -y epel-release dnf install -y pciutils kernel-devel-$(uname -r) gcc make dkms mokutil 部分操作（驱动安装、内核参数修改、systemd 服务配置）需要 root 权限，请使用 sudo 或以 root 执行。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='GPU' /><meta property='article:tag' content='NVIDIA' /><meta property='article:tag' content='CUDA' /><meta property='article:tag' content='AlmaLinux' /><meta property='article:published_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='article:modified_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371.png' />
+<meta name="twitter:title" content="Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障">
+<meta name="twitter:description" content="实验环境 Alma Linux 10，需 NVIDIA GPU 硬件，firewalld/SELinux 关闭\n实验前准备：安装实验所需工具。\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 sed -e &#39;s|^mirrorlist=|#mirrorlist=|g&#39; \\ -e &#39;s|^# baseurl=https://repo.almalinux.org|baseurl=https://mirrors.aliyun.com|g&#39; \\ -i.bak \\ /etc/yum.repos.d/almalinux*.repo dnf makecache # 关闭防火墙 systemctl disable firewalld # 关闭selinux sed -i &#39;s/SELINUX=enforcing/SELINUX=disabled/g&#39; /etc/selinux/config # 编辑SSH配置文件 sed -i &#39;s/#UseDNS yes/UseDNS no/g&#39; /etc/ssh/sshd_config # 重启SSH服务 systemctl restart sshd # 设置时区 timedatectl set-timezone &#34;Asia/Shanghai&#34; # 安装 chrony dnf install chrony -y systemctl enable --now chronyd # 同步时间 # 立即校准系统时间，解决时间偏差过大场景 chronyc makestep # 安装常用软件包 dnf -y install wget psmisc vim net-tools telnet yum-utils device-mapper-persistent-data lvm2 git tar curl bind-utils unzip dnf install -y epel-release dnf install -y pciutils kernel-devel-$(uname -r) gcc make dkms mokutil 部分操作（驱动安装、内核参数修改、systemd 服务配置）需要 root 权限，请使用 sudo 或以 root 执行。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#实验环境">实验环境</a>
+      <ol>
+        <li><a href="#实验-1gpu-硬件查看lspci">实验 1：GPU 硬件查看（lspci）</a>
+          <ol>
+            <li><a href="#步骤-1查看系统识别的-gpu-设备">步骤 1：查看系统识别的 GPU 设备</a></li>
+            <li><a href="#步骤-2确认-gpu-的-pcie-拓扑">步骤 2：确认 GPU 的 PCIe 拓扑</a></li>
+            <li><a href="#步骤-3对比-lspci-期望数量和实际数量">步骤 3：对比 lspci 期望数量和实际数量</a></li>
+          </ol>
+        </li>
+        <li><a href="#实验-2nvidia-驱动安装">实验 2：NVIDIA 驱动安装</a>
+          <ol>
+            <li><a href="#步骤-1检查当前状态">步骤 1：检查当前状态</a></li>
+            <li><a href="#步骤-2禁用-nouveau">步骤 2：禁用 nouveau</a></li>
+            <li><a href="#步骤-3重启并验证-nouveau-已禁用">步骤 3：重启并验证 nouveau 已禁用</a></li>
+            <li><a href="#步骤-4检查-secure-boot-状态">步骤 4：检查 Secure Boot 状态</a></li>
+            <li><a href="#步骤-5安装-nvidia-驱动">步骤 5：安装 NVIDIA 驱动</a></li>
+            <li><a href="#步骤-6验证驱动安装">步骤 6：验证驱动安装</a></li>
+          </ol>
+        </li>
+        <li><a href="#实验-3cuda-toolkit-安装与验证">实验 3：CUDA Toolkit 安装与验证</a>
+          <ol>
+            <li><a href="#步骤-1确认驱动版本和兼容性">步骤 1：确认驱动版本和兼容性</a></li>
+            <li><a href="#步骤-2安装-cuda-toolkit">步骤 2：安装 CUDA Toolkit</a></li>
+            <li><a href="#步骤-3验证-cuda-安装">步骤 3：验证 CUDA 安装</a></li>
+            <li><a href="#步骤-4理解版本对应关系">步骤 4：理解版本对应关系</a></li>
+            <li><a href="#步骤-5模拟多版本-cuda-管理软链接">步骤 5：模拟多版本 CUDA 管理（软链接）</a></li>
+          </ol>
+        </li>
+        <li><a href="#实验-5gpu-运行监控">实验 5：GPU 运行监控</a>
+          <ol>
+            <li><a href="#步骤-1格式化查询-gpu-核心指标">步骤 1：格式化查询 GPU 核心指标</a></li>
+            <li><a href="#步骤-2使用-nvidia-smi-dmon-持续监控">步骤 2：使用 nvidia-smi dmon 持续监控</a></li>
+            <li><a href="#步骤-3安装并使用-gpustat">步骤 3：安装并使用 gpustat</a></li>
+            <li><a href="#步骤-4编写-gpu-健康检查脚本">步骤 4：编写 GPU 健康检查脚本</a></li>
+          </ol>
+        </li>
+        <li><a href="#实验-6驱动排障实操">实验 6：驱动排障实操</a>
+          <ol>
+            <li><a href="#步骤-1模拟排查驱动加载失败">步骤 1：模拟排查驱动加载失败</a></li>
+            <li><a href="#步骤-2查看内核日志中的-nvidia-信息">步骤 2：查看内核日志中的 NVIDIA 信息</a></li>
+            <li><a href="#步骤-3解读关键日志">步骤 3：解读关键日志</a></li>
+            <li><a href="#步骤-4配置-nvidia-persistenced">步骤 4：配置 nvidia-persistenced</a></li>
+            <li><a href="#步骤-5完整排障流程演练">步骤 5：完整排障流程演练</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#问题笔记">问题笔记</a></li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/">
+            <img alt="Featured image of post Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障" height="941" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371.png" srcset="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_829686a7dec93059.png 800w, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_aacc491f8b1c55cc.png 1600w, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371.png 1672w" width="1672">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E5%A4%A7%E6%A8%A1%E5%9E%8B/" style="background-color: hsl(286, 60%, 84%); color: hsl(286, 60%, 15%);">
+                大模型
+            </a>
+        
+            
+            
+            
+            <a href="/categories/ai/" style="background-color: hsl(167, 60%, 84%); color: hsl(167, 60%, 15%);">
+                AI
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E6%95%99%E7%A8%8B/" style="background-color: hsl(281, 60%, 84%); color: hsl(281, 60%, 15%);">
+                教程
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E7%AC%94%E8%AE%B0/" style="background-color: hsl(358, 60%, 84%); color: hsl(358, 60%, 15%);">
+                部署笔记
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/">Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-24T21:14:22&#43;08:00'>2026年6月24日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 10 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#实验环境">实验环境</a>
+      <ol>
+        <li><a href="#实验-1gpu-硬件查看lspci">实验 1：GPU 硬件查看（lspci）</a>
+          <ol>
+            <li><a href="#步骤-1查看系统识别的-gpu-设备">步骤 1：查看系统识别的 GPU 设备</a></li>
+            <li><a href="#步骤-2确认-gpu-的-pcie-拓扑">步骤 2：确认 GPU 的 PCIe 拓扑</a></li>
+            <li><a href="#步骤-3对比-lspci-期望数量和实际数量">步骤 3：对比 lspci 期望数量和实际数量</a></li>
+          </ol>
+        </li>
+        <li><a href="#实验-2nvidia-驱动安装">实验 2：NVIDIA 驱动安装</a>
+          <ol>
+            <li><a href="#步骤-1检查当前状态">步骤 1：检查当前状态</a></li>
+            <li><a href="#步骤-2禁用-nouveau">步骤 2：禁用 nouveau</a></li>
+            <li><a href="#步骤-3重启并验证-nouveau-已禁用">步骤 3：重启并验证 nouveau 已禁用</a></li>
+            <li><a href="#步骤-4检查-secure-boot-状态">步骤 4：检查 Secure Boot 状态</a></li>
+            <li><a href="#步骤-5安装-nvidia-驱动">步骤 5：安装 NVIDIA 驱动</a></li>
+            <li><a href="#步骤-6验证驱动安装">步骤 6：验证驱动安装</a></li>
+          </ol>
+        </li>
+        <li><a href="#实验-3cuda-toolkit-安装与验证">实验 3：CUDA Toolkit 安装与验证</a>
+          <ol>
+            <li><a href="#步骤-1确认驱动版本和兼容性">步骤 1：确认驱动版本和兼容性</a></li>
+            <li><a href="#步骤-2安装-cuda-toolkit">步骤 2：安装 CUDA Toolkit</a></li>
+            <li><a href="#步骤-3验证-cuda-安装">步骤 3：验证 CUDA 安装</a></li>
+            <li><a href="#步骤-4理解版本对应关系">步骤 4：理解版本对应关系</a></li>
+            <li><a href="#步骤-5模拟多版本-cuda-管理软链接">步骤 5：模拟多版本 CUDA 管理（软链接）</a></li>
+          </ol>
+        </li>
+        <li><a href="#实验-5gpu-运行监控">实验 5：GPU 运行监控</a>
+          <ol>
+            <li><a href="#步骤-1格式化查询-gpu-核心指标">步骤 1：格式化查询 GPU 核心指标</a></li>
+            <li><a href="#步骤-2使用-nvidia-smi-dmon-持续监控">步骤 2：使用 nvidia-smi dmon 持续监控</a></li>
+            <li><a href="#步骤-3安装并使用-gpustat">步骤 3：安装并使用 gpustat</a></li>
+            <li><a href="#步骤-4编写-gpu-健康检查脚本">步骤 4：编写 GPU 健康检查脚本</a></li>
+          </ol>
+        </li>
+        <li><a href="#实验-6驱动排障实操">实验 6：驱动排障实操</a>
+          <ol>
+            <li><a href="#步骤-1模拟排查驱动加载失败">步骤 1：模拟排查驱动加载失败</a></li>
+            <li><a href="#步骤-2查看内核日志中的-nvidia-信息">步骤 2：查看内核日志中的 NVIDIA 信息</a></li>
+            <li><a href="#步骤-3解读关键日志">步骤 3：解读关键日志</a></li>
+            <li><a href="#步骤-4配置-nvidia-persistenced">步骤 4：配置 nvidia-persistenced</a></li>
+            <li><a href="#步骤-5完整排障流程演练">步骤 5：完整排障流程演练</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#问题笔记">问题笔记</a></li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="实验环境">实验环境
+</h2><p>Alma Linux 10，需 NVIDIA GPU 硬件，firewalld/SELinux 关闭</p>
+<p><strong>实验前准备</strong>：安装实验所需工具。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sed -e <span class="s1">&#39;s|^mirrorlist=|#mirrorlist=|g&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    -e <span class="s1">&#39;s|^# baseurl=https://repo.almalinux.org|baseurl=https://mirrors.aliyun.com|g&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">    -i.bak <span class="se">\
+</span></span></span><span class="line"><span class="cl">    /etc/yum.repos.d/almalinux*.repo
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">dnf makecache
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 关闭防火墙</span>
+</span></span><span class="line"><span class="cl">systemctl disable firewalld
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 关闭selinux</span>
+</span></span><span class="line"><span class="cl">sed -i <span class="s1">&#39;s/SELINUX=enforcing/SELINUX=disabled/g&#39;</span> /etc/selinux/config
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 编辑SSH配置文件</span>
+</span></span><span class="line"><span class="cl">sed -i <span class="s1">&#39;s/#UseDNS yes/UseDNS no/g&#39;</span> /etc/ssh/sshd_config
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 重启SSH服务</span>
+</span></span><span class="line"><span class="cl">systemctl restart sshd
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 设置时区</span>
+</span></span><span class="line"><span class="cl">timedatectl set-timezone <span class="s2">&#34;Asia/Shanghai&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 chrony</span>
+</span></span><span class="line"><span class="cl">dnf install chrony -y
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now chronyd
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 同步时间</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 立即校准系统时间，解决时间偏差过大场景</span>
+</span></span><span class="line"><span class="cl">chronyc makestep
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装常用软件包</span>
+</span></span><span class="line"><span class="cl">dnf -y install wget psmisc vim net-tools telnet yum-utils device-mapper-persistent-data lvm2 git tar curl bind-utils unzip
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">dnf install -y epel-release
+</span></span><span class="line"><span class="cl">dnf install -y pciutils kernel-devel-<span class="k">$(</span>uname -r<span class="k">)</span> gcc make dkms mokutil
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>部分操作（驱动安装、内核参数修改、systemd 服务配置）需要 root 权限，请使用 <code>sudo</code> 或以 root 执行。</p>
+<h3 id="实验-1gpu-硬件查看lspci">实验 1：GPU 硬件查看（lspci）
+</h3><p><strong>实验目的</strong>：使用 lspci 确认操作系统识别到了 GPU 硬件，在安装任何 NVIDIA 软件之前先行验货。</p>
+<p><strong>覆盖技能点</strong>：lspci 识别 GPU 型号和数量</p>
+<p><strong>说明</strong>：本实验只使用 Linux 自带的 lspci，不依赖任何 NVIDIA 驱动。nvidia-smi 的详细操作放在实验 2 驱动安装后的验证步骤中。</p>
+<h4 id="步骤-1查看系统识别的-gpu-设备">步骤 1：查看系统识别的 GPU 设备
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 列出所有 NVIDIA 设备</span>
+</span></span><span class="line"><span class="cl">lspci <span class="p">|</span> grep -i nvidia
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看详细信息（显存大小、PCI 地址等）</span>
+</span></span><span class="line"><span class="cl">lspci -v <span class="p">|</span> grep -i nvidia -A <span class="m">10</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>记录：GPU 型号、数量、每块的 PCI 地址。</p>
+<p><code>&lt;font style=&quot;color:rgb(0, 0, 0);background-color:rgba(0, 0, 0, 0);&quot;&gt;nouveau&lt;/font&gt;</code>：Linux 开源 NVIDIA 显卡驱动，<strong><font style="color:rgb(0, 0, 0);background-color:rgba(0, 0, 0, 0);">不支持 CUDA、vLLM、PyTorch GPU 加速</font></strong></p>
+<h4 id="步骤-2确认-gpu-的-pcie-拓扑">步骤 2：确认 GPU 的 PCIe 拓扑
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看 GPU 所在的 PCIe 插槽和带宽</span>
+</span></span><span class="line"><span class="cl">lspci -vv <span class="p">|</span> grep -i nvidia -A <span class="m">5</span> <span class="p">|</span> grep -E <span class="s2">&#34;LnkCap|LnkSta&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-3对比-lspci-期望数量和实际数量">步骤 3：对比 lspci 期望数量和实际数量
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 统计系统认出的 GPU 数量</span>
+</span></span><span class="line"><span class="cl">lspci <span class="p">|</span> grep -i nvidia <span class="p">|</span> wc -l
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果输出数量和你预期的 GPU 数量不一致，说明有 GPU 没插好或 PCIe 槽有问题。</p>
+<p><strong>验证方法</strong>：能说出当前机器识别到几块 GPU、什么型号、各自在哪个 PCI 地址。如果 lspci 认不到 GPU，后续安装无意义——先检查硬件。</p>
+<h3 id="实验-2nvidia-驱动安装">实验 2：NVIDIA 驱动安装
+</h3><p><strong>实验目的</strong>：掌握 <code>NVIDIA</code> 闭源驱动的完整安装流程，理解 <code>nouveau</code> 禁用的必要性。</p>
+<p><strong>覆盖技能点</strong>：<code>nouveau</code> 禁用、驱动在线安装、驱动加载验证 <strong>覆盖红线</strong>：红线 1（禁止不关闭 <code>nouveau</code> 就装驱动）</p>
+
+    <blockquote>
+        <p><a class="link" href="https://help.aliyun.com/zh/egs/user-guide/use-cloud-assistant-to-automatically-install-and-upgrade-grid-drivers?spm=a2c4g.11186623.help-menu-155040.d_1_5_2_1.1e284cfcRYWSr4&amp;scm=20140722.H_2526616._.OR_help-T_cn~zh-V_1"  target="_blank" rel="noopener"
+    >https://help.aliyun.com/zh/egs/user-guide/use-cloud-assistant-to-automatically-install-and-upgrade-grid-drivers?spm=a2c4g.11186623.help-menu-155040.d_1_5_2_1.1e284cfcRYWSr4&amp;scm=20140722.H_2526616._.OR_help-T_cn~zh-V_1</a></p>
+
+    </blockquote>
+<h4 id="步骤-1检查当前状态">步骤 1：检查当前状态
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 确认是否有 GPU 硬件</span>
+</span></span><span class="line"><span class="cl">lspci <span class="p">|</span> grep -i nvidia
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 检查 nouveau 是否在运行</span>
+</span></span><span class="line"><span class="cl">lsmod <span class="p">|</span> grep nouveau
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 检查是否已有 NVIDIA 驱动</span>
+</span></span><span class="line"><span class="cl">which nvidia-smi <span class="o">&amp;&amp;</span> nvidia-smi <span class="o">||</span> <span class="nb">echo</span> <span class="s2">&#34;NVIDIA 驱动未安装&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-2禁用-nouveau">步骤 2：禁用 nouveau
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 方法一：grubby 内核参数</span>
+</span></span><span class="line"><span class="cl">grubby --args<span class="o">=</span><span class="s2">&#34;nouveau.modeset=0 rd.driver.blacklist=nouveau&#34;</span> --update-kernel<span class="o">=</span>ALL
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 方法二：modprobe 黑名单（两种方法互为补充，生产环境两个都做）</span>
+</span></span><span class="line"><span class="cl">cat &gt; /etc/modprobe.d/blacklist-nouveau.conf <span class="s">&lt;&lt; &#39;EOF&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s">blacklist nouveau
+</span></span></span><span class="line"><span class="cl"><span class="s">options nouveau modeset=0
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 重建 initramfs</span>
+</span></span><span class="line"><span class="cl">dracut --force
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-3重启并验证-nouveau-已禁用">步骤 3：重启并验证 nouveau 已禁用
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">reboot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重启后执行：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsmod <span class="p">|</span> grep nouveau
+</span></span><span class="line"><span class="cl"><span class="c1"># 应该无任何输出</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>如果还有输出</strong>，说明禁用不彻底。检查内核启动参数：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /proc/cmdline <span class="p">|</span> grep -o <span class="s2">&#34;nouveau.modeset=0&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 应有输出</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-4检查-secure-boot-状态">步骤 4：检查 Secure Boot 状态
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mokutil --sb-state
+</span></span><span class="line"><span class="cl"><span class="c1"># 必须输出 &#34;SecureBoot disabled&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果显示 <code>SecureBoot enabled</code>，进入 BIOS 关闭 Secure Boot。（本步骤是教训而非实操，Secure Boot 不关驱动装不上。）</p>
+<h4 id="步骤-5安装-nvidia-驱动">步骤 5：安装 NVIDIA 驱动
+</h4>
+    <blockquote>
+        <p><a class="link" href="https://developer.nvidia.com/cuda-13-0-3-download-archive?target_os=Linux&amp;target_arch=x86_64&amp;Distribution=RHEL&amp;target_version=8&amp;target_type=rpm_network"  target="_blank" rel="noopener"
+    >https://developer.nvidia.com/cuda-13-0-3-download-archive?target_os=Linux&amp;target_arch=x86_64&amp;Distribution=RHEL&amp;target_version=8&amp;target_type=rpm_network</a></p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">dnf clean all <span class="o">&amp;&amp;</span> dnf makecache
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">dnf install -y epel-release
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">dnf install -y kernel-devel-<span class="k">$(</span>uname -r<span class="k">)</span> kernel-headers-<span class="k">$(</span>uname -r<span class="k">)</span> gcc make dkms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">uname -r
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">grubby --default-index
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">reboot
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">dnf -y module install nvidia-driver:latest-dkms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">reboot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-6验证驱动安装">步骤 6：验证驱动安装
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 列出所有 GPU 及 UUID（确认数量对不对）</span>
+</span></span><span class="line"><span class="cl">nvidia-smi -L
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 完整状态：驱动版本、CUDA 版本、每块 GPU 的温度/功耗/显存/利用率</span>
+</span></span><span class="line"><span class="cl">nvidia-smi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 格式化输出核心指标</span>
+</span></span><span class="line"><span class="cl">nvidia-smi --query-gpu<span class="o">=</span>index,name,temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw --format<span class="o">=</span>csv
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="426px" data-flex-grow="177" height="941" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342953917-e67c156e-6668-4e8d-af9d-50a360bc2d61.png" srcset="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342953917-e67c156e-6668-4e8d-af9d-50a360bc2d61_hu_d8860cbcb7ae529c.png 800w, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342953917-e67c156e-6668-4e8d-af9d-50a360bc2d61_hu_4787c51c1835433d.png 1600w, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342953917-e67c156e-6668-4e8d-af9d-50a360bc2d61.png 1672w" width="1672"></p>
+<p>从输出中记录：</p>
+<ul>
+<li>Driver Version（驱动版本）</li>
+<li>CUDA Version（驱动支持的最高 CUDA 版本）</li>
+<li>每块 GPU 的温度（Temp）、功耗（Pwr）、显存使用（Memory-Usage）、利用率（GPU-Util）</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 确认四个驱动模块已加载</span>
+</span></span><span class="line"><span class="cl">lsmod <span class="p">|</span> grep nvidia
+</span></span><span class="line"><span class="cl"><span class="c1"># 应看到: nvidia_uvm, nvidia_drm, nvidia_modeset, nvidia 四个模块</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看驱动版本</span>
+</span></span><span class="line"><span class="cl">modinfo nvidia <span class="p">|</span> grep ^version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>红线验证</strong>：回顾步骤 2 中的 nouveau 禁用流程。如果你跳过步骤 2 直接装驱动，安装过程会报错 <code>The Nouveau kernel driver is currently in use</code>。这是红线 1 的现实教训。</p>
+<p><strong>验证方法</strong>：nvidia-smi 正常输出，lsmod 显示四个 nvidia 模块。</p>
+<h3 id="实验-3cuda-toolkit-安装与验证">实验 3：CUDA Toolkit 安装与验证
+</h3><p><img class="gallery-image" data-flex-basis="426px" data-flex-grow="177" height="941" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371.png" srcset="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_829686a7dec93059.png 800w, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_aacc491f8b1c55cc.png 1600w, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371.png 1672w" width="1672"></p>
+<p><strong>实验目的</strong>：掌握 CUDA Toolkit 的安装和版本验证方法。</p>
+<p><strong>覆盖技能点</strong>：runfile 安装 CUDA、nvcc 验证、版本对应检查、软链接管理</p>
+<p><strong>覆盖红线</strong>：红线 5（多 CUDA 版本共存需明确指定当前版本）</p>
+<h4 id="步骤-1确认驱动版本和兼容性">步骤 1：确认驱动版本和兼容性
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看驱动版本和支持的最高 CUDA 版本</span>
+</span></span><span class="line"><span class="cl">nvidia-smi <span class="p">|</span> head -5
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 记录 Driver Version 和 CUDA Version</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-2安装-cuda-toolkit">步骤 2：安装 CUDA Toolkit
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 在线安装（和驱动同一个仓库）</span>
+</span></span><span class="line"><span class="cl">dnf install cuda-toolkit -y
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 或者 runfile 安装指定版本</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 下载地址见 https://developer.nvidia.com/cuda-downloads</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># wget https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda_12.4.0_550.54.14_linux.run</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># sh cuda_12.4.0_550.54.14_linux.run --toolkit --silent --override</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>CUDA 安装后 nvcc 等工具在 <code>/usr/local/cuda/bin/</code> 下，默认不在 PATH 中。执行以下命令使其生效：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 临时生效（当前会话）</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span>/usr/local/cuda/bin:<span class="nv">$PATH</span>
+</span></span><span class="line"><span class="cl">nvcc --version
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 永久生效（写入 ~/.bashrc）</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export PATH=/usr/local/cuda/bin:$PATH&#39;</span> &gt;&gt; ~/.bashrc
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> ~/.bashrc
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-3验证-cuda-安装">步骤 3：验证 CUDA 安装
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 检查 nvcc 编译器</span>
+</span></span><span class="line"><span class="cl">nvcc --version
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 编译运行 deviceQuery 示例做最终验证</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 注意：CUDA 11+ 默认不装 samples，需单独: dnf install cuda-samples</span>
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local/cuda/samples/1_Utilities/deviceQuery 2&gt;/dev/null <span class="o">||</span> <span class="nb">echo</span> <span class="s2">&#34;samples 未安装，跳过&#34;</span>
+</span></span><span class="line"><span class="cl">make
+</span></span><span class="line"><span class="cl">./deviceQuery
+</span></span><span class="line"><span class="cl"><span class="c1"># 最后一行必须是: Result = PASS</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-4理解版本对应关系">步骤 4：理解版本对应关系
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;=== nvidia-smi 显示的 CUDA 版本（驱动支持的最高版本）===&#34;</span>
+</span></span><span class="line"><span class="cl">nvidia-smi <span class="p">|</span> grep <span class="s2">&#34;CUDA Version&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;=== nvcc 显示的 CUDA 版本（实际安装的 Toolkit 版本）===&#34;</span>
+</span></span><span class="line"><span class="cl">nvcc --version <span class="p">|</span> grep <span class="s2">&#34;release&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>对比两个版本。nvcc 版本号必须 ≤ nvidia-smi 显示的 CUDA Version。</p>
+<h4 id="步骤-5模拟多版本-cuda-管理软链接">步骤 5：模拟多版本 CUDA 管理（软链接）
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看当前 /usr/local/cuda 软链接指向</span>
+</span></span><span class="line"><span class="cl">ls -la /usr/local/cuda
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看已安装的 CUDA 版本</span>
+</span></span><span class="line"><span class="cl">ls -d /usr/local/cuda-*
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 如果安装了多个版本，切换软链接</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ln -sfn /usr/local/cuda-12.4 /usr/local/cuda</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>红线验证</strong>：多个 CUDA 版本共存时，程序通过 <code>/usr/local/cuda</code> 找库文件。如果软链接指向错误版本，程序可能找到不兼容的 libcuda.so，加载失败或静默出错。</p>
+<p><strong>验证方法</strong>：nvcc &ndash;version 输出正确版本号，deviceQuery 输出 Result = PASS，nvidia-smi CUDA Version ≥ nvcc 版本号。</p>
+<h3 id="实验-5gpu-运行监控">实验 5：GPU 运行监控
+</h3><p><strong>实验目的</strong>：掌握 nvidia-smi 高级查询和 gpustat 的使用，能够持续监控 GPU 状态。</p>
+<p><strong>覆盖技能点</strong>：nvidia-smi dmon 持续监控、gpustat 安装使用、指标解读和告警阈值。</p>
+<h4 id="步骤-1格式化查询-gpu-核心指标">步骤 1：格式化查询 GPU 核心指标
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 用 --query-gpu 提取并格式化输出</span>
+</span></span><span class="line"><span class="cl">nvidia-smi --query-gpu<span class="o">=</span>index,name,temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw --format<span class="o">=</span>csv
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-2使用-nvidia-smi-dmon-持续监控">步骤 2：使用 nvidia-smi dmon 持续监控
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 基本持续监控（Ctrl+C 停止）</span>
+</span></span><span class="line"><span class="cl">nvidia-smi dmon -s pcu
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 带参数的持续监控：每 2 秒采集，共 50 次，输出到文件</span>
+</span></span><span class="line"><span class="cl">nvidia-smi dmon -s pcu -d <span class="m">2</span> -c <span class="m">50</span> -f /tmp/gpu_dmon_test.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看采集结果</span>
+</span></span><span class="line"><span class="cl">cat /tmp/gpu_dmon_test.log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>解读 dmon 输出中各列的含义：pwr（功耗）、gtemp（温度）、sm（SM 利用率）、mem（显存利用率）、enc（编码器）、dec（解码器）、mclk（显存频率）、pclk（核心频率）。</p>
+<h4 id="步骤-3安装并使用-gpustat">步骤 3：安装并使用 gpustat
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装 gpustat</span>
+</span></span><span class="line"><span class="cl">pip3 install gpustat
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 基本输出</span>
+</span></span><span class="line"><span class="cl">gpustat
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 带用户名和进程名</span>
+</span></span><span class="line"><span class="cl">gpustat -cpu
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 持续刷新模式</span>
+</span></span><span class="line"><span class="cl">gpustat -i <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>对比 <code>gpustat</code> 和 <code>nvidia-smi</code> 的输出：哪一个更直观？各自的优势是什么？</p>
+<h4 id="步骤-4编写-gpu-健康检查脚本">步骤 4：编写 GPU 健康检查脚本
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat &gt; /tmp/gpu_health_check.sh <span class="s">&lt;&lt; &#39;SCRIPT&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="s">echo &#34;=== GPU 健康检查 $(date) ===&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">echo &#34;--- 设备列表 ---&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">nvidia-smi -L
+</span></span></span><span class="line"><span class="cl"><span class="s">echo &#34;--- 温度、功耗、显存 ---&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">nvidia-smi --query-gpu=index,name,temperature.gpu,power.draw,memory.used,memory.total --format=csv,noheader
+</span></span></span><span class="line"><span class="cl"><span class="s">echo &#34;--- 告警检查 ---&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">nvidia-smi --query-gpu=index,temperature.gpu --format=csv,noheader | while IFS=, read idx temp; do
+</span></span></span><span class="line"><span class="cl"><span class="s">    temp=$(echo $temp | tr -d &#39; &#39;)
+</span></span></span><span class="line"><span class="cl"><span class="s">    if [ &#34;$temp&#34; -gt 85 ]; then
+</span></span></span><span class="line"><span class="cl"><span class="s">        echo &#34;警告: GPU $idx 温度 $temp°C 超过 85°C 阈值！&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">    fi
+</span></span></span><span class="line"><span class="cl"><span class="s">done
+</span></span></span><span class="line"><span class="cl"><span class="s">echo &#34;--- 运行中的进程 ---&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader 2&gt;/dev/null
+</span></span></span><span class="line"><span class="cl"><span class="s">SCRIPT</span>
+</span></span><span class="line"><span class="cl">chmod +x /tmp/gpu_health_check.sh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">bash /tmp/gpu_health_check.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>验证方法</strong>：gpustat 正常输出，dmon 日志文件包含有效数据，健康检查脚本能正确判断超温告警。</p>
+<h3 id="实验-6驱动排障实操">实验 6：驱动排障实操
+</h3><p><strong>实验目的</strong>：掌握 GPU 驱动故障的排查流程，能够阅读 dmesg 日志定位问题。</p>
+<p><strong>覆盖技能点</strong>：lsmod 检查模块加载、dmesg 内核日志解读、nvidia-persistenced 配置</p>
+<p><strong>覆盖红线</strong>：红线 2（禁止 GPU 进程运行时卸载驱动）</p>
+<h4 id="步骤-1模拟排查驱动加载失败">步骤 1：模拟排查驱动加载失败
+</h4><p>先了解正常的驱动状态：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 正常状态：四个模块都加载</span>
+</span></span><span class="line"><span class="cl">lsmod <span class="p">|</span> grep nvidia
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 正常状态：nvidia-smi 可用</span>
+</span></span><span class="line"><span class="cl">nvidia-smi --query-gpu<span class="o">=</span>index,name --format<span class="o">=</span>csv,noheader
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 正常状态：内核日志无报错</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> grep -i nvidia <span class="p">|</span> tail -10
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-2查看内核日志中的-nvidia-信息">步骤 2：查看内核日志中的 NVIDIA 信息
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看所有 NVIDIA 相关内核消息</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> grep -i nvidia <span class="p">|</span> tail -30
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 只看 NVRM 消息（NVIDIA Resource Manager）</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> grep -i NVRM
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看 Xid 错误</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> grep -i <span class="s2">&#34;Xid&#34;</span> <span class="p">|</span> tail -10
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看 Persistence 相关消息</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> grep -i persistence
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-3解读关键日志">步骤 3：解读关键日志
+</h4><p>找到以下类型的日志，逐一标注其含义：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th style="text-align: left">你找到的日志</th>
+					<th style="text-align: left">含义</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td style="text-align: left"><code>nvidia: loading NVIDIA UNIX x86_64 Kernel Module</code></td>
+					<td style="text-align: left">驱动模块成功加载</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><code>NVRM: loading NVIDIA UNIX x86_64 Kernel Module</code></td>
+					<td style="text-align: left">NVRM 模块加载</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><code>nvidia_uvm: module uses symbols from nvidia</code></td>
+					<td style="text-align: left">UVM 模块依赖 nvidia 模块</td>
+			</tr>
+			<tr>
+					<td style="text-align: left">任何 <code>NVRM: ...error</code> 或 <code>Xid</code> 消息</td>
+					<td style="text-align: left">驱动或硬件异常</td>
+			</tr>
+	</tbody>
+</table></div>
+<h4 id="步骤-4配置-nvidia-persistenced">步骤 4：配置 nvidia-persistenced
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装 nvidia-persistenced（RPM Fusion 源）</span>
+</span></span><span class="line"><span class="cl">dnf install -y nvidia-persistenced
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动并设置开机自启</span>
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now nvidia-persistenced
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证服务状态</span>
+</span></span><span class="line"><span class="cl">systemctl status nvidia-persistenced
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 确认 Persistence Mode 已开启</span>
+</span></span><span class="line"><span class="cl">nvidia-smi -q <span class="p">|</span> grep <span class="s2">&#34;Persistence Mode&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 应输出: Persistence Mode    : Enabled</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 检查 dmesg 确认没有弃用警告</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> grep -i <span class="s2">&#34;persistence mode is deprecated&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 旧方法会有此警告，用 nvidia-persistenced 后应不再出现</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="步骤-5完整排障流程演练">步骤 5：完整排障流程演练
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 假设场景：nvidia-smi 报错 &#34;Failed to initialize NVML&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 按以下流程逐层排查：</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;=== 第1层：硬件识别 ===&#34;</span>
+</span></span><span class="line"><span class="cl">lspci <span class="p">|</span> grep -i nvidia <span class="o">||</span> <span class="nb">echo</span> <span class="s2">&#34;ERROR: 系统未识别 GPU 硬件&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;=== 第2层：驱动模块 ===&#34;</span>
+</span></span><span class="line"><span class="cl">lsmod <span class="p">|</span> grep nvidia <span class="o">||</span> <span class="nb">echo</span> <span class="s2">&#34;ERROR: 驱动模块未加载&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;=== 第3层：驱动状态 ===&#34;</span>
+</span></span><span class="line"><span class="cl">nvidia-smi 2&gt;<span class="p">&amp;</span><span class="m">1</span> <span class="p">|</span> head -5
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;=== 第4层：内核日志 ===&#34;</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> grep -i <span class="s2">&#34;nvidia\|NVRM\|Xid&#34;</span> <span class="p">|</span> tail -10
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;=== 第5层：Persistenced 状态 ===&#34;</span>
+</span></span><span class="line"><span class="cl">systemctl status nvidia-persistenced 2&gt;/dev/null <span class="p">|</span> head -5
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>红线验证</strong>：回顾红线 2——如果你要排查 GPU 问题，在确认没有 GPU 进程之前，不能卸载驱动。执行以下命令确认 GPU 空闲：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看谁在用 GPU</span>
+</span></span><span class="line"><span class="cl">nvidia-smi <span class="p">|</span> grep -A <span class="m">20</span> <span class="s2">&#34;Processes&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 或</span>
+</span></span><span class="line"><span class="cl">fuser -v /dev/nvidia* 2&gt;/dev/null
+</span></span><span class="line"><span class="cl"><span class="c1"># 有输出 = 有进程在占用 GPU，不能卸载驱动</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>验证方法</strong>：能独立运行完整的五层排障流程，能指出每层工具的作用和输出含义。nvidia-persistenced 服务 active 且 Persistence Mode 为 Enabled。</p>
+<h2 id="总结">总结
+</h2><p>GPU 服务器初始化是从&quot;裸机&quot;到&quot;可跑大模型推理&quot;的完整准备过程，核心链路如下：</p>
+<ol>
+<li><strong>硬件识别</strong> — lspci 确认 GPU 在 PCIe 总线上被系统认出，nvidia-smi 确认驱动接管 GPU</li>
+<li><strong>驱动安装</strong> — 禁用 nouveau → 装 NVIDIA 闭源驱动 → 重启验证，这是所有后续步骤的前提</li>
+<li><strong>CUDA Toolkit</strong> — 装编译器 nvcc 和运行时库，让程序能用 GPU 做并行计算</li>
+<li><strong>运行监控</strong> — nvidia-smi dmon 持续记录 GPU 性能，gpustat 简洁查看状态</li>
+<li><strong>故障排障</strong> — lsmod 看模块、dmesg 看日志，分层排查不跳步</li>
+</ol>
+<p>记住一条铁律：GPU 服务器排障从底层往上层查——硬件→驱动→CUDA→应用。不要跳过任何一层。</p>
+<h2 id="问题笔记">问题笔记
+</h2><p><strong>1. 拿到一台新 GPU 服务器，你的初始化步骤是什么？</strong></p>
+<ol>
+<li><code>lspci | grep -i nvidia</code> 确认硬件识别</li>
+<li>检查 Secure Boot 关闭、禁用 nouveau、重启</li>
+<li>装 NVIDIA 驱动（在线 DKMS 或 .run）、重启、nvidia-smi 验证</li>
+<li>装 CUDA Toolkit、配置 PATH、nvcc &ndash;version 验证</li>
+<li>装 nvidia-persistenced 保持驱动常驻</li>
+<li><code>pip install torch vllm</code> 安装推理框架，验证 GPU 可用</li>
+</ol>
+<p><strong>2. nouveau 是什么？为什么要禁用？</strong></p>
+<p>nouveau 是 Linux 内核自带的 NVIDIA 开源驱动，由社区逆向工程实现。它和 NVIDIA 闭源驱动互相冲突——两个驱动同时想控制 GPU，会导致黑屏或驱动无法加载。装闭源驱动前必须禁用 nouveau：内核参数 <code>nouveau.modeset=0</code> + modprobe 黑名单 + dracut 重建 initramfs。</p>
+<p><strong>3. nvidia-smi 的 CUDA Version 和 nvcc &ndash;version 一样吗？</strong></p>
+<p>不一样。nvidia-smi 的 CUDA Version 是驱动 API 支持的最高 CUDA 版本，nvcc &ndash;version 是实际安装的 CUDA Toolkit 版本。前者 ≥ 后者即可。很多人看到 nvidia-smi 显示 CUDA 12.8 就以为 CUDA 装好了，但 nvcc 根本没装。</p>
+<p><strong>4. nvidia-smi 报 &ldquo;Failed to initialize NVML&rdquo; 怎么排查？</strong></p>
+<p>按层级排查：</p>
+<ol>
+<li><code>lspci | grep -i nvidia</code> — 硬件还在不在？</li>
+<li><code>lsmod | grep nvidia</code> — 驱动模块加载了没？</li>
+<li><code>dmesg | grep -i nvidia</code> — 内核日志有没有报错？</li>
+<li>根据 dmesg 的信息决定下一步：模块没加载可能驱动坏了需重装，Secure Boot 没关需进 BIOS，Xid 错误可能是硬件故障。</li>
+</ol>
+<p><strong>5. nvidia-persistenced 是干嘛的？</strong></p>
+<p>GPU 空闲一段时间后，Linux 内核会自动卸载 NVIDIA 驱动模块。nvidia-persistenced 通过保持 GPU 设备文件打开，让驱动一直加载不卸载，避免下次启动 CUDA 程序时的 1-3 秒延迟。驱动 535+ 版本已弃用 <code>nvidia-smi -pm 1</code>，必须改用 systemd 管理 nvidia-persistenced。</p>
+<p><strong>7. 多 CUDA 版本共存怎么管理？</strong></p>
+<p>所有版本装在 /usr/local/cuda-XX/ 下，通过 <code>/usr/local/cuda</code> 软链接指向当前生效版本。切换版本用 <code>ln -sfn /usr/local/cuda-12.4 /usr/local/cuda</code>。环境变量放在 /etc/profile.d/cuda.sh，设 <code>CUDA_HOME=/usr/local/cuda</code>，自动跟随软链接。</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/gpu/">GPU</a>
+        
+            <a href="/tags/nvidia/">NVIDIA</a>
+        
+            <a href="/tags/cuda/">CUDA</a>
+        
+            <a href="/tags/almalinux/">AlmaLinux</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM单卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db_hu_1c9127d01cd86c9.png" srcset="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db_hu_1c9127d01cd86c9.png 1x, /p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db_hu_b6f169fd95014555.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #f7f4fc80 0%, #624cffC0 100%);">
+            <h2 class="article-title">vLLM单卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM多卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_7480dde45e2d778e.png" srcset="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_7480dde45e2d778e.png 1x, /p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_5d1308cea2ee9711.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #63a1fc80 0%, #454545C0 100%);">
+            <h2 class="article-title">vLLM多卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>

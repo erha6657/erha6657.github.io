@@ -1,0 +1,2210 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="vLLM框架介绍 为什么选择vLLM 在众多大模型推理框架中，为什么我们选择 vLLM？\n推理框架对比 框架 性能 易用性 生产级 K8s支持 社区活跃 vLLM ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ TGI ⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ Ollama ⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐ llama.cpp ⭐⭐⭐ ⭐⭐⭐ ⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐ TensorRT-LLM ⭐⭐⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐ vLLM的核心优势 性能优异 PagedAttention技术，显存利用率高 连续批处理，吞吐量大 支持 Tensor Parallelism，可扩展 OpenAI API兼容 无需修改客户端代码 平滑迁移成本低 生态兼容性好 部署简单 Docker一键部署 参数配置清晰 运维友好 社区活跃 GitHub Star 30k+ 更新频繁 问题解决快 vLLM 新特性 vLLM 0.17.1 是当前最新稳定版本，主要特性包括：\n">
+<title>vLLM单卡Docker部署完整指南</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="vLLM单卡Docker部署完整指南">
+<meta property='og:description' content="vLLM框架介绍 为什么选择vLLM 在众多大模型推理框架中，为什么我们选择 vLLM？\n推理框架对比 框架 性能 易用性 生产级 K8s支持 社区活跃 vLLM ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ TGI ⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ Ollama ⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐ llama.cpp ⭐⭐⭐ ⭐⭐⭐ ⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐ TensorRT-LLM ⭐⭐⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐ vLLM的核心优势 性能优异 PagedAttention技术，显存利用率高 连续批处理，吞吐量大 支持 Tensor Parallelism，可扩展 OpenAI API兼容 无需修改客户端代码 平滑迁移成本低 生态兼容性好 部署简单 Docker一键部署 参数配置清晰 运维友好 社区活跃 GitHub Star 30k+ 更新频繁 问题解决快 vLLM 新特性 vLLM 0.17.1 是当前最新稳定版本，主要特性包括：\n">
+<meta property='og:url' content='https://erha6657.github.io/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='vLLM' /><meta property='article:tag' content='大模型' /><meta property='article:tag' content='Docker' /><meta property='article:published_time' content='2026-06-25T10:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T10:00:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db.png' />
+<meta name="twitter:title" content="vLLM单卡Docker部署完整指南">
+<meta name="twitter:description" content="vLLM框架介绍 为什么选择vLLM 在众多大模型推理框架中，为什么我们选择 vLLM？\n推理框架对比 框架 性能 易用性 生产级 K8s支持 社区活跃 vLLM ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ TGI ⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ Ollama ⭐⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐ llama.cpp ⭐⭐⭐ ⭐⭐⭐ ⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐ TensorRT-LLM ⭐⭐⭐⭐⭐ ⭐⭐ ⭐⭐⭐⭐⭐ ⭐⭐⭐⭐ ⭐⭐⭐ vLLM的核心优势 性能优异 PagedAttention技术，显存利用率高 连续批处理，吞吐量大 支持 Tensor Parallelism，可扩展 OpenAI API兼容 无需修改客户端代码 平滑迁移成本低 生态兼容性好 部署简单 Docker一键部署 参数配置清晰 运维友好 社区活跃 GitHub Star 30k+ 更新频繁 问题解决快 vLLM 新特性 vLLM 0.17.1 是当前最新稳定版本，主要特性包括：\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#为什么选择vllm">为什么选择vLLM</a>
+      <ol>
+        <li><a href="#推理框架对比">推理框架对比</a></li>
+        <li><a href="#vllm的核心优势">vLLM的核心优势</a>
+          <ol>
+            <li><a href="#性能优异">性能优异</a></li>
+            <li><a href="#openai-api兼容">OpenAI API兼容</a></li>
+            <li><a href="#部署简单">部署简单</a></li>
+            <li><a href="#社区活跃">社区活跃</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#vllm-新特性">vLLM 新特性</a>
+      <ol>
+        <li>
+          <ol>
+            <li><a href="#核心特性">核心特性</a></li>
+            <li><a href="#vllm-更新亮点">vLLM 更新亮点</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#vllm核心概念">vLLM核心概念</a>
+      <ol>
+        <li><a href="#pagedattention分页注意力">PagedAttention（分页注意力）</a></li>
+        <li><a href="#continuous-batching连续批处理">Continuous Batching（连续批处理）</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#vllm安装方式">vLLM安装方式</a>
+      <ol>
+        <li><a href="#安装方式对比">安装方式对比</a></li>
+        <li><a href="#docker方式安装">Docker方式安装</a>
+          <ol>
+            <li><a href="#拉取vllm官方镜像">拉取vLLM官方镜像</a></li>
+            <li><a href="#镜像说明">镜像说明</a></li>
+          </ol>
+        </li>
+        <li><a href="#pip方式安装可选">Pip方式安装（可选）</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#从哪里获取模型">从哪里获取模型</a></li>
+    <li><a href="#使用modelscope下载国内推荐">使用ModelScope下载（国内推荐）</a>
+      <ol>
+        <li><a href="#使用modelscope-cli推荐">使用ModelScope CLI（推荐）</a></li>
+        <li><a href="#使用docker下载环境隔离">使用Docker下载（环境隔离）</a></li>
+      </ol>
+    </li>
+    <li><a href="#使用hugging-face下载">使用Hugging Face下载</a>
+      <ol>
+        <li><a href="#配置国内镜像">配置国内镜像</a></li>
+        <li><a href="#使用huggingface-cli下载">使用huggingface-cli下载</a></li>
+      </ol>
+    </li>
+    <li><a href="#推荐模型参考">推荐模型参考</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#准备工作">准备工作</a></li>
+    <li><a href="#下载模型">下载模型</a></li>
+    <li><a href="#启动vllm服务">启动vLLM服务</a>
+      <ol>
+        <li><a href="#参数详解">参数详解</a></li>
+      </ol>
+    </li>
+    <li><a href="#验证服务">验证服务</a>
+      <ol>
+        <li><a href="#查看服务日志">查看服务日志</a></li>
+        <li><a href="#测试api接口">测试API接口</a></li>
+        <li><a href="#配置前端页面">配置前端页面</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#api端点说明">API端点说明</a></li>
+    <li><a href="#对话补全api">对话补全API</a>
+      <ol>
+        <li><a href="#curl调用示例">cURL调用示例</a></li>
+        <li><a href="#shell脚本调用示例">Shell脚本调用示例</a></li>
+      </ol>
+    </li>
+    <li><a href="#api参数说明">API参数说明</a></li>
+    <li><a href="#流式输出">流式输出</a>
+      <ol>
+        <li><a href="#curl流式调用示例">cURL流式调用示例</a></li>
+        <li><a href="#shell脚本解析流式输出">Shell脚本解析流式输出</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+            <img alt="Featured image of post vLLM单卡Docker部署完整指南" height="512" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a0118be3-d053-4e67-843d-6c1de1c193db.png" width="512">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/ai/" style="background-color: hsl(167, 60%, 84%); color: hsl(167, 60%, 15%);">
+                AI
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%A4%A7%E6%A8%A1%E5%9E%8B/" style="background-color: hsl(286, 60%, 84%); color: hsl(286, 60%, 15%);">
+                大模型
+            </a>
+        
+            
+            
+            
+            <a href="/categories/docker/" style="background-color: hsl(205, 60%, 84%); color: hsl(205, 60%, 15%);">
+                Docker
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">vLLM单卡Docker部署完整指南</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T10:00:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 6 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#为什么选择vllm">为什么选择vLLM</a>
+      <ol>
+        <li><a href="#推理框架对比">推理框架对比</a></li>
+        <li><a href="#vllm的核心优势">vLLM的核心优势</a>
+          <ol>
+            <li><a href="#性能优异">性能优异</a></li>
+            <li><a href="#openai-api兼容">OpenAI API兼容</a></li>
+            <li><a href="#部署简单">部署简单</a></li>
+            <li><a href="#社区活跃">社区活跃</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#vllm-新特性">vLLM 新特性</a>
+      <ol>
+        <li>
+          <ol>
+            <li><a href="#核心特性">核心特性</a></li>
+            <li><a href="#vllm-更新亮点">vLLM 更新亮点</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#vllm核心概念">vLLM核心概念</a>
+      <ol>
+        <li><a href="#pagedattention分页注意力">PagedAttention（分页注意力）</a></li>
+        <li><a href="#continuous-batching连续批处理">Continuous Batching（连续批处理）</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#vllm安装方式">vLLM安装方式</a>
+      <ol>
+        <li><a href="#安装方式对比">安装方式对比</a></li>
+        <li><a href="#docker方式安装">Docker方式安装</a>
+          <ol>
+            <li><a href="#拉取vllm官方镜像">拉取vLLM官方镜像</a></li>
+            <li><a href="#镜像说明">镜像说明</a></li>
+          </ol>
+        </li>
+        <li><a href="#pip方式安装可选">Pip方式安装（可选）</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#从哪里获取模型">从哪里获取模型</a></li>
+    <li><a href="#使用modelscope下载国内推荐">使用ModelScope下载（国内推荐）</a>
+      <ol>
+        <li><a href="#使用modelscope-cli推荐">使用ModelScope CLI（推荐）</a></li>
+        <li><a href="#使用docker下载环境隔离">使用Docker下载（环境隔离）</a></li>
+      </ol>
+    </li>
+    <li><a href="#使用hugging-face下载">使用Hugging Face下载</a>
+      <ol>
+        <li><a href="#配置国内镜像">配置国内镜像</a></li>
+        <li><a href="#使用huggingface-cli下载">使用huggingface-cli下载</a></li>
+      </ol>
+    </li>
+    <li><a href="#推荐模型参考">推荐模型参考</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#准备工作">准备工作</a></li>
+    <li><a href="#下载模型">下载模型</a></li>
+    <li><a href="#启动vllm服务">启动vLLM服务</a>
+      <ol>
+        <li><a href="#参数详解">参数详解</a></li>
+      </ol>
+    </li>
+    <li><a href="#验证服务">验证服务</a>
+      <ol>
+        <li><a href="#查看服务日志">查看服务日志</a></li>
+        <li><a href="#测试api接口">测试API接口</a></li>
+        <li><a href="#配置前端页面">配置前端页面</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#api端点说明">API端点说明</a></li>
+    <li><a href="#对话补全api">对话补全API</a>
+      <ol>
+        <li><a href="#curl调用示例">cURL调用示例</a></li>
+        <li><a href="#shell脚本调用示例">Shell脚本调用示例</a></li>
+      </ol>
+    </li>
+    <li><a href="#api参数说明">API参数说明</a></li>
+    <li><a href="#流式输出">流式输出</a>
+      <ol>
+        <li><a href="#curl流式调用示例">cURL流式调用示例</a></li>
+        <li><a href="#shell脚本解析流式输出">Shell脚本解析流式输出</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h1 id="vllm框架介绍">vLLM框架介绍
+</h1><h2 id="为什么选择vllm">为什么选择vLLM
+</h2><p>在众多大模型推理框架中，为什么我们选择 <strong>vLLM</strong>？</p>
+<h3 id="推理框架对比">推理框架对比
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>框架</th>
+					<th>性能</th>
+					<th>易用性</th>
+					<th>生产级</th>
+					<th>K8s支持</th>
+					<th>社区活跃</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>vLLM</strong></td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐⭐</td>
+			</tr>
+			<tr>
+					<td>TGI</td>
+					<td>⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐</td>
+			</tr>
+			<tr>
+					<td>Ollama</td>
+					<td>⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐</td>
+					<td>⭐⭐</td>
+					<td>⭐⭐⭐⭐</td>
+			</tr>
+			<tr>
+					<td>llama.cpp</td>
+					<td>⭐⭐⭐</td>
+					<td>⭐⭐⭐</td>
+					<td>⭐⭐⭐</td>
+					<td>⭐⭐</td>
+					<td>⭐⭐⭐⭐</td>
+			</tr>
+			<tr>
+					<td>TensorRT-LLM</td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>⭐⭐</td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐⭐</td>
+					<td>⭐⭐⭐</td>
+			</tr>
+	</tbody>
+</table></div>
+<h3 id="vllm的核心优势">vLLM的核心优势
+</h3><h4 id="性能优异">性能优异
+</h4><ul>
+<li>PagedAttention技术，显存利用率高</li>
+<li>连续批处理，吞吐量大</li>
+<li>支持 Tensor Parallelism，可扩展</li>
+</ul>
+<h4 id="openai-api兼容">OpenAI API兼容
+</h4><ul>
+<li>无需修改客户端代码</li>
+<li>平滑迁移成本低</li>
+<li>生态兼容性好</li>
+</ul>
+<h4 id="部署简单">部署简单
+</h4><ul>
+<li>Docker一键部署</li>
+<li>参数配置清晰</li>
+<li>运维友好</li>
+</ul>
+<h4 id="社区活跃">社区活跃
+</h4><ul>
+<li>GitHub Star 30k+</li>
+<li>更新频繁</li>
+<li>问题解决快</li>
+</ul>
+<h2 id="vllm-新特性">vLLM 新特性
+</h2><p>vLLM 0.17.1 是当前最新稳定版本，主要特性包括：</p>
+<h4 id="核心特性">核心特性
+</h4><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>特性</th>
+					<th>说明</th>
+					<th>运维价值</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>PagedAttention</td>
+					<td>分页注意力机制，高效管理KV Cache</td>
+					<td>显存利用率提升2-4倍</td>
+			</tr>
+			<tr>
+					<td>Continuous Batching</td>
+					<td>连续批处理，动态调度请求</td>
+					<td>吞吐量提升10-20倍</td>
+			</tr>
+			<tr>
+					<td>Tensor Parallelism</td>
+					<td>张量并行，支持多卡部署</td>
+					<td>可部署大模型</td>
+			</tr>
+			<tr>
+					<td>OpenAI Compatible API</td>
+					<td>兼容OpenAI接口标准</td>
+					<td>客户端无需修改</td>
+			</tr>
+			<tr>
+					<td>FP8/INT4/INT8</td>
+					<td>支持多种量化格式</td>
+					<td>降低硬件门槛</td>
+			</tr>
+			<tr>
+					<td>Multi-LoRA</td>
+					<td>支持多LoRA适配器</td>
+					<td>一卡多模型</td>
+			</tr>
+			<tr>
+					<td>Speculative Decoding</td>
+					<td>推测解码加速</td>
+					<td>延迟降低30-50%</td>
+			</tr>
+	</tbody>
+</table></div>
+<h4 id="vllm-更新亮点">vLLM 更新亮点
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vLLM 0.17.1 主要更新：
+</span></span><span class="line"><span class="cl">├── 新增模型支持：Nemotron <span class="m">3</span> Super
+</span></span><span class="line"><span class="cl">├── 修复：TRTLLM fused MoE NVFP4
+</span></span><span class="line"><span class="cl">├── 性能优化：推理速度提升
+</span></span><span class="line"><span class="cl">└── 稳定性增强：修复多个已知问题
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="vllm核心概念">vLLM核心概念
+</h2><h3 id="pagedattention分页注意力">PagedAttention（分页注意力）
+</h3><p><strong>是什么</strong>：一种高效的显存管理技术，类似于操作系统的虚拟内存分页。</p>
+<p><strong>传统方式的问题</strong>：</p>
+<ul>
+<li>KV Cache 预分配固定大小</li>
+<li>显存浪费严重</li>
+<li>无法支持长序列</li>
+</ul>
+<p><strong>PagedAttention 的解决</strong>：</p>
+<ul>
+<li>按需分配 KV Cache</li>
+<li>类似内存分页，按块管理</li>
+<li>显存利用率可达 90%+</li>
+</ul>
+<h3 id="continuous-batching连续批处理">Continuous Batching（连续批处理）
+</h3><p><strong>是什么</strong>：动态批处理技术，不用等待所有请求完成就开始处理新请求。</p>
+<p><strong>传统方式</strong>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">请求1 ━━━━━━━━━━━━━━━━ 等待 ━━━━━━━━━━━━━━━━ 完成
+</span></span><span class="line"><span class="cl">请求2 ━━━━━ 等待 ━━━━━━━━━━━━━━━━━━━━━━━━━ 完成
+</span></span><span class="line"><span class="cl">请求3 ━━━━━━━ 等待 ━━━━━━━━━━━━━━━━━━━━━ 完成
+</span></span><span class="line"><span class="cl">        ↑ 所有请求必须等最慢的完成
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>运维价值</strong>：</p>
+<ul>
+<li>吞吐量提升 10-20 倍</li>
+<li>用户等待时间更短</li>
+<li>GPU 利用率更高</li>
+</ul>
+<h1 id="vllm安装与环境准备">vLLM安装与环境准备
+</h1><h2 id="vllm安装方式">vLLM安装方式
+</h2><p>vLLM 支持多种安装方式，我们推荐使用 <strong>Docker</strong> 方式。</p>
+<h3 id="安装方式对比">安装方式对比
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>方式</th>
+					<th>优点</th>
+					<th>缺点</th>
+					<th>推荐场景</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>Docker</strong></td>
+					<td>环境隔离、易于管理、可复现</td>
+					<td>需要Docker基础</td>
+					<td><strong>生产环境（推荐）</strong></td>
+			</tr>
+			<tr>
+					<td>Pip</td>
+					<td>安装简单、调试方便</td>
+					<td>依赖冲突风险</td>
+					<td>开发测试</td>
+			</tr>
+			<tr>
+					<td>源码编译</td>
+					<td>可定制、最新功能</td>
+					<td>编译时间长</td>
+					<td>特殊需求</td>
+			</tr>
+	</tbody>
+</table></div>
+<h3 id="docker方式安装">Docker方式安装
+</h3><h4 id="拉取vllm官方镜像">拉取vLLM官方镜像
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo <span class="p">|</span> sudo tee /etc/yum.repos.d/nvidia-container-toolkit.repo
+</span></span><span class="line"><span class="cl">sudo yum install -y nvidia-container-toolkit
+</span></span><span class="line"><span class="cl">sudo systemctl restart docker
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 拉取vLLM 0.17.1官方镜像</span>
+</span></span><span class="line"><span class="cl">docker pull vllm/vllm-openai:v0.17.1
+</span></span><span class="line"><span class="cl">docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/vllm/vllm-openai:v0.17.1
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证镜像</span>
+</span></span><span class="line"><span class="cl">docker images <span class="p">|</span> grep vllm
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例：</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># vllm/vllm-openai   v0.17.1   xxxxx   2026-03-xx   5.2GB</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="镜像说明">镜像说明
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vllm/vllm-openai:v0.17.1 镜像包含：
+</span></span><span class="line"><span class="cl">├── CUDA 13.0
+</span></span><span class="line"><span class="cl">├── vLLM 0.17.1
+</span></span><span class="line"><span class="cl">├── OpenAI兼容API服务
+</span></span><span class="line"><span class="cl">└── 常用依赖库
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="pip方式安装可选">Pip方式安装（可选）
+</h3><p>如果需要在宿主机直接安装：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 创建Python虚拟环境</span>
+</span></span><span class="line"><span class="cl">python3 -m venv vllm-env
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> vllm-env/bin/activate
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装vLLM 0.17.1</span>
+</span></span><span class="line"><span class="cl">pip install <span class="nv">vllm</span><span class="o">==</span>0.17.1
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置国内镜像加速（可选）</span>
+</span></span><span class="line"><span class="cl">pip config <span class="nb">set</span> global.index-url https://pypi.tuna.tsinghua.edu.cn/simple/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证安装</span>
+</span></span><span class="line"><span class="cl">python -c <span class="s2">&#34;import vllm; print(vllm.__version__)&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出：0.17.1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="模型下载与管理">模型下载与管理
+</h1><h2 id="从哪里获取模型">从哪里获取模型
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>仓库</th>
+					<th>网址</th>
+					<th>特点</th>
+					<th>国内访问</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>ModelScope</strong></td>
+					<td>modelscope.cn</td>
+					<td>阿里云，国内访问快</td>
+					<td><strong>快（推荐）</strong></td>
+			</tr>
+			<tr>
+					<td><strong>Hugging Face镜像</strong></td>
+					<td>hf-mirror.com</td>
+					<td>HF国内镜像</td>
+					<td>较快</td>
+			</tr>
+			<tr>
+					<td><strong>Hugging Face</strong></td>
+					<td>huggingface.co</td>
+					<td>模型最多，国际主流</td>
+					<td>较慢</td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="使用modelscope下载国内推荐">使用ModelScope下载（国内推荐）
+</h2><h3 id="使用modelscope-cli推荐">使用ModelScope CLI（推荐）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装modelscope CLI</span>
+</span></span><span class="line"><span class="cl">pip install modelscope
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 使用命令行下载模型</span>
+</span></span><span class="line"><span class="cl">modelscope download --model Qwen/Qwen2-7B-Instruct --local_dir ./models/Qwen2-7B-Instruct
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看下载进度和文件</span>
+</span></span><span class="line"><span class="cl">ls -la ./models/Qwen2-7B-Instruct/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="使用docker下载环境隔离">使用Docker下载（环境隔离）
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 使用Docker容器下载，避免环境污染</span>
+</span></span><span class="line"><span class="cl">docker run --rm <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -e <span class="nv">MODELSCOPE_CACHE</span><span class="o">=</span>/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  crpi-wl4a34mb2jmdfya1.cn-hangzhou.personal.cr.aliyuncs.com/chenyang-hellochina/python:3.10-slim <span class="se">\
+</span></span></span><span class="line"><span class="cl">  bash -c <span class="s2">&#34;pip install modelscope -q &amp;&amp; modelscope download --model Qwen/Qwen2-7B-Instruct --local_dir /models/Qwen2-7B-Instruct&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="使用hugging-face下载">使用Hugging Face下载
+</h2><h3 id="配置国内镜像">配置国内镜像
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 方法一：设置环境变量</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">HF_ENDPOINT</span><span class="o">=</span>https://hf-mirror.com
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 方法二：写入配置文件</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export HF_ENDPOINT=https://hf-mirror.com&#39;</span> &gt;&gt; ~/.bashrc
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> ~/.bashrc
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="使用huggingface-cli下载">使用huggingface-cli下载
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装huggingface-hub</span>
+</span></span><span class="line"><span class="cl">pip install huggingface-hub
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 下载模型</span>
+</span></span><span class="line"><span class="cl">hf download Qwen/Qwen2.5-7B-Instruct-GPTQ-Int4 --local-dir /moduels/Qwen2.5-7B-Instruct-GPTQ-Int4
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看下载进度</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 下载完成后，模型保存在 ./models/Qwen2-7B-Instruct/ 目录</span>
+</span></span><span class="line"><span class="cl">ls -la ./models/Qwen2-7B-Instruct/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="推荐模型参考">推荐模型参考
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>模型</th>
+					<th>参数量</th>
+					<th>显存需求(FP16)</th>
+					<th>适用场景</th>
+					<th>推荐GPU</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Qwen2-7B-Instruct</td>
+					<td>7B</td>
+					<td>14-18GB</td>
+					<td>日常对话、测试</td>
+					<td>RTX 4090</td>
+			</tr>
+			<tr>
+					<td>Qwen2-72B-Instruct</td>
+					<td>72B</td>
+					<td>140-160GB</td>
+					<td>生产环境</td>
+					<td>A800×2</td>
+			</tr>
+			<tr>
+					<td>ChatGLM3-6B</td>
+					<td>6B</td>
+					<td>12-16GB</td>
+					<td>轻量级应用</td>
+					<td>RTX 3090</td>
+			</tr>
+			<tr>
+					<td>DeepSeek-7B</td>
+					<td>7B</td>
+					<td>14-18GB</td>
+					<td>性价比高</td>
+					<td>RTX 4090</td>
+			</tr>
+			<tr>
+					<td>LLaMA3-8B</td>
+					<td>8B</td>
+					<td>16-20GB</td>
+					<td>国际通用</td>
+					<td>RTX 4090</td>
+			</tr>
+	</tbody>
+</table></div>
+<h1 id="vllm单卡docker部署">vLLM单卡Docker部署
+</h1><h2 id="准备工作">准备工作
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 检查GPU状态</span>
+</span></span><span class="line"><span class="cl">nvidia-smi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 检查Docker GPU支持</span>
+</span></span><span class="line"><span class="cl">docker run --rm --gpus all nvidia/cuda:13.0.0-base-ubi9 nvidia-smi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 国内版</span>
+</span></span><span class="line"><span class="cl">docker run --rm --gpus all crpi-wl4a34mb2jmdfya1-vpc.cn-hangzhou.personal.cr.aliyuncs.com/chenyang-hellochina/cuda:13.0.0-base-ubuntu24.04 nvidia-smi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 创建模型存储目录</span>
+</span></span><span class="line"><span class="cl">mkdir -p /data/models
+</span></span><span class="line"><span class="cl">mkdir -p /data/.cache
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 检查磁盘空间</span>
+</span></span><span class="line"><span class="cl">df -h /data
+</span></span><span class="line"><span class="cl"><span class="c1"># 建议至少100GB可用空间</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="下载模型">下载模型
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 设置HF镜像</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">HF_ENDPOINT</span><span class="o">=</span>https://hf-mirror.com
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 使用huggingface-cli下载模型</span>
+</span></span><span class="line"><span class="cl">huggingface-cli download Qwen/Qwen2-7B-Instruct --local-dir /data/models/Qwen2-7B-Instruct
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="启动vllm服务">启动vLLM服务
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name vllm-server <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --gpus all <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --shm-size<span class="o">=</span>16g <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v ./models:/models <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 8000:8000 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  crpi-wl4a34mb2jmdfya1-vpc.cn-hangzhou.personal.cr.aliyuncs.com/chenyang-hellochina/vllm:v0.17.1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --model /models/Qwen2-7B-Instruct <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --host 0.0.0.0 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --port <span class="m">8000</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --trust-remote-code
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="参数详解">参数详解
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>参数</th>
+					<th>说明</th>
+					<th>默认值</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>--gpus all</code></td>
+					<td>使用所有GPU</td>
+					<td>-</td>
+			</tr>
+			<tr>
+					<td><code>--shm-size=16g</code></td>
+					<td>共享内存大小，大模型需要较大值</td>
+					<td>64MB</td>
+			</tr>
+			<tr>
+					<td><code>-v /data/models:/models</code></td>
+					<td>挂载模型目录</td>
+					<td>-</td>
+			</tr>
+			<tr>
+					<td><code>-p 8000:8000</code></td>
+					<td>端口映射</td>
+					<td>-</td>
+			</tr>
+			<tr>
+					<td><code>--model</code></td>
+					<td>模型路径</td>
+					<td>必填</td>
+			</tr>
+			<tr>
+					<td><code>--host</code></td>
+					<td>监听地址</td>
+					<td>127.0.0.1</td>
+			</tr>
+			<tr>
+					<td><code>--port</code></td>
+					<td>服务端口</td>
+					<td>8000</td>
+			</tr>
+			<tr>
+					<td><code>--trust-remote-code</code></td>
+					<td>信任远程代码</td>
+					<td>False</td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="验证服务">验证服务
+</h2><h3 id="查看服务日志">查看服务日志
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看启动日志</span>
+</span></span><span class="line"><span class="cl">docker logs -f vllm-server
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 正常启动会看到类似输出：</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># INFO:     Started server process</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># INFO:     Uvicorn running on http://0.0.0.0:8000</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># INFO:     Application startup complete.</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="测试api接口">测试API接口
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 获取模型列表</span>
+</span></span><span class="line"><span class="cl">curl http://localhost:8000/v1/models
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 测试对话补全</span>
+</span></span><span class="line"><span class="cl">curl http://localhost:8000/v1/chat/completions <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -H <span class="s2">&#34;Content-Type: application/json&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -d <span class="s1">&#39;{
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;model&#34;: &#34;Qwen/Qwen2-7B-Instruct&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;messages&#34;: [
+</span></span></span><span class="line"><span class="cl"><span class="s1">      {&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;你好，请用一句话介绍你自己&#34;}
+</span></span></span><span class="line"><span class="cl"><span class="s1">    ],
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;max_tokens&#34;: 100
+</span></span></span><span class="line"><span class="cl"><span class="s1">  }&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="配置前端页面">配置前端页面
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -p 3000:8080 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --add-host<span class="o">=</span>host.docker.internal:host-gateway <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -e <span class="nv">OPENAI_API_BASE_URL</span><span class="o">=</span>http://host.docker.internal:8000/v1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -e <span class="nv">AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST</span><span class="o">=</span><span class="m">30</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -e <span class="nv">HF_HUB_DISABLE_SYMLINKS_WARNING</span><span class="o">=</span><span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -e <span class="nv">HF_ENDPOINT</span><span class="o">=</span>https://hf-mirror.com <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -e <span class="nv">WEBUI_AUTH</span><span class="o">=</span>False <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -v ./open-webui:/app/backend/data <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --name open-webui <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --restart always <span class="se">\
+</span></span></span><span class="line"><span class="cl">  crpi-wl4a34mb2jmdfya1-vpc.cn-hangzhou.personal.cr.aliyuncs.com/chenyang-hellochina/open-webui:main
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="406px" data-flex-grow="169" height="818" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1781577208902-c5e26532-f32c-413b-adc5-4be36a7a90ba.png" srcset="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1781577208902-c5e26532-f32c-413b-adc5-4be36a7a90ba_hu_be208e350842d813.png 800w, /p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1781577208902-c5e26532-f32c-413b-adc5-4be36a7a90ba.png 1385w" width="1385"></p>
+<h1 id="openai兼容api使用">OpenAI兼容API使用
+</h1><h2 id="api端点说明">API端点说明
+</h2><p>vLLM 提供与 OpenAI 完全兼容的 API 接口：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>端点</th>
+					<th>方法</th>
+					<th>说明</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>/v1/models</code></td>
+					<td>GET</td>
+					<td>获取可用模型列表</td>
+			</tr>
+			<tr>
+					<td><code>/v1/chat/completions</code></td>
+					<td>POST</td>
+					<td>对话补全（推荐）</td>
+			</tr>
+			<tr>
+					<td><code>/v1/completions</code></td>
+					<td>POST</td>
+					<td>文本补全</td>
+			</tr>
+			<tr>
+					<td><code>/v1/embeddings</code></td>
+					<td>POST</td>
+					<td>向量嵌入（部分模型）</td>
+			</tr>
+			<tr>
+					<td><code>/health</code></td>
+					<td>GET</td>
+					<td>健康检查</td>
+			</tr>
+			<tr>
+					<td><code>/metrics</code></td>
+					<td>GET</td>
+					<td>Prometheus指标</td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="对话补全api">对话补全API
+</h2><h3 id="curl调用示例">cURL调用示例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl http://localhost:8000/v1/chat/completions <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -H <span class="s2">&#34;Content-Type: application/json&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -d <span class="s1">&#39;{
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;model&#34;: &#34;Qwen/Qwen2-7B-Instruct&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;messages&#34;: [
+</span></span></span><span class="line"><span class="cl"><span class="s1">      {&#34;role&#34;: &#34;system&#34;, &#34;content&#34;: &#34;你是一个有帮助的AI助手。&#34;},
+</span></span></span><span class="line"><span class="cl"><span class="s1">      {&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;请介绍一下Kubernetes的Pod调度原理&#34;}
+</span></span></span><span class="line"><span class="cl"><span class="s1">    ],
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;max_tokens&#34;: 500,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;temperature&#34;: 0.7,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;top_p&#34;: 0.9
+</span></span></span><span class="line"><span class="cl"><span class="s1">  }&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="shell脚本调用示例">Shell脚本调用示例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="c1"># vLLM API调用脚本</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">VLLM_URL</span><span class="o">=</span><span class="s2">&#34;http://localhost:8000/v1/chat/completions&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 发送对话请求</span>
+</span></span><span class="line"><span class="cl">curl -s <span class="s2">&#34;</span><span class="nv">$VLLM_URL</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -H <span class="s2">&#34;Content-Type: application/json&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -d <span class="s1">&#39;{
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;model&#34;: &#34;Qwen/Qwen2-7B-Instruct&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;messages&#34;: [
+</span></span></span><span class="line"><span class="cl"><span class="s1">      {&#34;role&#34;: &#34;system&#34;, &#34;content&#34;: &#34;你是一个有帮助的AI助手。&#34;},
+</span></span></span><span class="line"><span class="cl"><span class="s1">      {&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;请介绍一下Kubernetes的基本概念&#34;}
+</span></span></span><span class="line"><span class="cl"><span class="s1">    ],
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;max_tokens&#34;: 500,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;temperature&#34;: 0.7
+</span></span></span><span class="line"><span class="cl"><span class="s1">  }&#39;</span> <span class="p">|</span> jq <span class="s1">&#39;.choices[0].message.content&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+    <blockquote>
+        <p><strong>💡 提示</strong>：vLLM的API完全兼容OpenAI格式，任何支持OpenAI API的客户端工具都可以直接对接。</p>
+
+    </blockquote>
+<h2 id="api参数说明">API参数说明
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>参数</th>
+					<th>类型</th>
+					<th>说明</th>
+					<th>默认值</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>model</td>
+					<td>string</td>
+					<td>模型名称</td>
+					<td>必填</td>
+			</tr>
+			<tr>
+					<td>messages</td>
+					<td>array</td>
+					<td>对话消息列表</td>
+					<td>必填</td>
+			</tr>
+			<tr>
+					<td>max_tokens</td>
+					<td>int</td>
+					<td>最大生成token数</td>
+					<td>自动</td>
+			</tr>
+			<tr>
+					<td>temperature</td>
+					<td>float</td>
+					<td>温度参数</td>
+					<td>1.0</td>
+			</tr>
+			<tr>
+					<td>top_p</td>
+					<td>float</td>
+					<td>核采样参数</td>
+					<td>1.0</td>
+			</tr>
+			<tr>
+					<td>stream</td>
+					<td>bool</td>
+					<td>是否流式输出</td>
+					<td>false</td>
+			</tr>
+			<tr>
+					<td>stop</td>
+					<td>array</td>
+					<td>停止词列表</td>
+					<td>null</td>
+			</tr>
+	</tbody>
+</table></div>
+<h2 id="流式输出">流式输出
+</h2><h3 id="curl流式调用示例">cURL流式调用示例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 流式输出请求（设置 stream: true）</span>
+</span></span><span class="line"><span class="cl">curl http://localhost:8000/v1/chat/completions <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -H <span class="s2">&#34;Content-Type: application/json&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -d <span class="s1">&#39;{
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;model&#34;: &#34;Qwen/Qwen2-7B-Instruct&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;messages&#34;: [
+</span></span></span><span class="line"><span class="cl"><span class="s1">      {&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;请写一首关于春天的诗&#34;}
+</span></span></span><span class="line"><span class="cl"><span class="s1">    ],
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;max_tokens&#34;: 200,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;stream&#34;: true
+</span></span></span><span class="line"><span class="cl"><span class="s1">  }&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="shell脚本解析流式输出">Shell脚本解析流式输出
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="c1"># stream_chat.sh - 流式输出并实时显示</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">curl -s http://localhost:8000/v1/chat/completions <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -H <span class="s2">&#34;Content-Type: application/json&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -d <span class="s1">&#39;{
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;model&#34;: &#34;Qwen/Qwen2-7B-Instruct&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;messages&#34;: [{&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;请写一首关于春天的诗&#34;}],
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;max_tokens&#34;: 200,
+</span></span></span><span class="line"><span class="cl"><span class="s1">    &#34;stream&#34;: true
+</span></span></span><span class="line"><span class="cl"><span class="s1">  }&#39;</span> <span class="p">|</span> <span class="k">while</span> <span class="nv">IFS</span><span class="o">=</span> <span class="nb">read</span> -r line<span class="p">;</span> <span class="k">do</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 跳过空行和 [DONE] 标记</span>
+</span></span><span class="line"><span class="cl">    <span class="o">[[</span> -z <span class="s2">&#34;</span><span class="nv">$line</span><span class="s2">&#34;</span> <span class="o">||</span> <span class="s2">&#34;</span><span class="nv">$line</span><span class="s2">&#34;</span> <span class="o">==</span> <span class="s2">&#34;data: [DONE]&#34;</span> <span class="o">]]</span> <span class="o">&amp;&amp;</span> <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 提取内容部分</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">content</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> <span class="s2">&#34;</span><span class="nv">$line</span><span class="s2">&#34;</span> <span class="p">|</span> sed <span class="s1">&#39;s/^data: //&#39;</span> <span class="p">|</span> jq -r <span class="s1">&#39;.choices[0].delta.content // empty&#39;</span> 2&gt;/dev/null<span class="k">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">[[</span> -n <span class="s2">&#34;</span><span class="nv">$content</span><span class="s2">&#34;</span> <span class="o">]]</span> <span class="o">&amp;&amp;</span> <span class="nb">printf</span> <span class="s2">&#34;%s&#34;</span> <span class="s2">&#34;</span><span class="nv">$content</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">done</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/vllm/">VLLM</a>
+        
+            <a href="/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/">大模型</a>
+        
+            <a href="/tags/docker/">Docker</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM多卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_7480dde45e2d778e.png" srcset="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_7480dde45e2d778e.png 1x, /p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/4f46dcc7-9dfa-4e44-b59e-8d54846a9fed_hu_5d1308cea2ee9711.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #63a1fc80 0%, #454545C0 100%);">
+            <h2 class="article-title">vLLM多卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post 基于 Docker 的 Ruoyi 微服务容器化部署" height="150" loading="lazy" src="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_65a2b0c24b11d32b.png" srcset="/p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_65a2b0c24b11d32b.png 1x, /p/%E5%9F%BA%E4%BA%8E-docker-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_docker_hu_e4507ed3d3f2442b.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #0c8bc480 0%, #f8f7ecC0 100%);">
+            <h2 class="article-title">基于 Docker 的 Ruoyi 微服务容器化部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post ELK+Kafka+Filebeat+Logstash分布式日志收集系统部署指南" height="150" loading="lazy" src="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/1761482020512-a8d98d5d-862c-463a-8534-641cf9f9fb9d_hu_57c44f3e4c07bf22.png" srcset="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/1761482020512-a8d98d5d-862c-463a-8534-641cf9f9fb9d_hu_57c44f3e4c07bf22.png 1x, /p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/1761482020512-a8d98d5d-862c-463a-8534-641cf9f9fb9d_hu_89e4a1de2f924fd2.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #29283180 0%, #f3f6f9C0 100%);">
+            <h2 class="article-title">ELK&#43;Kafka&#43;Filebeat&#43;Logstash分布式日志收集系统部署指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障" height="150" loading="lazy" src="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_f28026e359ada8d5.png" srcset="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_f28026e359ada8d5.png 1x, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_de4f9a419797cea4.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #252d3280 0%, #f5f7f5C0 100%);">
+            <h2 class="article-title">Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post mall-swarm K8s分布式部署" height="150" loading="lazy" src="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png" srcset="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png 1x, /p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_39118aa71ccd939b.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #239dde80 0%, #fafafaC0 100%);">
+            <h2 class="article-title">mall-swarm K8s分布式部署</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
