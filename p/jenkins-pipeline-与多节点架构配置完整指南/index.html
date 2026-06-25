@@ -1,0 +1,2439 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Jenkins Pipeline 是一种基于代码的持续集成/持续交付（CI/CD）流程定义框架，通过 Groovy 语法将整个软件交付过程建模为可版本控制的 Jenkinsfile 脚本，支持从代码编译、测试、静态分析到容器构建、部署的全链路自动化，其声明式语法提供结构化模板简化编写，而脚本式语法允许高级流程控制，具备可视化阶段日志、并行执行、错误恢复和人工审核等企业级特性，实现复杂交付流程的可重复、可审计和可维护管理。\n">
+<title>Jenkins Pipeline 与多节点架构配置完整指南</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Jenkins Pipeline 与多节点架构配置完整指南">
+<meta property='og:description' content="Jenkins Pipeline 是一种基于代码的持续集成/持续交付（CI/CD）流程定义框架，通过 Groovy 语法将整个软件交付过程建模为可版本控制的 Jenkinsfile 脚本，支持从代码编译、测试、静态分析到容器构建、部署的全链路自动化，其声明式语法提供结构化模板简化编写，而脚本式语法允许高级流程控制，具备可视化阶段日志、并行执行、错误恢复和人工审核等企业级特性，实现复杂交付流程的可重复、可审计和可维护管理。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DevOps' /><meta property='article:published_time' content='2026-06-25T18:38:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T18:38:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/Jenkins&#43;k8s.png' />
+<meta name="twitter:title" content="Jenkins Pipeline 与多节点架构配置完整指南">
+<meta name="twitter:description" content="Jenkins Pipeline 是一种基于代码的持续集成/持续交付（CI/CD）流程定义框架，通过 Groovy 语法将整个软件交付过程建模为可版本控制的 Jenkinsfile 脚本，支持从代码编译、测试、静态分析到容器构建、部署的全链路自动化，其声明式语法提供结构化模板简化编写，而脚本式语法允许高级流程控制，具备可视化阶段日志、并行执行、错误恢复和人工审核等企业级特性，实现复杂交付流程的可重复、可审计和可维护管理。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/Jenkins&#43;k8s.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#基础入门第一个-pipeline">基础入门：第一个 Pipeline</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#添加一个从节点">添加一个从节点</a></li>
+    <li><a href="#在从节点上安装-java在-jenkins-slave-节点上执行">在从节点上安装 Java（在 Jenkins Slave 节点上执行）</a></li>
+    <li><a href="#下载-master-agent">下载 Master Agent</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#agent代理">Agent（代理）</a></li>
+    <li><a href="#stages-和-stage阶段">Stages 和 Stage（阶段）</a></li>
+    <li><a href="#steps步骤">Steps（步骤）</a></li>
+    <li><a href="#环境变量">环境变量</a></li>
+    <li><a href="#条件执行when">条件执行（when）</a></li>
+    <li><a href="#并行执行">并行执行</a></li>
+    <li><a href="#工具配置tools">工具配置（tools）</a></li>
+    <li><a href="#post-动作">Post 动作</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#布尔值参数">布尔值参数</a></li>
+    <li><a href="#选择参数">选择参数</a></li>
+    <li><a href="#字符串参数">字符串参数</a></li>
+    <li><a href="#密码参数">密码参数</a></li>
+    <li><a href="#文件参数">文件参数</a></li>
+    <li><a href="#根据-git-log-生成版本号">根据 <code>git log</code> 生成版本号</a>
+      <ol>
+        <li><a href="#常用-git-log-命令用于提取版本信息">常用 <code>git log</code> 命令（用于提取版本信息）</a></li>
+        <li><a href="#生成版本号的常见格式">生成版本号的常见格式</a></li>
+        <li><a href="#版本号案例">版本号案例</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+            <img alt="Featured image of post Jenkins Pipeline 与多节点架构配置完整指南" height="474" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/Jenkins+k8s.png" width="474">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/devops/" style="background-color: hsl(152, 60%, 84%); color: hsl(152, 60%, 15%);">
+                DevOps
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4/" style="background-color: hsl(291, 60%, 84%); color: hsl(291, 60%, 15%);">
+                自动化运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">Jenkins Pipeline 与多节点架构配置完整指南</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T18:38:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 10 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#基础入门第一个-pipeline">基础入门：第一个 Pipeline</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#添加一个从节点">添加一个从节点</a></li>
+    <li><a href="#在从节点上安装-java在-jenkins-slave-节点上执行">在从节点上安装 Java（在 Jenkins Slave 节点上执行）</a></li>
+    <li><a href="#下载-master-agent">下载 Master Agent</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#agent代理">Agent（代理）</a></li>
+    <li><a href="#stages-和-stage阶段">Stages 和 Stage（阶段）</a></li>
+    <li><a href="#steps步骤">Steps（步骤）</a></li>
+    <li><a href="#环境变量">环境变量</a></li>
+    <li><a href="#条件执行when">条件执行（when）</a></li>
+    <li><a href="#并行执行">并行执行</a></li>
+    <li><a href="#工具配置tools">工具配置（tools）</a></li>
+    <li><a href="#post-动作">Post 动作</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#布尔值参数">布尔值参数</a></li>
+    <li><a href="#选择参数">选择参数</a></li>
+    <li><a href="#字符串参数">字符串参数</a></li>
+    <li><a href="#密码参数">密码参数</a></li>
+    <li><a href="#文件参数">文件参数</a></li>
+    <li><a href="#根据-git-log-生成版本号">根据 <code>git log</code> 生成版本号</a>
+      <ol>
+        <li><a href="#常用-git-log-命令用于提取版本信息">常用 <code>git log</code> 命令（用于提取版本信息）</a></li>
+        <li><a href="#生成版本号的常见格式">生成版本号的常见格式</a></li>
+        <li><a href="#版本号案例">版本号案例</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p>Jenkins Pipeline 是一种基于代码的持续集成/持续交付（CI/CD）流程定义框架，通过 Groovy 语法将整个软件交付过程建模为可版本控制的 Jenkinsfile 脚本，支持从代码编译、测试、静态分析到容器构建、部署的全链路自动化，其声明式语法提供结构化模板简化编写，而脚本式语法允许高级流程控制，具备可视化阶段日志、并行执行、错误恢复和人工审核等企业级特性，实现复杂交付流程的可重复、可审计和可维护管理。</p>
+
+    <blockquote>
+        <p>Jenkins pipeline 需要 pipeline、docker pipeline 和 pipeline stage view 插件。</p>
+
+    </blockquote>
+<p><img class="gallery-image" data-flex-basis="1370px" data-flex-grow="570" height="330" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093769266-5e1bc6b4-b9dd-4723-a7c2-7223fc51a820.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093769266-5e1bc6b4-b9dd-4723-a7c2-7223fc51a820_hu_f246e41d595513bf.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093769266-5e1bc6b4-b9dd-4723-a7c2-7223fc51a820_hu_52fb97d28b612bfc.png 1600w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093769266-5e1bc6b4-b9dd-4723-a7c2-7223fc51a820.png 1884w" width="1884"></p>
+<h1 id="什么是-jenkins-pipeline">什么是 Jenkins Pipeline？
+</h1><p>Jenkins Pipeline 是一套插件，用于支持在 Jenkins 中实现持续交付流水线即代码。它允许你以代码的形式定义整个构建、测试和部署过程，这些代码可以被提交到版本控制系统中进行管理。</p>
+<p>Pipeline 有两种语法形式：</p>
+<ul>
+<li><strong>声明式（Declarative）</strong>：一种更结构化、更简洁的语法，适合大多数常见场景</li>
+<li><strong>脚本式（Scripted）</strong>：基于 Groovy 语言的更灵活的语法，适合复杂场景</li>
+</ul>
+<p>本指南将以声明式语法为主，循序渐进地介绍 Pipeline 的核心概念和用法。</p>
+<h2 id="基础入门第一个-pipeline">基础入门：第一个 Pipeline
+</h2><p>创建一个文件 <code>Jenkinsfile</code>（通常存放在项目根目录）：</p>
+<p><img class="gallery-image" data-flex-basis="299px" data-flex-grow="124" height="620" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093890404-525668e2-0eff-451f-a5d3-80bff589ed0e.png" width="773"></p>
+<p><img class="gallery-image" data-flex-basis="310px" data-flex-grow="129" height="901" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093918524-f8eca056-66a2-41eb-a3d7-2deefaa78a32.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093918524-f8eca056-66a2-41eb-a3d7-2deefaa78a32_hu_718b698dba67cf16.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093918524-f8eca056-66a2-41eb-a3d7-2deefaa78a32.png 1167w" width="1167"></p>
+<p><img class="gallery-image" data-flex-basis="465px" data-flex-grow="194" height="685" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093984346-8aea61ac-5b62-4600-a5f6-dad10fa9c339.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093984346-8aea61ac-5b62-4600-a5f6-dad10fa9c339_hu_ce6af2d338e1926b.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093984346-8aea61ac-5b62-4600-a5f6-dad10fa9c339.png 1330w" width="1330"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Hello&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s1">&#39;Hello, Jenkins Pipeline!&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>解释</strong>：</p>
+<ul>
+<li><code>pipeline</code>：整个流水线的根块</li>
+<li><code>agent any</code>：指定流水线可以在任何可用的 Jenkins 代理（节点）上运行</li>
+<li><code>stages</code>：包含一个或多个阶段的集合</li>
+<li><code>stage</code>：流水线中的一个阶段，通常代表构建过程中的一个环节</li>
+<li><code>steps</code>：在阶段中执行的具体操作</li>
+</ul>
+<p><img class="gallery-image" data-flex-basis="395px" data-flex-grow="164" height="590" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093974350-0f2e06d3-73c6-4dd0-ba9b-661778bb8f58.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093974350-0f2e06d3-73c6-4dd0-ba9b-661778bb8f58_hu_c5ce0530999b8b6e.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762093974350-0f2e06d3-73c6-4dd0-ba9b-661778bb8f58.png 972w" width="972"></p>
+<h1 id="jenkins-多节点">Jenkins 多节点
+</h1><p>Jenkins 多节点架构允许将构建工作负载分布到多个机器上，提供以下优势：</p>
+<ul>
+<li><strong>横向扩展</strong>：应对高并发构建需求</li>
+<li><strong>环境隔离</strong>：不同项目使用不同的构建环境</li>
+<li><strong>资源优化</strong>：合理分配计算资源</li>
+<li><strong>专用环境</strong>：特定平台（Windows、macOS、Linux）的构建需求</li>
+</ul>
+<h2 id="添加一个从节点">添加一个从节点
+</h2><p><img class="gallery-image" data-flex-basis="1542px" data-flex-grow="642" height="298" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094201549-0021901a-cd2a-4ac8-826b-89ab60a61983.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094201549-0021901a-cd2a-4ac8-826b-89ab60a61983_hu_90c1dce251c79a13.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094201549-0021901a-cd2a-4ac8-826b-89ab60a61983_hu_44b61d2dadbf91e.png 1600w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094201549-0021901a-cd2a-4ac8-826b-89ab60a61983.png 1915w" width="1915"></p>
+<p><img class="gallery-image" data-flex-basis="1279px" data-flex-grow="533" height="318" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094223611-d9801b80-0a60-4324-bb7e-b21d23b5635a.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094223611-d9801b80-0a60-4324-bb7e-b21d23b5635a_hu_2b7862a371512ef1.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094223611-d9801b80-0a60-4324-bb7e-b21d23b5635a_hu_8b66c57965b8193e.png 1600w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094223611-d9801b80-0a60-4324-bb7e-b21d23b5635a.png 1695w" width="1695"></p>
+<p><img class="gallery-image" data-flex-basis="730px" data-flex-grow="304" height="403" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094251226-3a2346a8-73d9-487a-ba54-a985f582298c.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094251226-3a2346a8-73d9-487a-ba54-a985f582298c_hu_53e54deaa95c6f36.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094251226-3a2346a8-73d9-487a-ba54-a985f582298c.png 1227w" width="1227"></p>
+<p><img class="gallery-image" data-flex-basis="499px" data-flex-grow="208" height="802" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094382841-ae0218f7-bc5e-4b2a-830e-62ac4bd5335c.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094382841-ae0218f7-bc5e-4b2a-830e-62ac4bd5335c_hu_d3ad86e51c82dc80.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094382841-ae0218f7-bc5e-4b2a-830e-62ac4bd5335c_hu_d72010d0b5595a06.png 1600w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094382841-ae0218f7-bc5e-4b2a-830e-62ac4bd5335c.png 1669w" width="1669"></p>
+<p><img class="gallery-image" data-flex-basis="1001px" data-flex-grow="417" height="398" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094392856-8751bd82-c912-4167-ac4a-695fce86a86d.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094392856-8751bd82-c912-4167-ac4a-695fce86a86d_hu_603ee775567d68a8.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094392856-8751bd82-c912-4167-ac4a-695fce86a86d_hu_7a3b1efe435892f7.png 1600w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094392856-8751bd82-c912-4167-ac4a-695fce86a86d.png 1660w" width="1660"></p>
+<p><img class="gallery-image" data-flex-basis="417px" data-flex-grow="174" height="901" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094406349-3db1a378-08dd-42c8-b199-da51f91ee713.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094406349-3db1a378-08dd-42c8-b199-da51f91ee713_hu_4198c7fe89299d2f.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762094406349-3db1a378-08dd-42c8-b199-da51f91ee713.png 1569w" width="1569"></p>
+<h2 id="在从节点上安装-java在-jenkins-slave-节点上执行">在从节点上安装 Java（在 Jenkins Slave 节点上执行）
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 下载 Temurin 17（根据系统架构选择，此处为 x64）</span>
+</span></span><span class="line"><span class="cl">wget https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.11%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.11_9.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 解压到 /usr/local</span>
+</span></span><span class="line"><span class="cl">tar -zxf OpenJDK17U-jdk_x64_linux_hotspot_17.0.11_9.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">mv /usr/local/jdk-17.0.11+9 /usr/local/jdk17
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mkdir -p /data
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">useradd -r -s /sbin/nologin jenkins
+</span></span><span class="line"><span class="cl">chown -R jenkins.jenkins /data
+</span></span><span class="line"><span class="cl">chown -R jenkins.jenkins /usr/local/jdk17
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置环境变量</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export JAVA_HOME=/usr/local/jdk17&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export PATH=$JAVA_HOME/bin:$PATH&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> /etc/profile
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证 Java 版本</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出应包含 17.0.11 字样</span>
+</span></span><span class="line"><span class="cl">java -version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="下载-master-agent">下载 Master Agent
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl -sO http://192.168.20.60:8080/jnlpJars/agent.jar
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mv agent.jar /data/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vim /etc/systemd/system/jenkins-agent.service
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Unit<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Description</span><span class="o">=</span>Jenkins Agent
+</span></span><span class="line"><span class="cl"><span class="nv">After</span><span class="o">=</span>network.target
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Service<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Type</span><span class="o">=</span>simple
+</span></span><span class="line"><span class="cl"><span class="nv">User</span><span class="o">=</span>jenkins
+</span></span><span class="line"><span class="cl"><span class="nv">Group</span><span class="o">=</span>jenkins
+</span></span><span class="line"><span class="cl"><span class="nv">WorkingDirectory</span><span class="o">=</span>/data
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/bin/java -jar /data/agent.jar -url http://192.168.20.60:8080/ -secret 23d4926f687492e421fde92a73eb6c47f70d0c190927efeb2861a8d1fa733002 -name <span class="s2">&#34;slave-java-01&#34;</span> -webSocket -workDir <span class="s2">&#34;/data&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Restart</span><span class="o">=</span>always
+</span></span><span class="line"><span class="cl"><span class="nv">RestartSec</span><span class="o">=</span><span class="m">30</span>
+</span></span><span class="line"><span class="cl"><span class="nv">StandardOutput</span><span class="o">=</span>journal
+</span></span><span class="line"><span class="cl"><span class="nv">StandardError</span><span class="o">=</span>journal
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Install<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl daemon-reload
+</span></span><span class="line"><span class="cl">systemctl start jenkins-agent
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> jenkins-agent
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="1310px" data-flex-grow="545" height="305" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095175561-2f1e2685-824b-41dd-ac95-c74e449b4ad6.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095175561-2f1e2685-824b-41dd-ac95-c74e449b4ad6_hu_3887f302fd972e75.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095175561-2f1e2685-824b-41dd-ac95-c74e449b4ad6_hu_f9321e49959dbeb8.png 1600w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095175561-2f1e2685-824b-41dd-ac95-c74e449b4ad6.png 1665w" width="1665"></p>
+<p><img class="gallery-image" data-flex-basis="439px" data-flex-grow="183" height="549" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095188658-69d3e250-3e4f-468c-9313-82540cefd3e7.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095188658-69d3e250-3e4f-468c-9313-82540cefd3e7_hu_923cd21e6c3fe91c.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095188658-69d3e250-3e4f-468c-9313-82540cefd3e7.png 1005w" width="1005"></p>
+<h1 id="核心概念详解">核心概念详解
+</h1><h2 id="agent代理">Agent（代理）
+</h2><p>Agent 定义了流水线或其部分在哪里执行。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 整个流水线在任何可用代理上执行
+</span></span></span><span class="line"><span class="cl">    <span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1">// 或者：在指定标签的代理上执行
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// agent { label &#39;my-agent&#39; }
+</span></span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Hello&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s1">&#39;Hello, Jenkins Pipeline!&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="508px" data-flex-grow="211" height="611" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095262968-e8fcfa5b-afb7-4bfc-afcb-bbbbf8bd821a.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095262968-e8fcfa5b-afb7-4bfc-afcb-bbbbf8bd821a_hu_3c7b8f9b2f2ad448.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095262968-e8fcfa5b-afb7-4bfc-afcb-bbbbf8bd821a.png 1295w" width="1295"></p>
+<p><img class="gallery-image" data-flex-basis="493px" data-flex-grow="205" height="412" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095251936-fe59e521-537c-4157-b30f-9acd8401560b.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095251936-fe59e521-537c-4157-b30f-9acd8401560b_hu_798780bae61ae60f.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095251936-fe59e521-537c-4157-b30f-9acd8401560b.png 847w" width="847"></p>
+<p>也可以为不同阶段指定不同的 agent：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">agent</span> <span class="n">none</span>
+</span></span><span class="line"><span class="cl">	<span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Build&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">agent</span> <span class="o">{</span> <span class="n">label</span> <span class="s1">&#39;master&#39;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">			<span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">echo</span> <span class="s1">&#39;Building on build agent&#39;</span>
+</span></span><span class="line"><span class="cl">			<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Test&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">agent</span> <span class="o">{</span> <span class="n">label</span> <span class="s1">&#39;slave-java&#39;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">			<span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">echo</span> <span class="s1">&#39;Testing on test agent&#39;</span>
+</span></span><span class="line"><span class="cl">			<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="o">}</span>
+</span></span><span class="line"><span class="cl">	<span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="311px" data-flex-grow="129" height="706" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095561912-1364aa85-81d4-4db7-833a-38c6320d5724.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095561912-1364aa85-81d4-4db7-833a-38c6320d5724_hu_26ce5f9b596a2a98.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095561912-1364aa85-81d4-4db7-833a-38c6320d5724.png 916w" width="916"></p>
+<h2 id="stages-和-stage阶段">Stages 和 Stage（阶段）
+</h2><p>一个流水线由一个或多个阶段（stage）组成，每个阶段代表一个逻辑上的步骤（如构建、测试、部署）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">	<span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">		<span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Build&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">echo</span> <span class="s1">&#39;Compiling source code...&#39;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// 例如：sh &#39;mvn clean compile&#39; （Maven 项目编译）
+</span></span></span><span class="line"><span class="cl">			<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Test&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">echo</span> <span class="s1">&#39;Running tests...&#39;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// 例如：sh &#39;mvn test&#39; （运行测试）
+</span></span></span><span class="line"><span class="cl">			<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Package&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">echo</span> <span class="s1">&#39;Packaging application...&#39;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// 例如：sh &#39;mvn package&#39; （打包应用）
+</span></span></span><span class="line"><span class="cl">			<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Deploy&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">			<span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">				<span class="n">echo</span> <span class="s1">&#39;Deploying application...&#39;</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// 例如：sh &#39;./deploy.sh&#39; （部署应用）
+</span></span></span><span class="line"><span class="cl">			<span class="o">}</span>
+</span></span><span class="line"><span class="cl">		<span class="o">}</span>
+</span></span><span class="line"><span class="cl">	<span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="593px" data-flex-grow="247" height="501" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095631194-757e8747-f545-482b-8f12-eab939d295d6.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095631194-757e8747-f545-482b-8f12-eab939d295d6_hu_30ec48a38af4a738.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762095631194-757e8747-f545-482b-8f12-eab939d295d6.png 1239w" width="1239"></p>
+<h2 id="steps步骤">Steps（步骤）
+</h2><p>步骤是流水线中最基本的操作单元，例如执行命令、复制文件等。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Steps Demo&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// 执行 shell 命令
+</span></span></span><span class="line"><span class="cl">                <span class="n">sh</span> <span class="s1">&#39;echo &#34;This is a shell command&#34;&#39;</span>
+</span></span><span class="line"><span class="cl">                <span class="n">sh</span> <span class="s1">&#39;&#39;&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s1">                    echo &#34;Multi-line shell script&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s1">                    ls -la
+</span></span></span><span class="line"><span class="cl"><span class="s1">
+</span></span></span><span class="line"><span class="cl"><span class="s1">					ip a
+</span></span></span><span class="line"><span class="cl"><span class="s1">
+</span></span></span><span class="line"><span class="cl"><span class="s1">					pwd
+</span></span></span><span class="line"><span class="cl"><span class="s1">
+</span></span></span><span class="line"><span class="cl"><span class="s1">					touch README.md
+</span></span></span><span class="line"><span class="cl"><span class="s1">                &#39;&#39;&#39;</span>
+</span></span><span class="line"><span class="cl">				
+</span></span><span class="line"><span class="cl">                <span class="c1">// 输出信息
+</span></span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s1">&#39;This is a simple message&#39;</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">				<span class="c1">// 1. 写入文件
+</span></span></span><span class="line"><span class="cl">                <span class="n">writeFile</span> <span class="nl">file:</span> <span class="s1">&#39;example.txt&#39;</span><span class="o">,</span> <span class="nl">text:</span> <span class="s1">&#39;这是一些文本内容&#39;</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="c1">// 2. 读取文件
+</span></span></span><span class="line"><span class="cl">                <span class="n">script</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="kt">def</span> <span class="n">fileContent</span> <span class="o">=</span> <span class="n">readFile</span><span class="o">(</span><span class="s1">&#39;example.txt&#39;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">echo</span> <span class="s2">&#34;文件内容: ${fileContent}&#34;</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="c1">// 3. 检查文件是否存在
+</span></span></span><span class="line"><span class="cl">                <span class="n">script</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">if</span> <span class="o">(</span><span class="n">fileExists</span><span class="o">(</span><span class="s1">&#39;example.txt&#39;</span><span class="o">))</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">echo</span> <span class="s2">&#34;文件存在&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">echo</span> <span class="s2">&#34;文件不存在&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="c1">// 4. 创建目录并写入文件
+</span></span></span><span class="line"><span class="cl">                <span class="n">dir</span><span class="o">(</span><span class="s1">&#39;subdirectory&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">writeFile</span> <span class="nl">file:</span> <span class="s1">&#39;nested.txt&#39;</span><span class="o">,</span> <span class="nl">text:</span> <span class="s1">&#39;子目录中的文件&#39;</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+    <blockquote>
+        <p><strong>注意</strong>：有些步骤需要包裹在 <code>script</code> 块中，因为它们返回值需要被处理。</p>
+
+    </blockquote>
+<h2 id="环境变量">环境变量
+</h2><p>可以定义环境变量供流水线使用：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">    <span class="n">environment</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 定义全局环境变量
+</span></span></span><span class="line"><span class="cl">        <span class="n">APP_NAME</span> <span class="o">=</span> <span class="s1">&#39;my-app&#39;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 从 Jenkins 凭据中获取敏感信息
+</span></span></span><span class="line"><span class="cl">        <span class="n">DB_PASSWORD</span> <span class="o">=</span> <span class="n">credentials</span><span class="o">(</span><span class="s1">&#39;a8dadd8f-aaf9-4da2-8ca4-39628945ac51&#39;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Use Env Vars&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">environment</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// 定义阶段级别的环境变量
+</span></span></span><span class="line"><span class="cl">                <span class="n">STAGE_VAR</span> <span class="o">=</span> <span class="s1">&#39;stage-value&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s2">&#34;Application name: ${APP_NAME}&#34;</span>
+</span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s2">&#34;Stage variable: ${STAGE_VAR}&#34;</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// 注意：不会显示实际密码，会被 Jenkins 自动屏蔽
+</span></span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s2">&#34;DB password: ${DB_PASSWORD}&#34;</span>
+</span></span><span class="line"><span class="cl">                
+</span></span><span class="line"><span class="cl">                <span class="c1">// 在 shell 中使用环境变量
+</span></span></span><span class="line"><span class="cl">                <span class="n">sh</span> <span class="s1">&#39;echo &#34;Shell: Application name is $APP_NAME&#34;&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="条件执行when">条件执行（when）
+</h2><p>可以使用 <code>when</code> 指令控制阶段是否执行：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pipeline <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    agent any
+</span></span><span class="line"><span class="cl">    parameters <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        booleanParam<span class="o">(</span>name: <span class="s1">&#39;DEPLOY&#39;</span>, defaultValue: false, description: <span class="s1">&#39;Deploy after build?&#39;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">        choice<span class="o">(</span>name: <span class="s1">&#39;ENVIRONMENT&#39;</span>, choices: <span class="o">[</span><span class="s1">&#39;dev&#39;</span>, <span class="s1">&#39;test&#39;</span>, <span class="s1">&#39;prod&#39;</span><span class="o">]</span>, description: <span class="s1">&#39;Deployment environment&#39;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    stages <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        stage<span class="o">(</span><span class="s1">&#39;Build&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            steps <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nb">echo</span> <span class="s1">&#39;Building...&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        stage<span class="o">(</span><span class="s1">&#39;Test&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            steps <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nb">echo</span> <span class="s1">&#39;Testing...&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        stage<span class="o">(</span><span class="s1">&#39;Deploy to Dev&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            when <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                allOf <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    expression <span class="o">{</span> params.DEPLOY <span class="o">==</span> <span class="nb">true</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                    environment name: <span class="s1">&#39;ENVIRONMENT&#39;</span>, value: <span class="s1">&#39;dev&#39;</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            steps <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nb">echo</span> <span class="s1">&#39;Deploying to development environment...&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        stage<span class="o">(</span><span class="s1">&#39;Deploy to Prod&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            when <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                allOf <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    expression <span class="o">{</span> params.DEPLOY <span class="o">==</span> <span class="nb">true</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                    environment name: <span class="s1">&#39;ENVIRONMENT&#39;</span>, value: <span class="s1">&#39;prod&#39;</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            steps <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nb">echo</span> <span class="s1">&#39;Deploying to production environment...&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>when</code> 指令支持多种条件判断：</p>
+<ul>
+<li><code>branch</code>：当分支匹配时</li>
+<li><code>environment</code>：当环境变量匹配时</li>
+<li><code>expression</code>：当 Groovy 表达式为真时</li>
+<li><code>not</code>：对其他条件取反</li>
+<li><code>allOf</code>：所有条件都满足时</li>
+<li><code>anyOf</code>：任何一个条件满足时</li>
+</ul>
+<p><img class="gallery-image" data-flex-basis="546px" data-flex-grow="227" height="548" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762096301980-3b640b06-4cc9-4d4b-99a4-1cacdd4c2616.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762096301980-3b640b06-4cc9-4d4b-99a4-1cacdd4c2616_hu_37c6cd7265f5faa2.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762096301980-3b640b06-4cc9-4d4b-99a4-1cacdd4c2616.png 1247w" width="1247"></p>
+<h2 id="并行执行">并行执行
+</h2><p>可以在一个阶段中并行执行多个步骤：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Build&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s1">&#39;Building application...&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Test&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">parallel</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Unit Tests&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">echo</span> <span class="s1">&#39;Running unit tests...&#39;</span>
+</span></span><span class="line"><span class="cl">                        <span class="c1">// sh &#39;mvn test&#39;
+</span></span></span><span class="line"><span class="cl">                    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Integration Tests&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">echo</span> <span class="s1">&#39;Running integration tests...&#39;</span>
+</span></span><span class="line"><span class="cl">						<span class="n">sh</span> <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">						    sleep 20
+</span></span></span><span class="line"><span class="cl"><span class="s2">						&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">                        <span class="c1">// sh &#39;mvn verify&#39;
+</span></span></span><span class="line"><span class="cl">                    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Code Quality&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">echo</span> <span class="s1">&#39;Checking code quality...&#39;</span>
+</span></span><span class="line"><span class="cl">                        <span class="c1">// sh &#39;mvn sonar:sonar&#39;
+</span></span></span><span class="line"><span class="cl">                    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Deploy&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s1">&#39;Deploying...&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="574px" data-flex-grow="239" height="603" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762096359755-04afbba8-7f6c-42ab-99d8-ad8516df787e.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762096359755-04afbba8-7f6c-42ab-99d8-ad8516df787e_hu_804a997164ecf2b.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762096359755-04afbba8-7f6c-42ab-99d8-ad8516df787e.png 1444w" width="1444"></p>
+<h2 id="工具配置tools">工具配置（tools）
+</h2><p>可以指定构建工具的版本：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pipeline <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    agent any
+</span></span><span class="line"><span class="cl">    tools <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        // 需要在 Jenkins 全局配置中预先定义这些工具
+</span></span><span class="line"><span class="cl">		// 工具类型的名字
+</span></span><span class="line"><span class="cl">        maven <span class="s1">&#39;MVN_HOME&#39;</span>
+</span></span><span class="line"><span class="cl">        jdk <span class="s1">&#39;JDK17&#39;</span>
+</span></span><span class="line"><span class="cl">		sonarqubescanner <span class="s1">&#39;SonarQubeScanner&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    stages <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        stage<span class="o">(</span><span class="s1">&#39;Build with Maven&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            steps <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                sh <span class="s1">&#39;mvn --version&#39;</span>
+</span></span><span class="line"><span class="cl">                sh <span class="s1">&#39;java -version&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="post-动作">Post 动作
+</h2><p>可以定义流水线完成后（无论成功或失败）执行的操作：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Test&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">echo</span> <span class="s1">&#39;Running tests...&#39;</span>
+</span></span><span class="line"><span class="cl">                <span class="c1">// sh &#39;mvn test&#39;
+</span></span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">post</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">always</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">echo</span> <span class="s1">&#39;This will always run&#39;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">success</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">echo</span> <span class="s1">&#39;This will run only if successful&#39;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">failure</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">echo</span> <span class="s1">&#39;This will run only if failed&#39;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">unstable</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">echo</span> <span class="s1">&#39;This will run only if the run was marked as unstable&#39;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">changed</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">echo</span> <span class="s1">&#39;This will run only if the status changed from the previous run&#39;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th style="text-align: left">后置条件</th>
+					<th style="text-align: left">执行时机</th>
+					<th style="text-align: left">使用场景</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td style="text-align: left"><strong>always</strong></td>
+					<td style="text-align: left">总是执行，无论构建结果如何</td>
+					<td style="text-align: left">清理工作、发送通知、记录日志</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><strong>success</strong></td>
+					<td style="text-align: left">仅当构建成功完成时执行</td>
+					<td style="text-align: left">部署到生产环境、发送成功通知、生成报告</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><strong>failure</strong></td>
+					<td style="text-align: left">仅当构建失败时执行</td>
+					<td style="text-align: left">发送失败通知、记录错误信息、回退操作</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><strong>unstable</strong></td>
+					<td style="text-align: left">仅当构建被标记为不稳定时执行</td>
+					<td style="text-align: left">测试失败但构建未完全失败时的处理</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><strong>changed</strong></td>
+					<td style="text-align: left">仅当构建状态与上一次不同时执行</td>
+					<td style="text-align: left">状态变化通知、差异分析</td>
+			</tr>
+	</tbody>
+</table></div>
+<h1 id="常用参数类型">常用参数类型
+</h1><p><code>parameters</code> 是 Jenkins Pipeline 中用于<strong>参数化构建</strong>的核心配置，允许在触发流水线时动态输入或选择参数，让流水线更灵活地适应不同场景（如部署到不同环境、选择不同版本策略等）。</p>
+<h2 id="布尔值参数">布尔值参数
+</h2><p>用于确认 &ldquo;是 / 否&rdquo; 类操作（如是否部署、是否跳过测试等）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">parameters</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">booleanParam</span><span class="o">(</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">name:</span> <span class="s1">&#39;参数名&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">defaultValue:</span> <span class="err">布尔值（</span><span class="kc">true</span><span class="o">/</span><span class="kc">false</span><span class="err">）</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">description:</span> <span class="s1">&#39;参数描述&#39;</span>
+</span></span><span class="line"><span class="cl">	<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="选择参数">选择参数
+</h2><p>提供预定义的选项列表，用户只能从中选择（如环境类型、版本分支等）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">parameters</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">choice</span><span class="o">(</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">name:</span> <span class="s1">&#39;参数名&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">choices:</span> <span class="o">[</span><span class="s1">&#39;选项1&#39;</span><span class="o">,</span> <span class="s1">&#39;选项2&#39;</span><span class="o">,</span> <span class="s1">&#39;选项3&#39;</span><span class="o">],</span> <span class="c1">// 选项列表（换行符分隔也可）
+</span></span></span><span class="line"><span class="cl">		<span class="nl">description:</span> <span class="s1">&#39;参数描述&#39;</span>
+</span></span><span class="line"><span class="cl">	<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="字符串参数">字符串参数
+</h2><p>用于输入文本（如版本前缀、自定义备注等）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">parameters</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">string</span><span class="o">(</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">name:</span> <span class="s1">&#39;参数名&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">defaultValue:</span> <span class="s1">&#39;默认值&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">description:</span> <span class="s1">&#39;参数描述&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">trim:</span> <span class="err">布尔值（是否去除首尾空格，默认</span><span class="kc">true</span><span class="err">）</span>
+</span></span><span class="line"><span class="cl">	<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="密码参数">密码参数
+</h2><p>用于输入敏感信息（如临时密钥、密码），Jenkins 会自动屏蔽输出（避免日志泄露）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">parameters</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">	<span class="n">password</span><span class="o">(</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">name:</span> <span class="s1">&#39;参数名&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">defaultValue:</span> <span class="s1">&#39;默认值（可选）&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nl">description:</span> <span class="s1">&#39;参数描述&#39;</span>
+</span></span><span class="line"><span class="cl">	<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="文件参数">文件参数
+</h2><p>允许上传文件（如配置文件、证书），流水线中可通过路径访问文件内容。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">parameters</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">file</span><span class="o">(</span>
+</span></span><span class="line"><span class="cl">    <span class="nl">name:</span> <span class="s1">&#39;参数名&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nl">description:</span> <span class="s1">&#39;参数描述&#39;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="根据-git-log-生成版本号">根据 <code>git log</code> 生成版本号
+</h2><p>在 CI/CD 中，版本号通常需要关联代码提交记录（如包含提交次数、哈希值），方便追溯版本对应的代码。通过 <code>git log</code> 命令可提取关键信息，再组合成版本号。</p>
+<h3 id="常用-git-log-命令用于提取版本信息">常用 <code>git log</code> 命令（用于提取版本信息）
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th style="text-align: left">命令</th>
+					<th style="text-align: left">作用</th>
+					<th style="text-align: left">示例输出</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td style="text-align: left"><code>git rev-parse --short HEAD</code></td>
+					<td style="text-align: left">获取当前提交的短哈希（8 位）</td>
+					<td style="text-align: left"><code>a1b2c3d4</code></td>
+			</tr>
+			<tr>
+					<td style="text-align: left">`git log &ndash;oneline</td>
+					<td style="text-align: left">wc -l`</td>
+					<td style="text-align: left">统计总提交次数（作为修订号）</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><code>git describe --abbrev=0 --tags</code></td>
+					<td style="text-align: left">获取最近的标签（如 v1.2.3）</td>
+					<td style="text-align: left"><code>v1.2.3</code></td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><code>git branch --show-current</code></td>
+					<td style="text-align: left">获取当前分支名</td>
+					<td style="text-align: left"><code>dev</code></td>
+			</tr>
+	</tbody>
+</table></div>
+<h3 id="生成版本号的常见格式">生成版本号的常见格式
+</h3><p>结合上述信息，常见版本号格式：</p>
+<ul>
+<li><code>主版本.次版本.提交次数-短哈希</code>（如 <code>1.0.123-a1b2c3d4</code>）</li>
+<li><code>标签-提交次数-分支-短哈希</code>（如 <code>v1.2.3-45-dev-f6g7h8i9</code>）</li>
+</ul>
+<h3 id="版本号案例">版本号案例
+</h3>
+    <blockquote>
+        <p><code>.trim()</code> 是 Python 中的函数，意思是：去掉字符串前后的空格。</p>
+<p><code>.replace('/', '-')</code> 是 Python 中的函数，意思是：将 <code>/</code> 替换成 <code>-</code>。</p>
+<p><code>.join('-')</code> 是 Python 中的函数，意思是将一个列表按照 <code>-</code> 进行拼接。
+<em>(注：此处的 <code>.trim()</code>、<code>.replace()</code>、<code>.join()</code> 语法语义与 Python 中对应函数功能类似。)</em></p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">  <span class="n">parameters</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">string</span><span class="o">(</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">name:</span> <span class="s1">&#39;MAIN_VERSION&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">defaultValue:</span> <span class="s1">&#39;2.1&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">description:</span> <span class="s1">&#39;主版本号（如2.1）&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">choice</span><span class="o">(</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">name:</span> <span class="s1">&#39;BUILD_TYPE&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">choices:</span> <span class="o">[</span><span class="s1">&#39;release&#39;</span><span class="o">,</span> <span class="s1">&#39;snapshot&#39;</span><span class="o">],</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">description:</span> <span class="s1">&#39;构建类型（正式版/快照版）&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">booleanParam</span><span class="o">(</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">name:</span> <span class="s1">&#39;INCLUDE_BRANCH&#39;</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">defaultValue:</span> <span class="kc">true</span><span class="o">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nl">description:</span> <span class="s1">&#39;版本号中是否包含分支名&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">)</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Generate Version&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">script</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">          <span class="c1">// 1. 基础信息
+</span></span></span><span class="line"><span class="cl">          <span class="kt">def</span> <span class="n">gitShortHash</span> <span class="o">=</span> <span class="n">sh</span><span class="o">(</span><span class="nl">script:</span> <span class="s1">&#39;git rev-parse --short HEAD&#39;</span><span class="o">,</span> <span class="nl">returnStdout:</span> <span class="kc">true</span><span class="o">).</span><span class="na">trim</span><span class="o">()</span>
+</span></span><span class="line"><span class="cl">          <span class="kt">def</span> <span class="n">commitCount</span> <span class="o">=</span> <span class="n">sh</span><span class="o">(</span><span class="nl">script:</span> <span class="s1">&#39;git log --oneline | wc -l&#39;</span><span class="o">,</span> <span class="nl">returnStdout:</span> <span class="kc">true</span><span class="o">).</span><span class="na">trim</span><span class="o">()</span>
+</span></span><span class="line"><span class="cl">          <span class="kt">def</span> <span class="n">branchName</span> <span class="o">=</span> <span class="n">sh</span><span class="o">(</span><span class="nl">script:</span> <span class="s1">&#39;git branch --show-current&#39;</span><span class="o">,</span> <span class="nl">returnStdout:</span> <span class="kc">true</span><span class="o">).</span><span class="na">trim</span><span class="o">().</span><span class="na">replace</span><span class="o">(</span><span class="s1">&#39;/&#39;</span><span class="o">,</span> <span class="s1">&#39;-&#39;</span><span class="o">)</span> <span class="c1">// 替换特殊字符
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">          <span class="c1">// 2. 拼接版本号
+</span></span></span><span class="line"><span class="cl">          <span class="kt">def</span> <span class="n">versionParts</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&#34;${params.MAIN_VERSION}.${commitCount}&#34;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">          <span class="k">if</span> <span class="o">(</span><span class="n">params</span><span class="o">.</span><span class="na">INCLUDE_BRANCH</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">versionParts</span> <span class="o">&lt;&lt;</span> <span class="n">branchName</span>
+</span></span><span class="line"><span class="cl">          <span class="o">}</span>
+</span></span><span class="line"><span class="cl">          <span class="n">versionParts</span> <span class="o">&lt;&lt;</span> <span class="n">gitShortHash</span>
+</span></span><span class="line"><span class="cl">          <span class="k">if</span> <span class="o">(</span><span class="n">params</span><span class="o">.</span><span class="na">BUILD_TYPE</span> <span class="o">==</span> <span class="s1">&#39;snapshot&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">versionParts</span> <span class="o">&lt;&lt;</span> <span class="s1">&#39;SNAPSHOT&#39;</span>
+</span></span><span class="line"><span class="cl">          <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">          <span class="n">env</span><span class="o">.</span><span class="na">APP_VERSION</span> <span class="o">=</span> <span class="n">versionParts</span><span class="o">.</span><span class="na">join</span><span class="o">(</span><span class="s1">&#39;-&#39;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">          <span class="n">echo</span> <span class="s2">&#34;最终版本号: ${env.APP_VERSION}&#34;</span> 
+</span></span><span class="line"><span class="cl">          <span class="c1">// 示例：2.1.156-dev-a1b2c3d4-SNAPSHOT
+</span></span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">      <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stage</span><span class="o">(</span><span class="s1">&#39;Build&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sh</span> <span class="s2">&#34;echo 构建版本: ${env.APP_VERSION}&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 实际构建命令（如Docker打包）
+</span></span></span><span class="line"><span class="cl">        <span class="n">sh</span> <span class="s2">&#34;docker build -t my-app:${env.APP_VERSION} .&#34;</span>
+</span></span><span class="line"><span class="cl">      <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="pipeline-部署-java-项目">Pipeline 部署 Java 项目
+</h1><p><img class="gallery-image" data-flex-basis="656px" data-flex-grow="273" height="700" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762421207450-639a2a57-83a2-4792-83e8-7bee3da5cde1.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762421207450-639a2a57-83a2-4792-83e8-7bee3da5cde1_hu_d98e79dff5b65c8d.png 800w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762421207450-639a2a57-83a2-4792-83e8-7bee3da5cde1_hu_5fba65d48178fa70.png 1600w, /p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/1762421207450-639a2a57-83a2-4792-83e8-7bee3da5cde1.png 1915w" width="1915"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-groovy" data-lang="groovy"><span class="line"><span class="cl"><span class="n">pipeline</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">agent</span> <span class="n">any</span>
+</span></span><span class="line"><span class="cl">    <span class="n">environment</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">PATH</span><span class="o">=</span><span class="s2">&#34;/usr/local/go/bin:/usr/local/maven/bin:/usr/local/node-v24.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parameters</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">listGitBranches</span> <span class="nl">branchFilter:</span> <span class="s1">&#39;refs/heads/(.*)&#39;</span><span class="o">,</span> <span class="nl">credentialsId:</span> <span class="s1">&#39;5aab4515-5676-49c9-966a-7a8f0045b7a2&#39;</span><span class="o">,</span> <span class="nl">defaultValue:</span> <span class="s1">&#39;master&#39;</span><span class="o">,</span> <span class="nl">description:</span> <span class="s1">&#39;git分支参数&#39;</span><span class="o">,</span> <span class="nl">listSize:</span> <span class="s1">&#39;5&#39;</span><span class="o">,</span> <span class="nl">name:</span> <span class="s1">&#39;BRANCHE&#39;</span><span class="o">,</span> <span class="nl">quickFilterEnabled:</span> <span class="kc">false</span><span class="o">,</span> <span class="nl">remoteURL:</span> <span class="s1">&#39;http://10.1.0.61/hellowolrd/java.git&#39;</span><span class="o">,</span> <span class="nl">selectedValue:</span> <span class="s1">&#39;NONE&#39;</span><span class="o">,</span> <span class="nl">sortMode:</span> <span class="s1">&#39;NONE&#39;</span><span class="o">,</span> <span class="nl">tagFilter:</span> <span class="s1">&#39;*&#39;</span><span class="o">,</span> <span class="nl">type:</span> <span class="s1">&#39;PT_BRANCH&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stages</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s2">&#34;环境预检查&#34;</span><span class="o">){</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">sh</span> <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">                    java -version
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">                    mvn --version
+</span></span></span><span class="line"><span class="cl"><span class="s2">                &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s2">&#34;拉取Git仓库代码&#34;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">git</span> <span class="nl">branch:</span> <span class="s2">&#34;$BRANCHE&#34;</span><span class="o">,</span> <span class="nl">credentialsId:</span> <span class="s1">&#39;5aab4515-5676-49c9-966a-7a8f0045b7a2&#39;</span><span class="o">,</span> <span class="nl">url:</span> <span class="s1">&#39;http://10.1.0.61/hellowolrd/java.git&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s2">&#34;编译代码&#34;</span><span class="o">){</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">sh</span> <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">                    mvn clean package
+</span></span></span><span class="line"><span class="cl"><span class="s2">                &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s2">&#34;代码质量检查&#34;</span><span class="o">){</span>
+</span></span><span class="line"><span class="cl">            <span class="n">environment</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">SONAR_SCANNER_HOME</span> <span class="o">=</span> <span class="n">tool</span> <span class="s1">&#39;SonarQubeScanner&#39;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">script</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">echo</span> <span class="s2">&#34;开始写入SonarQube配置文件&#34;</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">writeFile</span> <span class="nl">encoding:</span> <span class="s1">&#39;utf-8&#39;</span><span class="o">,</span> <span class="nl">file:</span> <span class="s1">&#39;sonar-project.properties&#39;</span><span class="o">,</span> <span class="nl">text:</span> <span class="s2">&#34;&#34;&#34;sonar.projectName=${JOB_NAME}
+</span></span></span><span class="line"><span class="cl"><span class="s2">sonar.projectKey=${JOB_NAME}
+</span></span></span><span class="line"><span class="cl"><span class="s2">sonar.projectVersion=${BUILD_NUMBER}
+</span></span></span><span class="line"><span class="cl"><span class="s2">sonar.sources=./
+</span></span></span><span class="line"><span class="cl"><span class="s2">sonar.java.binaries=target/classes
+</span></span></span><span class="line"><span class="cl"><span class="s2">sonar.exclusions=src/test/**/*,src/main/resources/**/*.xml,target/**/*, **/node_modules/**/*
+</span></span></span><span class="line"><span class="cl"><span class="s2">sonar.language=java
+</span></span></span><span class="line"><span class="cl"><span class="s2">sonar.sourceEncoding=UTF-8
+</span></span></span><span class="line"><span class="cl"><span class="s2">sonar.issuesReport.publish=true
+</span></span></span><span class="line"><span class="cl"><span class="s2">                    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                    <span class="n">echo</span> <span class="s2">&#34;写入SonarQube配置文件完毕&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                    <span class="n">withSonarQubeEnv</span><span class="o">(</span><span class="nl">credentialsId:</span> <span class="s1">&#39;133c2ed5-4330-4502-a81f-ed4a9015b182&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        
+</span></span><span class="line"><span class="cl">                        <span class="n">sh</span> <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">                            echo &#34;SonarQube Scanner 路径: ${SONAR_SCANNER_HOME}&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">                            echo &#34;开始代码质量扫描...&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">                            ${SONAR_SCANNER_HOME}/bin/sonar-scanner
+</span></span></span><span class="line"><span class="cl"><span class="s2">                        &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s2">&#34;等待质量门结果&#34;</span><span class="o">){</span> <span class="c1">// 单独处理质量门等待
+</span></span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">script</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">timeout</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                        <span class="kt">def</span> <span class="n">sonarQubeStatus</span> <span class="o">=</span> <span class="n">waitForQualityGate</span><span class="o">(</span><span class="nl">abortPipeline:</span> <span class="kc">true</span><span class="o">,</span> <span class="nl">credentialsId:</span> <span class="s1">&#39;133c2ed5-4330-4502-a81f-ed4a9015b182&#39;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">echo</span> <span class="s2">&#34;质量门状态: ${sonarQubeStatus.status}&#34;</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">echo</span> <span class="s2">&#34;质量门详情: ${sonarQubeStatus}&#34;</span>
+</span></span><span class="line"><span class="cl">                        <span class="k">if</span> <span class="o">(</span><span class="n">sonarQubeStatus</span><span class="o">.</span><span class="na">status</span> <span class="o">!=</span> <span class="s1">&#39;OK&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">error</span> <span class="s2">&#34;❌ 代码质量检查未通过！当前状态: ${sonarQubeStatus.status}&#34;</span>
+</span></span><span class="line"><span class="cl">                        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">echo</span> <span class="s2">&#34;✅ 代码质量检查通过！&#34;</span>
+</span></span><span class="line"><span class="cl">                        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">                <span class="o">}</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stage</span><span class="o">(</span><span class="s2">&#34;发布代码并使其生效&#34;</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">sshPublisher</span><span class="o">(</span><span class="nl">publishers:</span> <span class="o">[</span><span class="n">sshPublisherDesc</span><span class="o">(</span><span class="nl">configName:</span> <span class="s1">&#39;web&#39;</span><span class="o">,</span> <span class="nl">transfers:</span> <span class="o">[</span><span class="n">sshTransfer</span><span class="o">(</span><span class="nl">cleanRemote:</span> <span class="kc">false</span><span class="o">,</span> <span class="nl">excludes:</span> <span class="s1">&#39;&#39;</span><span class="o">,</span> <span class="nl">execCommand:</span> <span class="s1">&#39;ls&#39;</span><span class="o">,</span> <span class="nl">execTimeout:</span> <span class="mi">120000</span><span class="o">,</span> <span class="nl">flatten:</span> <span class="kc">false</span><span class="o">,</span> <span class="nl">makeEmptyDirs:</span> <span class="kc">false</span><span class="o">,</span> <span class="nl">noDefaultExcludes:</span> <span class="kc">false</span><span class="o">,</span> <span class="nl">patternSeparator:</span> <span class="s1">&#39;[, ]+&#39;</span><span class="o">,</span> <span class="nl">remoteDirectory:</span> <span class="s1">&#39;java&#39;</span><span class="o">,</span> <span class="nl">remoteDirectorySDF:</span> <span class="kc">false</span><span class="o">,</span> <span class="nl">removePrefix:</span> <span class="s1">&#39;&#39;</span><span class="o">,</span> <span class="nl">sourceFiles:</span> <span class="s1">&#39;target/*.jar&#39;</span><span class="o">)],</span> <span class="nl">usePromotionTimestamp:</span> <span class="kc">false</span><span class="o">,</span> <span class="nl">useWorkspaceInPromotion:</span> <span class="kc">false</span><span class="o">,</span> <span class="nl">verbose:</span> <span class="kc">false</span><span class="o">)])</span>
+</span></span><span class="line"><span class="cl">            <span class="o">}</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">post</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">always</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">echo</span> <span class="s2">&#34;Hello World&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">success</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">echo</span> <span class="s2">&#34;Hello World&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">failure</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">echo</span> <span class="s2">&#34;Hello World&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/devops/">DevOps</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测" height="150" loading="lazy" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267_hu_8140ec60a1b86383.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267_hu_8140ec60a1b86383.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #4499ce80 0%, #0a080aC0 100%);">
+            <h2 class="article-title">SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端" height="150" loading="lazy" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_cd2617af23e8a79c.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_cd2617af23e8a79c.png 1x, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_1ca24c247c8c23b5.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11121480 0%, #fefefdC0 100%);">
+            <h2 class="article-title">Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins入门与快速部署" height="150" loading="lazy" src="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_3973d9ee80ef8fa5.png" srcset="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_3973d9ee80ef8fa5.png 1x, /p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_9ac2908d21b70e9c.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11b6c480 0%, #fafcfbC0 100%);">
+            <h2 class="article-title">Jenkins入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Ansible 自动化运维工具完整指南：从入门到进阶" height="150" loading="lazy" src="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_e2a1bee1fe3585f8.png" srcset="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_e2a1bee1fe3585f8.png 1x, /p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_de650e022964904a.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #34343480 0%, #fcfcfcC0 100%);">
+            <h2 class="article-title">Ansible 自动化运维工具完整指南：从入门到进阶</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8s 高级调度策略：标签、亲和性、污点与容忍度" height="150" loading="lazy" src="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_5f4a284001b09311.png" srcset="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_5f4a284001b09311.png 1x, /p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_38900f2844a9c2a7.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #336ee580 0%, #fefeffC0 100%);">
+            <h2 class="article-title">K8s 高级调度策略：标签、亲和性、污点与容忍度</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
