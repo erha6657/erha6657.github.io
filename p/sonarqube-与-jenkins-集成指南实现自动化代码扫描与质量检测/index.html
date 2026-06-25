@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="SonarQube 与 Jenkins 是 DevOps 流程中协作紧密的两款工具，前者专注代码质量检测，后者负责自动化构建与部署，二者结合可实现 “代码提交 - 自动构建 - 质量检测 - 结果反馈” 的全流程自动化。\n">
+<title>SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测">
+<meta property='og:description' content="SonarQube 与 Jenkins 是 DevOps 流程中协作紧密的两款工具，前者专注代码质量检测，后者负责自动化构建与部署，二者结合可实现 “代码提交 - 自动构建 - 质量检测 - 结果反馈” 的全流程自动化。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DevOps' /><meta property='article:published_time' content='2026-06-25T18:30:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T18:30:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267.png' />
+<meta name="twitter:title" content="SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测">
+<meta name="twitter:description" content="SonarQube 与 Jenkins 是 DevOps 流程中协作紧密的两款工具，前者专注代码质量检测，后者负责自动化构建与部署，二者结合可实现 “代码提交 - 自动构建 - 质量检测 - 结果反馈” 的全流程自动化。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#设置时区">设置时区</a></li>
+    <li><a href="#安装-java-17">安装 Java 17</a></li>
+    <li><a href="#安装-postgresql-数据库">安装 PostgreSQL 数据库</a></li>
+    <li><a href="#创建-sonarqube-数据库和用户">创建 SonarQube 数据库和用户</a></li>
+    <li><a href="#配置-postgresql-以允许连接">配置 PostgreSQL 以允许连接</a></li>
+    <li><a href="#下载-sonarqube-并-安装">下载 SonarQube 并 安装</a></li>
+    <li><a href="#修改内核参数">修改内核参数</a></li>
+    <li><a href="#编辑-es-参数">编辑 ES 参数</a></li>
+    <li><a href="#启动-sonarqube">启动 SonarQube</a></li>
+    <li><a href="#使用-systemd-启动">使用 systemd 启动</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-sonarqube-scanner-插件">安装 SonarQube Scanner 插件</a></li>
+    <li><a href="#创建-sonarqube-token">创建 SonarQube Token</a></li>
+    <li><a href="#jenkins-关联-sonarqube">Jenkins 关联 SonarQube</a></li>
+    <li><a href="#创建-sonarqube-连接凭证">创建 SonarQube 连接凭证</a></li>
+    <li><a href="#jenkins-使用-sonarqube">Jenkins 使用 SonarQube</a></li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/">
+            <img alt="Featured image of post SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测" height="295" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267.png" width="670">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4/" style="background-color: hsl(291, 60%, 84%); color: hsl(291, 60%, 15%);">
+                自动化运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/devops/" style="background-color: hsl(152, 60%, 84%); color: hsl(152, 60%, 15%);">
+                DevOps
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/">SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T18:30:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 7 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#设置时区">设置时区</a></li>
+    <li><a href="#安装-java-17">安装 Java 17</a></li>
+    <li><a href="#安装-postgresql-数据库">安装 PostgreSQL 数据库</a></li>
+    <li><a href="#创建-sonarqube-数据库和用户">创建 SonarQube 数据库和用户</a></li>
+    <li><a href="#配置-postgresql-以允许连接">配置 PostgreSQL 以允许连接</a></li>
+    <li><a href="#下载-sonarqube-并-安装">下载 SonarQube 并 安装</a></li>
+    <li><a href="#修改内核参数">修改内核参数</a></li>
+    <li><a href="#编辑-es-参数">编辑 ES 参数</a></li>
+    <li><a href="#启动-sonarqube">启动 SonarQube</a></li>
+    <li><a href="#使用-systemd-启动">使用 systemd 启动</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-sonarqube-scanner-插件">安装 SonarQube Scanner 插件</a></li>
+    <li><a href="#创建-sonarqube-token">创建 SonarQube Token</a></li>
+    <li><a href="#jenkins-关联-sonarqube">Jenkins 关联 SonarQube</a></li>
+    <li><a href="#创建-sonarqube-连接凭证">创建 SonarQube 连接凭证</a></li>
+    <li><a href="#jenkins-使用-sonarqube">Jenkins 使用 SonarQube</a></li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p>SonarQube 与 Jenkins 是 DevOps 流程中协作紧密的两款工具，前者专注代码质量检测，后者负责自动化构建与部署，二者结合可实现 “代码提交 - 自动构建 - 质量检测 - 结果反馈” 的全流程自动化。</p>
+<p><strong>SonarQube：代码质量的 “守门人”</strong></p>
+<p>SonarQube 是一款开源代码质量管理平台，核心作用是对代码进行多维度检测，提前发现潜在问题。</p>
+<ul>
+<li>检测维度覆盖广，包括代码漏洞、安全隐患、代码重复率、编码规范合规性、注释完整性等。</li>
+<li>支持 Java、Python、JavaScript 等 20+ 编程语言，可适配不同技术栈的项目。</li>
+<li>能生成可视化报告，清晰展示代码质量评分与问题详情，帮助开发人员定位并修复问题。</li>
+</ul>
+<p><strong>Jenkins：自动化流程的 “调度中心”</strong></p>
+<p>Jenkins 是主流的开源自动化服务器，核心作用是串联软件开发中的各个环节，实现流程自动化。</p>
+<ul>
+<li>支持通过 “流水线（Pipeline）” 定义自动化流程，例如代码拉取、编译、打包、测试、部署等步骤。</li>
+<li>拥有丰富的插件生态，其中 “SonarQube Scanner” 插件可直接对接 SonarQube，无需额外复杂配置。</li>
+<li>可触发定时构建或代码提交后自动构建，让代码质量检测融入日常开发流程，而非事后补救。</li>
+</ul>
+<p><strong>二者结合的核心价值</strong></p>
+<p>当 SonarQube 与 Jenkins 配合使用时，能形成 “自动化构建 + 即时质量检测” 的闭环，具体优势如下：</p>
+<ol>
+<li><strong>流程自动化</strong>：开发人员提交代码后，Jenkins 自动触发构建，同时调用 SonarQube 进行代码检测，无需人工干预。</li>
+<li><strong>问题早发现</strong>：代码质量问题在构建阶段就会被检测出来，避免问题流入后续测试或生产环节，降低修复成本。</li>
+<li><strong>标准统一化</strong>：团队可通过 SonarQube 制定统一的代码质量标准，由工具强制执行检测，确保所有代码符合规范。</li>
+</ol>
+
+    <blockquote>
+        <p>SonarQube 官网：<a class="link" href="https://www.sonarsource.com/products/sonarqube/downloads/"  target="_blank" rel="noopener"
+    >https://www.sonarsource.com/products/sonarqube/downloads/</a></p>
+
+    </blockquote>
+<h1 id="sonarqube-安装">SonarQube 安装
+</h1><p>SonarQube 的安装可通过多种方式实现，核心是部署其服务端并配置运行环境：首先需确保服务器满足 Java 环境（推荐 JDK 11 及以上），并根据需求选择数据库（如 PostgreSQL、MySQL 等）并初始化；随后从官网下载对应版本的 SonarQube 安装包，解压后修改配置文件（如数据库连接信息、端口等），接着通过脚本启动服务（Windows 用 <code>bin/windows-x86-64/StartSonar.bat</code>，Linux 用 <code>bin/linux-x86-64/sonar.sh start</code>）；启动成功后，访问默认地址（<a class="link" href="http://localhost:9000/"  target="_blank" rel="noopener"
+    >http://localhost:9000</a>），使用初始账号（admin/admin）登录，即可进入控制台配置项目、规则集等，若需扩展功能，还可在市场中安装对应插件（如多语言支持、安全检测插件等）。</p>
+<p><img class="gallery-image" data-flex-basis="699px" data-flex-grow="291" height="481" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762316720786-cbecba4c-c3dd-4da9-b079-e8ecec938e17.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762316720786-cbecba4c-c3dd-4da9-b079-e8ecec938e17_hu_b5fae1c2763ce545.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762316720786-cbecba4c-c3dd-4da9-b079-e8ecec938e17.png 1402w" width="1402"></p>
+<h2 id="设置时区">设置时区
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 设置时区</span>
+</span></span><span class="line"><span class="cl">timedatectl set-timezone Asia/Shanghai
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 ntpdate</span>
+</span></span><span class="line"><span class="cl">yum install -y ntpdate
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 写入定时任务，每小时同步一下时间</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;0 * * * * /usr/sbin/ntpdate ntp.aliyun.com &gt;/dev/null 2&gt;&amp;1&#34;</span> <span class="p">|</span> crontab -
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装-java-17">安装 Java 17
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 下载 Temurin 17（根据系统架构选择，此处为 x64）</span>
+</span></span><span class="line"><span class="cl">wget https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.11%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.11_9.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 解压到 /usr/local</span>
+</span></span><span class="line"><span class="cl">tar -zxf OpenJDK17U-jdk_x64_linux_hotspot_17.0.11_9.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">mv /usr/local/jdk-17.0.11+9 /usr/local/jdk17
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置环境变量</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export JAVA_HOME=/usr/local/jdk17&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export PATH=$JAVA_HOME/bin:$PATH&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> /etc/profile
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证 Java 版本</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出应包含 17.0.11 字样</span>
+</span></span><span class="line"><span class="cl">java -version
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 如果是云服务器，可以按照如下命令来安装 Java</span>
+</span></span><span class="line"><span class="cl">yum install java-17-openjdk java-17-openjdk-devel -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装-postgresql-数据库">安装 PostgreSQL 数据库
+</h2><p>CentOS 7 默认的 yum 仓库中的 PostgreSQL 版本太旧，我们需要添加官方的 PostgreSQL 仓库来安装新版本。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">rpm -Uvh https://mirrors.huaweicloud.com/postgresql/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sed -i <span class="s2">&#34;s@https://download.postgresql.org/pub@https://mirrors.huaweicloud.com/postgresql@g&#34;</span> /etc/yum.repos.d/pgdg-redhat-all.repo
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 清理 yum 缓存</span>
+</span></span><span class="line"><span class="cl">yum clean all
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 PostgreSQL 14 (一个稳定且被 SonarQube 支持的版本)</span>
+</span></span><span class="line"><span class="cl">yum install -y postgresql14-server postgresql14-contrib
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 初始化数据库</span>
+</span></span><span class="line"><span class="cl">/usr/pgsql-14/bin/postgresql-14-setup initdb
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动 PostgreSQL 服务并设置开机自启</span>
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> postgresql-14
+</span></span><span class="line"><span class="cl">systemctl start postgresql-14
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="创建-sonarqube-数据库和用户">创建 SonarQube 数据库和用户
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 切换到 postgres 用户</span>
+</span></span><span class="line"><span class="cl">su - postgres
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动 PostgreSQL 命令行</span>
+</span></span><span class="line"><span class="cl">psql
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 在 psql 命令行中执行以下 SQL 语句：</span>
+</span></span><span class="line"><span class="cl">CREATE USER sonarqube WITH PASSWORD <span class="s1">&#39;Chen123456!&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">CREATE DATABASE sonarqube OWNER sonarqube<span class="p">;</span>
+</span></span><span class="line"><span class="cl">GRANT ALL PRIVILEGES ON DATABASE sonarqube TO sonarqube<span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 退出 psql</span>
+</span></span><span class="line"><span class="cl"><span class="se">\q</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 退出 postgres 用户</span>
+</span></span><span class="line"><span class="cl"><span class="nb">exit</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="配置-postgresql-以允许连接">配置 PostgreSQL 以允许连接
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vi /var/lib/pgsql/14/data/pg_hba.conf
+</span></span><span class="line"><span class="cl"><span class="c1"># 允许 192.168.1.0/24 网段的所有主机连接</span>
+</span></span><span class="line"><span class="cl">host    sonarqube     sonarqube     192.168.20.0/24          scram-sha-256
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vi /var/lib/pgsql/14/data/postgresql.conf
+</span></span><span class="line"><span class="cl"><span class="c1"># 取消注释并修改为 &#39;*&#39; 或 &#39;0.0.0.0&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">listen_addresses</span> <span class="o">=</span> <span class="s1">&#39;*&#39;</span>          <span class="c1"># 监听所有网络接口</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl restart postgresql-14
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 切换到 postgres 用户</span>
+</span></span><span class="line"><span class="cl">su - postgres
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动 PostgreSQL 命令行</span>
+</span></span><span class="line"><span class="cl">psql
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建具有远程访问权限的用户</span>
+</span></span><span class="line"><span class="cl">-- 创建专门用于远程连接的用户（如果尚未创建）
+</span></span><span class="line"><span class="cl">CREATE USER sonarqube_remote WITH PASSWORD <span class="s1">&#39;Chen123456!&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">-- 授予对 sonarqube 数据库的权限
+</span></span><span class="line"><span class="cl">GRANT CONNECT ON DATABASE sonarqube TO sonarqube_remote<span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">-- 连接到 sonarqube 数据库
+</span></span><span class="line"><span class="cl"><span class="se">\c</span> sonarqube
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">-- 授予使用 schema 的权限
+</span></span><span class="line"><span class="cl">GRANT USAGE ON SCHEMA public TO sonarqube_remote<span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">-- 授予对现有表和未来表的权限
+</span></span><span class="line"><span class="cl">GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO sonarqube_remote<span class="p">;</span>
+</span></span><span class="line"><span class="cl">GRANT SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO sonarqube_remote<span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">-- 设置默认权限，确保新创建的对象也有权限
+</span></span><span class="line"><span class="cl">ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO sonarqube_remote<span class="p">;</span>
+</span></span><span class="line"><span class="cl">ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, UPDATE ON SEQUENCES TO sonarqube_remote<span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">-- 查看用户权限
+</span></span><span class="line"><span class="cl"><span class="se">\d</span>u sonarqube_remote
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="下载-sonarqube-并-安装">下载 SonarQube 并 安装
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-25.10.0.114319.zip
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">unzip sonarqube-25.10.0.114319.zip
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">useradd -s /sbin/nologin -r sonarqube
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mv sonarqube-25.10.0.114319 /usr/local/sonarqube
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vim /usr/local/sonarqube/conf/sonar.properties
+</span></span><span class="line"><span class="cl">sonar.jdbc.username<span class="o">=</span>sonarqube
+</span></span><span class="line"><span class="cl">sonar.jdbc.password<span class="o">=</span>Chen123456!
+</span></span><span class="line"><span class="cl">sonar.jdbc.url<span class="o">=</span>jdbc:postgresql://192.168.20.62/sonarqube?currentSchema<span class="o">=</span>public
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="修改内核参数">修改内核参数
+</h2>
+    <blockquote>
+        <p>因为 SonaQube 是使用 ES 来作为检索数据库。</p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 设置虚拟虚拟内存配置（永久生效）</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;vm.max_map_count=662144&#39;</span> <span class="p">|</span> tee -a /etc/sysctl.conf &gt; /dev/null
+</span></span><span class="line"><span class="cl"><span class="c1"># 立即生效</span>
+</span></span><span class="line"><span class="cl">sysctl -p
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置文件描述符、进程数及内存限制（针对 sonarqube 用户）</span>
+</span></span><span class="line"><span class="cl">tee -a /etc/security/limits.conf &gt; /dev/null <span class="s">&lt;&lt; EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">sonarqube  soft  nofile  65536
+</span></span></span><span class="line"><span class="cl"><span class="s">sonarqube  hard  nofile  65536
+</span></span></span><span class="line"><span class="cl"><span class="s">sonarqube  soft  nproc   4096
+</span></span></span><span class="line"><span class="cl"><span class="s">sonarqube  hard  nproc   4096
+</span></span></span><span class="line"><span class="cl"><span class="s">sonarqube  soft  memlock unlimited
+</span></span></span><span class="line"><span class="cl"><span class="s">sonarqube  hard  memlock unlimited
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="编辑-es-参数">编辑 ES 参数
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ vim /usr/local/sonarqube/elasticsearch/config/jvm.options
+</span></span><span class="line"><span class="cl"><span class="c1"># 编辑 Elasticsearch 的 JVM 配置文件，设置堆内存为 6GB</span>
+</span></span><span class="line"><span class="cl">-Xms6g
+</span></span><span class="line"><span class="cl">-Xms6g
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="启动-sonarqube">启动 SonarQube
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chown -R sonarqube.sonarqube /usr/local/sonarqube
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo -u sonarqube /usr/local/sonarqube/bin/linux-x86-64/sonar.sh start
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>默认的用户名密码：<code>admin/admin</code></p>
+<h2 id="使用-systemd-启动">使用 systemd 启动
+</h2><p><code>vi /etc/systemd/system/sonarqube.service</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">SonarQube service</span>
+</span></span><span class="line"><span class="cl"><span class="na">After</span><span class="o">=</span><span class="s">syslog.target network.target postgresql-14.service</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">simple</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">sonarqube</span>
+</span></span><span class="line"><span class="cl"><span class="na">Group</span><span class="o">=</span><span class="s">sonarqube</span>
+</span></span><span class="line"><span class="cl"><span class="na">PermissionsStartOnly</span><span class="o">=</span><span class="s">true</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/sonarqube/bin/linux-x86-64/sonar.sh start</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStop</span><span class="o">=</span><span class="s">/usr/local/sonarqube/bin/linux-x86-64/sonar.sh stop</span>
+</span></span><span class="line"><span class="cl"><span class="na">StandardOutput</span><span class="o">=</span><span class="s">syslog</span>
+</span></span><span class="line"><span class="cl"><span class="na">LimitNOFILE</span><span class="o">=</span><span class="s">65536</span>
+</span></span><span class="line"><span class="cl"><span class="na">LimitNPROC</span><span class="o">=</span><span class="s">4096</span>
+</span></span><span class="line"><span class="cl"><span class="na">TimeoutStartSec</span><span class="o">=</span><span class="s">5</span>
+</span></span><span class="line"><span class="cl"><span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="sonarqube-汉化">SonarQube 汉化
+</h1><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://github.com/xuhuisheng/sonar-l10n-zh/releases/download/sonar-l10n-zh-plugin-25.10/sonar-l10n-zh-plugin-25.10.jar
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mv /root/sonar-l10n-zh-plugin-25.10.jar /usr/local/sonarqube/extensions/plugins/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="jenkins-使用-sonarqube-进行代码扫描">Jenkins 使用 SonarQube 进行代码扫描
+</h1><p>Jenkins 使用 SonarQube 进行代码扫描，核心是通过「Jenkins 触发自动化流程 + SonarQube 执行质量检测」的组合，将代码质量检查嵌入到持续集成（CI）环节中：首先在 Jenkins 中安装「SonarQube Scanner」插件并配置 SonarQube 服务器地址、认证令牌等连接信息，然后在 Jenkins 流水线（Pipeline）或自由风格项目中，添加 SonarQube 扫描步骤（如调用 <code>sonar-scanner</code> 命令并指定项目配置文件 <code>sonar-project.properties</code>），当开发人员提交代码触发 Jenkins 构建时，Jenkins 会先完成代码拉取、编译等基础操作，再自动调用 SonarQube 对代码进行漏洞、重复率、编码规范等多维度检测，扫描完成后，结果会同步回 SonarQube 平台生成可视化报告，同时 Jenkins 会根据预设规则（如质量门禁）判断是否允许构建继续推进，从而实现「代码提交即检测，问题早发现早修复」的自动化质量管控。</p>
+<h2 id="安装-sonarqube-scanner-插件">安装 SonarQube Scanner 插件
+</h2><p><img class="gallery-image" data-flex-basis="969px" data-flex-grow="404" height="449" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320738953-1d90dc86-548e-46b2-a809-95baa160ba18.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320738953-1d90dc86-548e-46b2-a809-95baa160ba18_hu_c8cf16e20fd8afdc.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320738953-1d90dc86-548e-46b2-a809-95baa160ba18_hu_6e2e98c89e540cb1.png 1600w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320738953-1d90dc86-548e-46b2-a809-95baa160ba18.png 1814w" width="1814"></p>
+<h2 id="创建-sonarqube-token">创建 SonarQube Token
+</h2>
+    <blockquote>
+        <p>在 SonarQube 上创建。</p>
+
+    </blockquote>
+<p><img class="gallery-image" data-flex-basis="362px" data-flex-grow="150" height="322" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320858648-0a5f253c-3f6c-4fe5-8488-313d0475442f.png" width="486"></p>
+<p><img class="gallery-image" data-flex-basis="449px" data-flex-grow="187" height="356" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320867800-b63a215e-dc9c-4fd9-b753-5ee42acb83c0.png" width="667"></p>
+<p><img class="gallery-image" data-flex-basis="931px" data-flex-grow="388" height="311" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320908939-51aa2bc2-b9a3-4302-9265-b1abcce4e444.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320908939-51aa2bc2-b9a3-4302-9265-b1abcce4e444_hu_a182a17d1aef9789.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320908939-51aa2bc2-b9a3-4302-9265-b1abcce4e444.png 1207w" width="1207"></p>
+<p><img class="gallery-image" data-flex-basis="1037px" data-flex-grow="432" height="427" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320939137-c233268e-a37c-441e-8a56-651cb1d8900b.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320939137-c233268e-a37c-441e-8a56-651cb1d8900b_hu_b1b133b795ab6bae.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320939137-c233268e-a37c-441e-8a56-651cb1d8900b_hu_c7e512708850e91a.png 1600w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762320939137-c233268e-a37c-441e-8a56-651cb1d8900b.png 1846w" width="1846"></p>
+<h2 id="jenkins-关联-sonarqube">Jenkins 关联 SonarQube
+</h2><p><img class="gallery-image" data-flex-basis="1257px" data-flex-grow="523" height="340" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321094820-1a669e51-0570-400b-b002-31d0cdd02751.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321094820-1a669e51-0570-400b-b002-31d0cdd02751_hu_3dff737cea9ef36d.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321094820-1a669e51-0570-400b-b002-31d0cdd02751_hu_d025ed34a2ca80cc.png 1600w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321094820-1a669e51-0570-400b-b002-31d0cdd02751.png 1781w" width="1781"></p>
+<p><img class="gallery-image" data-flex-basis="557px" data-flex-grow="232" height="714" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321150714-970db2ef-694d-4d42-a66b-5afae5f41f56.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321150714-970db2ef-694d-4d42-a66b-5afae5f41f56_hu_2d104ad436a001b7.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321150714-970db2ef-694d-4d42-a66b-5afae5f41f56_hu_83e89e20857e3434.png 1600w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321150714-970db2ef-694d-4d42-a66b-5afae5f41f56.png 1660w" width="1660"></p>
+<p>保存。</p>
+<h2 id="创建-sonarqube-连接凭证">创建 SonarQube 连接凭证
+</h2><p><img class="gallery-image" data-flex-basis="1042px" data-flex-grow="434" height="417" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321288978-9038248b-3226-45e7-ad61-37b18104ca72.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321288978-9038248b-3226-45e7-ad61-37b18104ca72_hu_d8078522f653941b.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321288978-9038248b-3226-45e7-ad61-37b18104ca72_hu_2992354610777183.png 1600w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321288978-9038248b-3226-45e7-ad61-37b18104ca72.png 1812w" width="1812"></p>
+<p><img class="gallery-image" data-flex-basis="446px" data-flex-grow="185" height="700" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321364515-1a014447-23b3-4f53-9043-d55ccaa829f0.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321364515-1a014447-23b3-4f53-9043-d55ccaa829f0_hu_f61452174c25939b.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321364515-1a014447-23b3-4f53-9043-d55ccaa829f0.png 1301w" width="1301"></p>
+<p><img class="gallery-image" data-flex-basis="486px" data-flex-grow="202" height="877" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321443609-17b6c71e-7adb-4154-8891-d4488f507e78.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321443609-17b6c71e-7adb-4154-8891-d4488f507e78_hu_b45f31b0264b47c2.png 800w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321443609-17b6c71e-7adb-4154-8891-d4488f507e78_hu_199961e09e51385.png 1600w, /p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/1762321443609-17b6c71e-7adb-4154-8891-d4488f507e78.png 1776w" width="1776"></p>
+<h2 id="jenkins-使用-sonarqube">Jenkins 使用 SonarQube
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sonar.projectName<span class="o">=</span><span class="si">${</span><span class="nv">JOB_NAME</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">sonar.projectKey<span class="o">=</span><span class="si">${</span><span class="nv">JOB_NAME</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">sonar.projectVersion<span class="o">=</span><span class="si">${</span><span class="nv">BUILD_NUMBER</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">sonar.sources<span class="o">=</span>./
+</span></span><span class="line"><span class="cl">sonar.java.binaries<span class="o">=</span>target/classes
+</span></span><span class="line"><span class="cl">sonar.exclusions<span class="o">=</span>src/test/**/*,src/main/resources/**/*.xml,target/**/*, **/node_modules/**/*
+</span></span><span class="line"><span class="cl">sonar.language<span class="o">=</span>java
+</span></span><span class="line"><span class="cl">sonar.sourceEncoding<span class="o">=</span>UTF-8
+</span></span><span class="line"><span class="cl">sonar.issuesReport.publish<span class="o">=</span><span class="nb">true</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>具体的解释：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. 项目基础标识配置（SonarQube 核心必填项）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 项目在 SonarQube 中显示的名称（建议与 Jenkins 任务名一致，便于关联）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ${JOB_NAME} 是 Jenkins 内置变量，自动获取当前任务名称</span>
+</span></span><span class="line"><span class="cl">sonar.projectName<span class="o">=</span><span class="si">${</span><span class="nv">JOB_NAME</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 项目在 SonarQube 中的唯一标识（全局不可重复，用于区分不同项目）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 建议与项目名保持一致，避免混淆</span>
+</span></span><span class="line"><span class="cl">sonar.projectKey<span class="o">=</span><span class="si">${</span><span class="nv">JOB_NAME</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 项目版本号（可关联 Jenkins 构建号，便于追溯不同版本的代码质量）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ${BUILD_NUMBER} 是 Jenkins 内置变量，自动获取当前构建编号</span>
+</span></span><span class="line"><span class="cl">sonar.projectVersion<span class="o">=</span><span class="si">${</span><span class="nv">BUILD_NUMBER</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 源代码配置（指定需要扫描的代码范围）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 源代码根目录（相对路径，基于 Jenkins 拉取代码后的工作目录）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ./ 表示当前目录（即代码仓库根目录），SonarQube 会递归扫描子目录</span>
+</span></span><span class="line"><span class="cl">sonar.sources<span class="o">=</span>./
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 排除不需要扫描的目录/文件（可选，减少扫描时间并避免无关文件干扰）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 常见场景：排除测试代码、第三方依赖、构建产物、配置文件等</span>
+</span></span><span class="line"><span class="cl">sonar.exclusions<span class="o">=</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  src/test/**/*, <span class="se">\ </span>         <span class="c1"># 排除所有测试代码</span>
+</span></span><span class="line"><span class="cl">  src/main/resources/**/*.xml, <span class="se">\ </span> <span class="c1"># 排除 XML 配置文件</span>
+</span></span><span class="line"><span class="cl">  target/**/*, <span class="se">\ </span>           <span class="c1"># 排除 Maven/Gradle 构建产物</span>
+</span></span><span class="line"><span class="cl">  **/node_modules/**/*     <span class="c1"># 若包含前端代码，排除 npm 依赖</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 语言特定配置（以 Java 为例，其他语言需调整）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 项目主语言（SonarQube 会自动检测，显式指定可提高准确性）</span>
+</span></span><span class="line"><span class="cl">sonar.language<span class="o">=</span>java
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Java 编译后的 class 文件目录（必填，否则无法分析字节码级问题）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Maven 项目默认输出目录为 target/classes，Gradle 为 build/classes</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 非必须</span>
+</span></span><span class="line"><span class="cl">sonar.java.binaries<span class="o">=</span>target/classes
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Java 测试代码编译后的 class 文件目录（可选，若需扫描测试代码质量）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 非必须</span>
+</span></span><span class="line"><span class="cl">sonar.java.test.binaries<span class="o">=</span>target/test-classes
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Java 依赖库目录（可选，用于解析第三方库引用，避免误报未定义类）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 非必须</span>
+</span></span><span class="line"><span class="cl">sonar.java.libraries<span class="o">=</span>target/lib/*.jar
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 测试代码配置（可选，若需分析测试覆盖率、测试用例等）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 测试代码目录（与 sonar.sources 区分，便于单独统计测试相关指标）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 非必须</span>
+</span></span><span class="line"><span class="cl">sonar.test<span class="o">=</span>src/test/java
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 测试覆盖率报告路径（需配合 JaCoCo 等工具生成，SonarQube 会读取并展示）</span>
+</span></span><span class="line"><span class="cl">sonar.coverage.jacoco.xmlReportPaths<span class="o">=</span>target/site/jacoco/jacoco.xml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 5. 高级配置（根据需求选择性添加）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ==============================================</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 编码格式（确保 SonarQube 正确解析中文等特殊字符，避免乱码导致扫描失败）</span>
+</span></span><span class="line"><span class="cl">sonar.sourceEncoding<span class="o">=</span>UTF-8
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 强制指定 SonarQube 服务器地址（可选，若 Jenkins 全局配置未设置则需显式指定）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># sonar.host.url=http://sonarqube-server:9000</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 扫描结果是否发布到 SonarQube 服务器（默认 true，调试时可设为 false 仅本地分析）</span>
+</span></span><span class="line"><span class="cl">sonar.issuesReport.publish<span class="o">=</span><span class="nb">true</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/devops/">DevOps</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端" height="150" loading="lazy" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_cd2617af23e8a79c.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_cd2617af23e8a79c.png 1x, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_1ca24c247c8c23b5.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11121480 0%, #fefefdC0 100%);">
+            <h2 class="article-title">Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins入门与快速部署" height="150" loading="lazy" src="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_3973d9ee80ef8fa5.png" srcset="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_3973d9ee80ef8fa5.png 1x, /p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_9ac2908d21b70e9c.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11b6c480 0%, #fafcfbC0 100%);">
+            <h2 class="article-title">Jenkins入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Ansible 自动化运维工具完整指南：从入门到进阶" height="150" loading="lazy" src="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_e2a1bee1fe3585f8.png" srcset="/p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_e2a1bee1fe3585f8.png 1x, /p/ansible-%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4%E5%B7%A5%E5%85%B7%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1759327613630-2c05aa1c-30ba-4d44-83f5-df8d6ef498a0_hu_de650e022964904a.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #34343480 0%, #fcfcfcC0 100%);">
+            <h2 class="article-title">Ansible 自动化运维工具完整指南：从入门到进阶</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8s 高级调度策略：标签、亲和性、污点与容忍度" height="150" loading="lazy" src="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_5f4a284001b09311.png" srcset="/p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_5f4a284001b09311.png 1x, /p/k8s-%E9%AB%98%E7%BA%A7%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%E6%A0%87%E7%AD%BE%E4%BA%B2%E5%92%8C%E6%80%A7%E6%B1%A1%E7%82%B9%E4%B8%8E%E5%AE%B9%E5%BF%8D%E5%BA%A6/k8s_logo_hu_38900f2844a9c2a7.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #336ee580 0%, #fefeffC0 100%);">
+            <h2 class="article-title">K8s 高级调度策略：标签、亲和性、污点与容忍度</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8S入门与快速部署" height="150" loading="lazy" src="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png" srcset="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png 1x, /p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_38900f2844a9c2a7.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #336ee580 0%, #fefeffC0 100%);">
+            <h2 class="article-title">K8S入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
