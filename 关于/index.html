@@ -485,10 +485,10 @@ function getParticlesConfig(theme) {
     return {
         "particles": {
             "number": {
-                "value": 80,
+                "value": 25,
                 "density": {
                     "enable": true,
-                    "value_area": 700
+                    "value_area": 1200
                 }
             },
             "color": {
@@ -522,7 +522,7 @@ function getParticlesConfig(theme) {
             },
             "line_linked": {
                 "enable": true,
-                "distance": 200,
+                "distance": 280,
                 "color": isDark ? "#9e9e9e" : "#ffab40",
                 "opacity": isDark ? 0.15 : 0.25,
                 "width": 1
@@ -536,9 +536,7 @@ function getParticlesConfig(theme) {
                 "out_mode": "bounce",
                 "bounce": false,
                 "attract": {
-                    "enable": true,
-                    "rotateX": 600,
-                    "rotateY": 1200
+                    "enable": false
                 }
             }
         },
@@ -550,8 +548,7 @@ function getParticlesConfig(theme) {
                     "mode": "grab"
                 },
                 "onclick": {
-                    "enable": true,
-                    "mode": "repulse"
+                    "enable": false
                 },
                 "resize": true
             },
@@ -563,6 +560,9 @@ function getParticlesConfig(theme) {
                 "repulse": {
                     "distance": 200,
                     "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
                 }
             }
         },
