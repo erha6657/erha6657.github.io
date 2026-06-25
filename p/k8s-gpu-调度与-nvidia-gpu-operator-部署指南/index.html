@@ -1,0 +1,3252 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="1. Kubernetes GPU 调度概述 1.1 为什么 K8s 原生不支持 GPU Kubernetes 设计之初主要面向 CPU 和内存资源，GPU 属于一种异构资源（Extended Resource）。\n原生 K8s 的局限：\n无法原生感知 GPU 的存在 无法自动获取并调度 GPU 数量和型号 无法自动安装底层 GPU 驱动 无法监控 GPU 运行健康状态 解决方案：通过 Device Plugin（设备插件） 机制扩展 K8s 的 GPU 能力。\n">
+<title>K8S GPU 调度与 NVIDIA GPU Operator 部署指南</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="K8S GPU 调度与 NVIDIA GPU Operator 部署指南">
+<meta property='og:description' content="1. Kubernetes GPU 调度概述 1.1 为什么 K8s 原生不支持 GPU Kubernetes 设计之初主要面向 CPU 和内存资源，GPU 属于一种异构资源（Extended Resource）。\n原生 K8s 的局限：\n无法原生感知 GPU 的存在 无法自动获取并调度 GPU 数量和型号 无法自动安装底层 GPU 驱动 无法监控 GPU 运行健康状态 解决方案：通过 Device Plugin（设备插件） 机制扩展 K8s 的 GPU 能力。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='K8S' /><meta property='article:tag' content='GPU' /><meta property='article:published_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='article:modified_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork.png' />
+<meta name="twitter:title" content="K8S GPU 调度与 NVIDIA GPU Operator 部署指南">
+<meta name="twitter:description" content="1. Kubernetes GPU 调度概述 1.1 为什么 K8s 原生不支持 GPU Kubernetes 设计之初主要面向 CPU 和内存资源，GPU 属于一种异构资源（Extended Resource）。\n原生 K8s 的局限：\n无法原生感知 GPU 的存在 无法自动获取并调度 GPU 数量和型号 无法自动安装底层 GPU 驱动 无法监控 GPU 运行健康状态 解决方案：通过 Device Plugin（设备插件） 机制扩展 K8s 的 GPU 能力。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#1-kubernetes-gpu-调度概述">1. Kubernetes GPU 调度概述</a>
+      <ol>
+        <li><a href="#11-为什么-k8s-原生不支持-gpu">1.1 为什么 K8s 原生不支持 GPU</a></li>
+        <li><a href="#12-device-plugin-机制">1.2 Device Plugin 机制</a></li>
+        <li><a href="#13-kubernetes-130-gpu-相关特性">1.3 Kubernetes 1.30 GPU 相关特性</a></li>
+        <li><a href="#14-gpu-资源在-k8s-中的表示">1.4 GPU 资源在 K8s 中的表示</a></li>
+      </ol>
+    </li>
+    <li><a href="#2-nvidia-gpu-operator-介绍">2. NVIDIA GPU Operator 介绍</a>
+      <ol>
+        <li><a href="#21-什么是-gpu-operator">2.1 什么是 GPU Operator</a></li>
+        <li><a href="#22-gpu-operator-核心组件">2.2 GPU Operator 核心组件</a></li>
+      </ol>
+    </li>
+    <li><a href="#3-gpu-operator-安装">3. GPU Operator 安装</a>
+      <ol>
+        <li><a href="#31-安装前准备">3.1 安装前准备</a></li>
+        <li><a href="#32-添加-helm-仓库">3.2 添加 Helm 仓库</a></li>
+        <li><a href="#33-安装-gpu-operator">3.3 安装 GPU Operator</a></li>
+        <li><a href="#34-验证安装">3.4 验证安装</a></li>
+        <li><a href="#35-查看安装状态">3.5 查看安装状态</a></li>
+      </ol>
+    </li>
+    <li><a href="#基础调度小结">基础调度小结</a>
+      <ol>
+        <li><a href="#基础调度要点回顾">基础调度要点回顾</a></li>
+        <li><a href="#思考题">思考题</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#4-gpu-节点配置">4. GPU 节点配置</a>
+      <ol>
+        <li><a href="#41-节点标签管理">4.1 节点标签管理</a></li>
+        <li><a href="#42-使用节点选择器与调度配置">4.2 使用节点选择器与调度配置</a></li>
+      </ol>
+    </li>
+    <li><a href="#5-gpu-资源调度">5. GPU 资源调度</a>
+      <ol>
+        <li><a href="#51-请求-gpu-资源">5.1 请求 GPU 资源</a></li>
+        <li><a href="#52-多-gpu-请求">5.2 多 GPU 请求</a></li>
+        <li><a href="#53-gpu-共享调度策略">5.3 GPU 共享调度策略</a></li>
+      </ol>
+    </li>
+    <li><a href="#6-mig-多实例-gpu">6. MIG 多实例 GPU</a>
+      <ol>
+        <li><a href="#61-mig-概念">6.1 MIG 概念</a></li>
+        <li><a href="#62-mig-配置方式">6.2 MIG 配置方式</a></li>
+        <li><a href="#63-声明和请求-mig-资源">6.3 声明和请求 MIG 资源</a></li>
+      </ol>
+    </li>
+    <li><a href="#7-gpu-调度故障排查">7. GPU 调度故障排查</a>
+      <ol>
+        <li><a href="#71-常见异常及排查方案">7.1 常见异常及排查方案</a></li>
+        <li><a href="#72-排查命令速记">7.2 排查命令速记</a></li>
+        <li><a href="#73-故障诊断简易流转图">7.3 故障诊断简易流转图</a></li>
+      </ol>
+    </li>
+    <li><a href="#实操练习">实操练习</a>
+      <ol>
+        <li><a href="#验证-gpu-operator-整体健康状态">验证 GPU Operator 整体健康状态</a></li>
+        <li><a href="#gpu-常规应用部署">GPU 常规应用部署</a></li>
+        <li><a href="#配合亲和性机制精准部署">配合亲和性机制精准部署</a></li>
+        <li><a href="#超量请求压力排查">超量请求压力排查</a></li>
+      </ol>
+    </li>
+    <li><a href="#总结">总结</a>
+      <ol>
+        <li><a href="#常用命令速查">常用命令速查</a></li>
+        <li><a href="#关键配置速查">关键配置速查</a></li>
+      </ol>
+    </li>
+    <li><a href="#常见问题-faq">常见问题 FAQ</a>
+      <ol>
+        <li><a href="#q1-gpu-operator-初始化失败该如何着手定位">Q1: GPU Operator 初始化失败该如何着手定位？</a></li>
+        <li><a href="#q2-节点已经部署完成为什么没有汇报可支配的-gpu-资源">Q2: 节点已经部署完成，为什么没有汇报可支配的 GPU 资源？</a></li>
+        <li><a href="#q3-生产环境下如何平滑升级-gpu-显卡驱动版本">Q3: 生产环境下如何平滑升级 GPU 显卡驱动版本？</a></li>
+        <li><a href="#q4-异构共享技术中mig-与时间分片time-slicing该如何选择">Q4: 异构共享技术中，MIG 与时间分片（Time Slicing）该如何选择？</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">
+            <img alt="Featured image of post K8S GPU 调度与 NVIDIA GPU Operator 部署指南" height="478" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork.png" width="544">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/gpu/" style="background-color: hsl(341, 60%, 84%); color: hsl(341, 60%, 15%);">
+                GPU
+            </a>
+        
+            
+            
+            
+            <a href="/categories/k8s/" style="background-color: hsl(311, 60%, 84%); color: hsl(311, 60%, 15%);">
+                K8S
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/" style="background-color: hsl(64, 60%, 84%); color: hsl(64, 60%, 15%);">
+                容器化部署
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">K8S GPU 调度与 NVIDIA GPU Operator 部署指南</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-24T21:14:22&#43;08:00'>2026年6月24日星期三</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 13 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#1-kubernetes-gpu-调度概述">1. Kubernetes GPU 调度概述</a>
+      <ol>
+        <li><a href="#11-为什么-k8s-原生不支持-gpu">1.1 为什么 K8s 原生不支持 GPU</a></li>
+        <li><a href="#12-device-plugin-机制">1.2 Device Plugin 机制</a></li>
+        <li><a href="#13-kubernetes-130-gpu-相关特性">1.3 Kubernetes 1.30 GPU 相关特性</a></li>
+        <li><a href="#14-gpu-资源在-k8s-中的表示">1.4 GPU 资源在 K8s 中的表示</a></li>
+      </ol>
+    </li>
+    <li><a href="#2-nvidia-gpu-operator-介绍">2. NVIDIA GPU Operator 介绍</a>
+      <ol>
+        <li><a href="#21-什么是-gpu-operator">2.1 什么是 GPU Operator</a></li>
+        <li><a href="#22-gpu-operator-核心组件">2.2 GPU Operator 核心组件</a></li>
+      </ol>
+    </li>
+    <li><a href="#3-gpu-operator-安装">3. GPU Operator 安装</a>
+      <ol>
+        <li><a href="#31-安装前准备">3.1 安装前准备</a></li>
+        <li><a href="#32-添加-helm-仓库">3.2 添加 Helm 仓库</a></li>
+        <li><a href="#33-安装-gpu-operator">3.3 安装 GPU Operator</a></li>
+        <li><a href="#34-验证安装">3.4 验证安装</a></li>
+        <li><a href="#35-查看安装状态">3.5 查看安装状态</a></li>
+      </ol>
+    </li>
+    <li><a href="#基础调度小结">基础调度小结</a>
+      <ol>
+        <li><a href="#基础调度要点回顾">基础调度要点回顾</a></li>
+        <li><a href="#思考题">思考题</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#4-gpu-节点配置">4. GPU 节点配置</a>
+      <ol>
+        <li><a href="#41-节点标签管理">4.1 节点标签管理</a></li>
+        <li><a href="#42-使用节点选择器与调度配置">4.2 使用节点选择器与调度配置</a></li>
+      </ol>
+    </li>
+    <li><a href="#5-gpu-资源调度">5. GPU 资源调度</a>
+      <ol>
+        <li><a href="#51-请求-gpu-资源">5.1 请求 GPU 资源</a></li>
+        <li><a href="#52-多-gpu-请求">5.2 多 GPU 请求</a></li>
+        <li><a href="#53-gpu-共享调度策略">5.3 GPU 共享调度策略</a></li>
+      </ol>
+    </li>
+    <li><a href="#6-mig-多实例-gpu">6. MIG 多实例 GPU</a>
+      <ol>
+        <li><a href="#61-mig-概念">6.1 MIG 概念</a></li>
+        <li><a href="#62-mig-配置方式">6.2 MIG 配置方式</a></li>
+        <li><a href="#63-声明和请求-mig-资源">6.3 声明和请求 MIG 资源</a></li>
+      </ol>
+    </li>
+    <li><a href="#7-gpu-调度故障排查">7. GPU 调度故障排查</a>
+      <ol>
+        <li><a href="#71-常见异常及排查方案">7.1 常见异常及排查方案</a></li>
+        <li><a href="#72-排查命令速记">7.2 排查命令速记</a></li>
+        <li><a href="#73-故障诊断简易流转图">7.3 故障诊断简易流转图</a></li>
+      </ol>
+    </li>
+    <li><a href="#实操练习">实操练习</a>
+      <ol>
+        <li><a href="#验证-gpu-operator-整体健康状态">验证 GPU Operator 整体健康状态</a></li>
+        <li><a href="#gpu-常规应用部署">GPU 常规应用部署</a></li>
+        <li><a href="#配合亲和性机制精准部署">配合亲和性机制精准部署</a></li>
+        <li><a href="#超量请求压力排查">超量请求压力排查</a></li>
+      </ol>
+    </li>
+    <li><a href="#总结">总结</a>
+      <ol>
+        <li><a href="#常用命令速查">常用命令速查</a></li>
+        <li><a href="#关键配置速查">关键配置速查</a></li>
+      </ol>
+    </li>
+    <li><a href="#常见问题-faq">常见问题 FAQ</a>
+      <ol>
+        <li><a href="#q1-gpu-operator-初始化失败该如何着手定位">Q1: GPU Operator 初始化失败该如何着手定位？</a></li>
+        <li><a href="#q2-节点已经部署完成为什么没有汇报可支配的-gpu-资源">Q2: 节点已经部署完成，为什么没有汇报可支配的 GPU 资源？</a></li>
+        <li><a href="#q3-生产环境下如何平滑升级-gpu-显卡驱动版本">Q3: 生产环境下如何平滑升级 GPU 显卡驱动版本？</a></li>
+        <li><a href="#q4-异构共享技术中mig-与时间分片time-slicing该如何选择">Q4: 异构共享技术中，MIG 与时间分片（Time Slicing）该如何选择？</a></li>
+      </ol>
+    </li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="1-kubernetes-gpu-调度概述">1. Kubernetes GPU 调度概述
+</h2><h3 id="11-为什么-k8s-原生不支持-gpu">1.1 为什么 K8s 原生不支持 GPU
+</h3><p>Kubernetes 设计之初主要面向 CPU 和内存资源，GPU 属于一种<strong>异构资源</strong>（Extended Resource）。</p>
+<p><strong>原生 K8s 的局限</strong>：</p>
+<ul>
+<li>无法原生感知 GPU 的存在</li>
+<li>无法自动获取并调度 GPU 数量和型号</li>
+<li>无法自动安装底层 GPU 驱动</li>
+<li>无法监控 GPU 运行健康状态</li>
+</ul>
+<p><strong>解决方案</strong>：通过 <strong>Device Plugin（设备插件）</strong> 机制扩展 K8s 的 GPU 能力。</p>
+<hr>
+<h3 id="12-device-plugin-机制">1.2 Device Plugin 机制
+</h3><p>Device Plugin 是一个运行在每个 GPU 节点上的程序，负责：</p>
+<ol>
+<li>向 K8s 汇报节点上的 GPU 资源</li>
+<li>分配 GPU 给请求的 Pod</li>
+<li>监控 GPU 健康状态</li>
+</ol>
+<p><strong>工作流程</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plain" data-lang="plain"><span class="line"><span class="cl">1. 启动阶段
+</span></span><span class="line"><span class="cl">   Device Plugin → Kubelet → 注册GPU资源
+</span></span><span class="line"><span class="cl">   例如：nvidia.com/gpu: 4
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">2. 调度阶段
+</span></span><span class="line"><span class="cl">   用户提交Pod → Scheduler → 找到有GPU的节点
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">3. 分配阶段
+</span></span><span class="line"><span class="cl">   Kubelet → Device Plugin.Allocate() → 返回GPU设备信息
+</span></span><span class="line"><span class="cl">   Kubelet → 容器运行时 → 容器获得GPU访问权限
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="13-kubernetes-130-gpu-相关特性">1.3 Kubernetes 1.30 GPU 相关特性
+</h3><p>Kubernetes 1.30 对 GPU 调度做了一些重要改进：</p>
+<p><strong>主要特性</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>特性</th>
+					<th>说明</th>
+					<th>状态</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Device Plugin</td>
+					<td>设备插件机制</td>
+					<td>Stable</td>
+			</tr>
+			<tr>
+					<td>Dynamic Resource Allocation (DRA)</td>
+					<td>动态资源分配</td>
+					<td>Beta</td>
+			</tr>
+			<tr>
+					<td>GPU 分配改进</td>
+					<td>更好的GPU分配策略</td>
+					<td>Beta</td>
+			</tr>
+			<tr>
+					<td>CDI 支持</td>
+					<td>Container Device Interface</td>
+					<td>Beta</td>
+			</tr>
+	</tbody>
+</table></div>
+<p><strong>DRA（动态资源分配）</strong>
+DRA 是新一代的资源分配机制，相比 Device Plugin 更加灵活：</p>
+<ul>
+<li>支持更复杂的资源拓扑</li>
+<li>支持更细粒度的资源分区</li>
+<li>更好的资源隔离</li>
+</ul>
+
+    <blockquote>
+        <p><strong>💡 注意</strong>：目前 NVIDIA GPU Operator 仍以 Device Plugin 为主，DRA 是未来的长期演进方向。</p>
+
+    </blockquote>
+<hr>
+<h3 id="14-gpu-资源在-k8s-中的表示">1.4 GPU 资源在 K8s 中的表示
+</h3><p><strong>资源名称</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># NVIDIA GPU 资源名称</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="l">nvidia.com/gpu</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c"># 完整示例</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  </span><span class="c"># 请求1张GPU</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>查看节点 GPU 资源</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看节点可分配的GPU数量</span>
+</span></span><span class="line"><span class="cl">kubectl describe node &lt;node-name&gt; <span class="p">|</span> grep -A <span class="m">5</span> <span class="s2">&#34;Allocatable&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Allocatable:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   cpu: 32</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   memory: 128Gi</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   nvidia.com/gpu: 4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>查看所有节点的 GPU 资源</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 使用自定义列查看</span>
+</span></span><span class="line"><span class="cl">kubectl get nodes -o custom-columns<span class="o">=</span>NAME:.metadata.name,GPU:.status.capacity.nvidia<span class="se">\\</span>.com/gpu
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># NAME        GPU</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># gpu-node-1  4</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># gpu-node-2  4</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># cpu-node-1  &lt;none&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="2-nvidia-gpu-operator-介绍">2. NVIDIA GPU Operator 介绍
+</h2><h3 id="21-什么是-gpu-operator">2.1 什么是 GPU Operator
+</h3><p><strong>NVIDIA GPU Operator</strong> 是 NVIDIA 官方提供的 Kubernetes 自定义控制器（Operator），用于简化 GPU 集群的全生命周期管理。</p>
+<p><strong>为什么需要 GPU Operator？</strong>
+手动配置和管理 GPU 异构集群面临诸多挑战：</p>
+<ul>
+<li>需要在各节点上逐个安装、升级 NVIDIA 驱动</li>
+<li>需要手动部署和升级 Device Plugin</li>
+<li>需要繁琐地配置底层容器运行时（Containerd / Docker）</li>
+<li>难以高效地监控 GPU 指标</li>
+</ul>
+<p><strong>GPU Operator 解决的问题</strong>：</p>
+<ul>
+<li>✅ 自动安装和维护物理机 NVIDIA 驱动</li>
+<li>✅ 自动部署和配置 K8s Device Plugin</li>
+<li>✅ 自动配置容器运行时（NVIDIA Container Toolkit）</li>
+<li>✅ 自动部署 GPU 监控组件（DCGM Exporter）</li>
+<li>✅ 提供对 MIG（多实例 GPU）的声明式配置</li>
+</ul>
+<img src="./assets/Gemini_Generated_Image_o0hlmqo0hlmqo0hl.jpeg" title="null" crop="0,0,1,1" id="gixiJ" class="ne-image">
+<hr>
+<h3 id="22-gpu-operator-核心组件">2.2 GPU Operator 核心组件
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>组件</th>
+					<th>功能</th>
+					<th>说明</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>Driver Manager</strong></td>
+					<td>驱动管理</td>
+					<td>自动安装 NVIDIA 驱动到宿主机节点</td>
+			</tr>
+			<tr>
+					<td><strong>Device Plugin</strong></td>
+					<td>设备插件</td>
+					<td>向 K8s API 报告节点 GPU 资源</td>
+			</tr>
+			<tr>
+					<td><strong>Container Toolkit</strong></td>
+					<td>容器工具</td>
+					<td>允许容器沙箱内访问宿主机 GPU 设备</td>
+			</tr>
+			<tr>
+					<td><strong>DCGM Exporter</strong></td>
+					<td>监控导出</td>
+					<td>将 GPU 各维度运行指标导出到 Prometheus</td>
+			</tr>
+			<tr>
+					<td><strong>MIG Manager</strong></td>
+					<td>MIG管理</td>
+					<td>声明式配置和切分多实例 GPU</td>
+			</tr>
+			<tr>
+					<td><strong>NFD</strong></td>
+					<td>节点发现</td>
+					<td>自动检测并为 GPU 节点打上对应特征标记标签</td>
+			</tr>
+	</tbody>
+</table></div>
+<p><strong>组件运行方式</strong>
+所有组件均以 <strong>DaemonSet</strong> 或 <strong>Deployment</strong> 形式运行在 <code>gpu-operator</code> 命名空间中：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># GPU Operator 安装后的Pod</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># NAME                                                              READY</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># gpu-feature-discovery-xxxxx                                       1/1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># gpu-operator-xxxxx                                                1/1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-container-toolkit-daemonset-xxxxx                          1/1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-cuda-validator-xxxxx                                       0/1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-dcgm-exporter-xxxxx                                        1/1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-device-plugin-daemonset-xxxxx                              1/1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-driver-daemonset-xxxxx                                     1/1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-operator-validator-xxxxx                                   1/1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="3-gpu-operator-安装">3. GPU Operator 安装
+</h2><h3 id="31-安装前准备">3.1 安装前准备
+</h3><p><strong>环境要求</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>组件</th>
+					<th>要求</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Kubernetes</td>
+					<td>1.28+</td>
+			</tr>
+			<tr>
+					<td>Helm</td>
+					<td>3.0+</td>
+			</tr>
+			<tr>
+					<td>节点系统</td>
+					<td>AlmaLinux 9.6 / RHEL 9.x / Ubuntu 22.04</td>
+			</tr>
+			<tr>
+					<td>GPU</td>
+					<td>NVIDIA Tesla系列（A100/H100/L40等）</td>
+			</tr>
+	</tbody>
+</table></div>
+<p><strong>预检查</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 检查K8s版本</span>
+</span></span><span class="line"><span class="cl">kubectl version --short
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 检查Helm版本</span>
+</span></span><span class="line"><span class="cl">helm version
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 检查节点状态</span>
+</span></span><span class="line"><span class="cl">kubectl get nodes
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 检查GPU硬件（在GPU节点上执行）</span>
+</span></span><span class="line"><span class="cl">lspci <span class="p">|</span> grep -i nvidia
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 00:04.0 3D controller: NVIDIA Corporation GA100 ...</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="32-添加-helm-仓库">3.2 添加 Helm 仓库
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 添加NVIDIA Helm仓库</span>
+</span></span><span class="line"><span class="cl">helm repo add nvidia https://helm.ngc.nvidia.com/nvidia
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 更新仓库</span>
+</span></span><span class="line"><span class="cl">helm repo update
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 验证仓库</span>
+</span></span><span class="line"><span class="cl">helm search repo nvidia/gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># NAME                    CHART VERSION   APP VERSION</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia/gpu-operator     v24.3.0         v24.3.0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="33-安装-gpu-operator">3.3 安装 GPU Operator
+</h3><p><strong>创建命名空间</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 创建gpu-operator命名空间</span>
+</span></span><span class="line"><span class="cl">kubectl create namespace gpu-operator
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>基础安装（推荐）</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 使用默认配置安装</span>
+</span></span><span class="line"><span class="cl">helm install gpu-operator nvidia/gpu-operator <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --namespace gpu-operator <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --create-namespace <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --set driver.version<span class="o">=</span>560.35.03
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>生产环境安装（完整配置）</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 创建values文件</span>
+</span></span><span class="line"><span class="cl">cat &gt; gpu-operator-values.yaml <span class="s">&lt;&lt; &#39;EOF&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s"># 驱动配置
+</span></span></span><span class="line"><span class="cl"><span class="s">driver:
+</span></span></span><span class="line"><span class="cl"><span class="s">  version: &#34;550.90.07&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">  enabled: true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># Toolkit配置
+</span></span></span><span class="line"><span class="cl"><span class="s">toolkit:
+</span></span></span><span class="line"><span class="cl"><span class="s">  version: &#34;v1.15.0&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">  enabled: true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># Device Plugin配置
+</span></span></span><span class="line"><span class="cl"><span class="s">devicePlugin:
+</span></span></span><span class="line"><span class="cl"><span class="s">  enabled: true
+</span></span></span><span class="line"><span class="cl"><span class="s">  config:
+</span></span></span><span class="line"><span class="cl"><span class="s">    name: device-plugin-config
+</span></span></span><span class="line"><span class="cl"><span class="s">    default: default
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># DCGM Exporter配置
+</span></span></span><span class="line"><span class="cl"><span class="s">dcgmExporter:
+</span></span></span><span class="line"><span class="cl"><span class="s">  enabled: true
+</span></span></span><span class="line"><span class="cl"><span class="s">  serviceMonitor:
+</span></span></span><span class="line"><span class="cl"><span class="s">    enabled: true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># MIG配置（如需要）
+</span></span></span><span class="line"><span class="cl"><span class="s">mig:
+</span></span></span><span class="line"><span class="cl"><span class="s">  strategy: none
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 节点特性发现
+</span></span></span><span class="line"><span class="cl"><span class="s">gfd:
+</span></span></span><span class="line"><span class="cl"><span class="s">  enabled: true
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 验证器
+</span></span></span><span class="line"><span class="cl"><span class="s">validator:
+</span></span></span><span class="line"><span class="cl"><span class="s">  plugin:
+</span></span></span><span class="line"><span class="cl"><span class="s">    enabled: true
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 使用自定义配置安装</span>
+</span></span><span class="line"><span class="cl">helm install gpu-operator nvidia/gpu-operator <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --namespace gpu-operator <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -f gpu-operator-values.yaml
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="34-验证安装">3.4 验证安装
+</h3><p><strong>检查 Pod 状态</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看所有GPU Operator Pod</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 期望输出：所有Pod状态为Running</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># NAME                                          READY   STATUS</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># gpu-operator-xxxxx                            1/1     Running</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-driver-daemonset-xxxxx                 1/1     Running</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-device-plugin-xxxxx                    1/1     Running</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-container-toolkit-xxxxx                1/1     Running</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia-dcgm-exporter-xxxxx                    1/1     Running</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>检查 GPU 资源</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 等待1-2分钟后，检查节点GPU资源</span>
+</span></span><span class="line"><span class="cl">kubectl describe node &lt;gpu-node-name&gt; <span class="p">|</span> grep -A <span class="m">10</span> <span class="s2">&#34;Capacity&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Capacity:</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   cpu: 32</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   memory: 128Gi</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   nvidia.com/gpu: 4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>运行验证 Pod</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 创建测试Pod</span>
+</span></span><span class="line"><span class="cl">cat <span class="s">&lt;&lt; &#39;EOF&#39; | kubectl apply -f -
+</span></span></span><span class="line"><span class="cl"><span class="s">apiVersion: v1
+</span></span></span><span class="line"><span class="cl"><span class="s">kind: Pod
+</span></span></span><span class="line"><span class="cl"><span class="s">metadata:
+</span></span></span><span class="line"><span class="cl"><span class="s">  name: gpu-test
+</span></span></span><span class="line"><span class="cl"><span class="s">spec:
+</span></span></span><span class="line"><span class="cl"><span class="s">  restartPolicy: OnFailure
+</span></span></span><span class="line"><span class="cl"><span class="s">  containers:
+</span></span></span><span class="line"><span class="cl"><span class="s">  - name: cuda
+</span></span></span><span class="line"><span class="cl"><span class="s">    image: nvidia/cuda:13.0.0-base-ubi9
+</span></span></span><span class="line"><span class="cl"><span class="s">    command: [&#34;nvidia-smi&#34;]
+</span></span></span><span class="line"><span class="cl"><span class="s">    resources:
+</span></span></span><span class="line"><span class="cl"><span class="s">      limits:
+</span></span></span><span class="line"><span class="cl"><span class="s">        nvidia.com/gpu: 1
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看Pod日志</span>
+</span></span><span class="line"><span class="cl">kubectl logs gpu-test
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 期望输出：nvidia-smi的输出结果</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 清理测试Pod</span>
+</span></span><span class="line"><span class="cl">kubectl delete pod gpu-test
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="35-查看安装状态">3.5 查看安装状态
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看Helm安装状态</span>
+</span></span><span class="line"><span class="cl">helm list -n gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看GPU Operator日志</span>
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator -l <span class="nv">app</span><span class="o">=</span>gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看驱动安装日志</span>
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-driver
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看Device Plugin日志</span>
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-device-plugin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="基础调度小结">基础调度小结
+</h2><h3 id="基础调度要点回顾">基础调度要点回顾
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>序号</th>
+					<th>知识点</th>
+					<th>关键记忆</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>1</td>
+					<td>Device Plugin 机制</td>
+					<td>实现 GPU 资源上报与在 Pod 内的可用分配</td>
+			</tr>
+			<tr>
+					<td>2</td>
+					<td>GPU Operator 组件</td>
+					<td>包含 Driver、Device Plugin、Toolkit、DCGM 等</td>
+			</tr>
+			<tr>
+					<td>3</td>
+					<td>部署方式</td>
+					<td>使用 Helm 集中安装在 <code>gpu-operator</code> 命名空间中</td>
+			</tr>
+			<tr>
+					<td>4</td>
+					<td>验证机制</td>
+					<td>监控 Pod Running 状态并确认节点拥有 <code>nvidia.com/gpu</code> 资源</td>
+			</tr>
+	</tbody>
+</table></div>
+<h3 id="思考题">思考题
+</h3><ol>
+<li>Kubernetes 原生设计中缺失了对 GPU 的哪些感知？</li>
+<li>设备插件（Device Plugin）在 Pod 调度的整个生命周期中承担什么角色？</li>
+<li>使用 GPU Operator 时，宿主机还需要提前安装 NVIDIA 显卡驱动吗？</li>
+</ol>
+<hr>
+<h1 id="gpu-节点管理与高级调度">GPU 节点管理与高级调度
+</h1><hr>
+<h2 id="4-gpu-节点配置">4. GPU 节点配置
+</h2><h3 id="41-节点标签管理">4.1 节点标签管理
+</h3><p><strong>自动标签</strong>
+GPU Operator 启动后会自动发现节点硬件，并打上对应的规格标签：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看GPU节点标签</span>
+</span></span><span class="line"><span class="cl">kubectl describe node &lt;gpu-node-name&gt; <span class="p">|</span> grep -A <span class="m">20</span> <span class="s2">&#34;Labels&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 常见自动标签</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia.com/gpu.present=true</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia.com/gpu.count=4</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia.com/gpu.product=A100-SXM4-80GB</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia.com/gpu.memory=81920</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># feature.node.kubernetes.io/pci-10de.present=true (NVIDIA vendor ID)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>手动添加标签</strong>
+您也可以结合集群逻辑拓扑，手动添加自定义分类标签：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 为GPU节点添加自定义标签</span>
+</span></span><span class="line"><span class="cl">kubectl label node gpu-node-1 gpu-type<span class="o">=</span>a100
+</span></span><span class="line"><span class="cl">kubectl label node gpu-node-1 gpu-memory<span class="o">=</span>80g
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看标签</span>
+</span></span><span class="line"><span class="cl">kubectl get node gpu-node-1 --show-labels
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="42-使用节点选择器与调度配置">4.2 使用节点选择器与调度配置
+</h3><p><strong>NodeSelector（简单选择）</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># Pod使用NodeSelector调度到GPU节点</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">gpu-pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">nodeSelector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">nvidia.com/gpu.present</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;true&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">cuda</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia/cuda:13.0.0-base-ubi9</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;nvidia-smi&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>完整大模型模型下载及 vLLM 部署配置示例（包含 PVC、NodeSelector 与容忍度配置）</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">batch/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Job</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">modelscope-download-qwen2-7b</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">completions</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">parallelism</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">backoffLimit</span><span class="p">:</span><span class="w"> </span><span class="m">2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">restartPolicy</span><span class="p">:</span><span class="w"> </span><span class="l">Never</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">download-model</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/python:3.10-slim</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">volumeMounts</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">model-nfs-storage</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l">/models</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">MODELSCOPE_CACHE</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;/models&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;/bin/bash&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;-c&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">              pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple
+</span></span></span><span class="line"><span class="cl"><span class="sd">              pip3 install modelscope -q
+</span></span></span><span class="line"><span class="cl"><span class="sd">              modelscope download --model Qwen/Qwen2-7B-Instruct --local_dir /models/Qwen2-7B-Instruct</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">model-nfs-storage</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">persistentVolumeClaim</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">claimName</span><span class="p">:</span><span class="w"> </span><span class="l">model-qwen-pvc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">PersistentVolumeClaim</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">model-qwen-pvc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">accessModes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">ReadWriteMany</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">storageClassName</span><span class="p">:</span><span class="w"> </span><span class="l">nfs</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">requests</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">storage</span><span class="p">:</span><span class="w"> </span><span class="l">100Gi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Deployment</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-qwen2-7b-server</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-qwen-server</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-qwen-server</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">nodeSelector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">gpu</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">tolerations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia.com/gpu</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l">Exists</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l">NoSchedule</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">crpi-wl4a34mb2jmdfya1-vpc.cn-hangzhou.personal.cr.aliyuncs.com/chenyang-hellochina/vllm:v0.17.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">imagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l">IfNotPresent</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">8000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">api-8000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">env</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">PYTORCH_ALLOC_CONF</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l">expandable_segments:True</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">NCCL_P2P_DISABLE</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;0&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">NCCL_IB_DISABLE</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;1&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;2&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">requests</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;2&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">volumeMounts</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">model-nfs-pvc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l">/models</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">shm-volume</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l">/dev/shm</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;python&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;-m&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;vllm.entrypoints.openai.api_server&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">args</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- --<span class="l">model</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="l">/models/Qwen2-7B-Instruct</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- --<span class="l">host</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="m">0.0.0.0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- --<span class="l">port</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="s2">&#34;8000&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- --<span class="l">trust-remote-code</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- --<span class="l">tensor-parallel-size</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="s2">&#34;2&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- --<span class="l">gpu-memory-utilization</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="s2">&#34;0.75&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">model-nfs-pvc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">persistentVolumeClaim</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">claimName</span><span class="p">:</span><span class="w"> </span><span class="l">model-qwen-pvc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">shm-volume</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">emptyDir</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">medium</span><span class="p">:</span><span class="w"> </span><span class="l">Memory</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">sizeLimit</span><span class="p">:</span><span class="w"> </span><span class="l">16Gi</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">restartPolicy</span><span class="p">:</span><span class="w"> </span><span class="l">Always</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-qwen-service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">vllm-qwen-server</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">8000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">targetPort</span><span class="p">:</span><span class="w"> </span><span class="l">api-8000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">ClusterIP</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="5-gpu-资源调度">5. GPU 资源调度
+</h2><h3 id="51-请求-gpu-资源">5.1 请求 GPU 资源
+</h3><p><strong>基本语法</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  </span><span class="c"># 请求1张GPU</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>完整示例</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">cuda-vectoradd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">cuda</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia/cuda:13.0.0-base-ubi9</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;sh&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;-c&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;nvidia-smi &amp;&amp; sleep 3600&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;4Gi&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;2&#34;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>核心调度规则</strong></p>
+<ol>
+<li><strong>GPU 资源原则上仅在 limits 中指定</strong>（不支持在 requests 单独指定不同的数量）。</li>
+<li><strong>limits 默认会被强制对齐等于 requests</strong>，GPU 资源不可在逻辑上超卖。</li>
+<li><strong>只支持整数值指定</strong>，不支持声明小数型（如 <code>0.5</code> 卡）。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># ❌ 错误示例：不支持将 GPU 分离成 requests 和 limits 配置</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">requests</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c"># ✅ 正确示例</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  </span><span class="c"># 仅在 limits 统一指定</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="52-多-gpu-请求">5.2 多 GPU 请求
+</h3><p><strong>请求多张 GPU</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># 请求4张GPU</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">multi-gpu-pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">cuda</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia/cuda:13.0.0-base-ubi9</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;nvidia-smi&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">4</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>指定特定 GPU 设备</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># 使用环境变量限制 Pod 使用的 GPU 物理卡号</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">specific-gpu-pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">cuda</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia/cuda:13.0.0-base-ubi9</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;nvidia-smi&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">env</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">NVIDIA_VISIBLE_DEVICES</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;0,1&#34;</span><span class="w">  </span><span class="c"># 显式限制仅使用 0 号和 1 号 GPU</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">2</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="53-gpu-共享调度策略">5.3 GPU 共享调度策略
+</h3><p><strong>时间分片（Time Slicing）</strong>
+在非生产和低负载推理场景下，通过时间切片可以让多个 Pod 逻辑共享同一张 GPU 物理卡：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># Device Plugin配置 - 时间分片</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ConfigMap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-slicing-config</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">gpu-operator</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">data</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    version: v1
+</span></span></span><span class="line"><span class="cl"><span class="sd">    flags:
+</span></span></span><span class="line"><span class="cl"><span class="sd">      migStrategy: none
+</span></span></span><span class="line"><span class="cl"><span class="sd">    sharing:
+</span></span></span><span class="line"><span class="cl"><span class="sd">      timeSlicing:
+</span></span></span><span class="line"><span class="cl"><span class="sd">        resources:
+</span></span></span><span class="line"><span class="cl"><span class="sd">        - name: nvidia.com/gpu
+</span></span></span><span class="line"><span class="cl"><span class="sd">          replicas: 4  # 每张物理卡逻辑拆分为 4 份虚拟资源</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div>
+    <blockquote>
+        <p><strong>💡 注意</strong>：时间分片属于<strong>时间复用（Time Multiplexing）</strong>，容器之间共享时间片但没有硬件显存级别的物理隔离。</p>
+
+    </blockquote>
+<p><strong>MIG（多实例 GPU）</strong>
+高阶显卡（如 A100/H100）支持硬件级的 MIG 配置，可将显卡彻底切分为多路物理隔离的 GPU 实例。</p>
+<hr>
+<h2 id="6-mig-多实例-gpu">6. MIG 多实例 GPU
+</h2><h3 id="61-mig-概念">6.1 MIG 概念
+</h3><p>MIG（Multi-Instance GPU）是 NVIDIA 推出的高级硬件隔离技术，能将单个物理 A100/H100 GPU 划分为最多 7 个硬件级、显存和 SM 完全隔离的独立实例。</p>
+<p><strong>支持 MIG 的主流 GPU</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>GPU型号</th>
+					<th>支持MIG</th>
+					<th>最大实例数</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>A100 40GB</td>
+					<td>✅</td>
+					<td>7</td>
+			</tr>
+			<tr>
+					<td>A100 80GB</td>
+					<td>✅</td>
+					<td>7</td>
+			</tr>
+			<tr>
+					<td>H100 80GB</td>
+					<td>✅</td>
+					<td>7</td>
+			</tr>
+			<tr>
+					<td>A30</td>
+					<td>✅</td>
+					<td>4</td>
+			</tr>
+			<tr>
+					<td>A10</td>
+					<td>❌</td>
+					<td>-</td>
+			</tr>
+	</tbody>
+</table></div>
+<p><strong>MIG 实例规格（以 A100 80GB 为例）</strong></p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>配置名称</th>
+					<th>显存大小</th>
+					<th>SM 数量</th>
+					<th>最大实例数</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>1g.5gb</td>
+					<td>5GB</td>
+					<td>7</td>
+					<td>7</td>
+			</tr>
+			<tr>
+					<td>1g.10gb</td>
+					<td>10GB</td>
+					<td>7</td>
+					<td>7</td>
+			</tr>
+			<tr>
+					<td>2g.10gb</td>
+					<td>10GB</td>
+					<td>14</td>
+					<td>3</td>
+			</tr>
+			<tr>
+					<td>3g.20gb</td>
+					<td>20GB</td>
+					<td>21</td>
+					<td>2</td>
+			</tr>
+			<tr>
+					<td>4g.20gb</td>
+					<td>20GB</td>
+					<td>28</td>
+					<td>2</td>
+			</tr>
+			<tr>
+					<td>7g.40gb</td>
+					<td>40GB</td>
+					<td>49</td>
+					<td>1</td>
+			</tr>
+	</tbody>
+</table></div>
+<hr>
+<h3 id="62-mig-配置方式">6.2 MIG 配置方式
+</h3><p><strong>方式一：在节点上进行静态物理配置</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 在GPU节点上配置MIG</span>
+</span></span><span class="line"><span class="cl">sudo nvidia-smi -i <span class="m">0</span> -mig <span class="m">1</span>  <span class="c1"># 开启 MIG 模式</span>
+</span></span><span class="line"><span class="cl">sudo nvidia-smi mig -cgi 1g.10gb,1g.10gb,1g.10gb,1g.10gb,1g.10gb,1g.10gb,1g.10gb -C
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看MIG配置结果</span>
+</span></span><span class="line"><span class="cl">nvidia-smi mig -lgi
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>方式二：通过 GPU Operator 集中声明式配置</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># ConfigMap配置MIG策略</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ConfigMap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mig-parted-config</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">gpu-operator</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">data</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">config.yaml</span><span class="p">:</span><span class="w"> </span><span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    version: v1
+</span></span></span><span class="line"><span class="cl"><span class="sd">    mig-configs:
+</span></span></span><span class="line"><span class="cl"><span class="sd">      all-1g.10gb:
+</span></span></span><span class="line"><span class="cl"><span class="sd">        - devices: all
+</span></span></span><span class="line"><span class="cl"><span class="sd">          mig-enabled: true
+</span></span></span><span class="line"><span class="cl"><span class="sd">          mig-devices:
+</span></span></span><span class="line"><span class="cl"><span class="sd">            &#34;1g.10gb&#34;: 7</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="63-声明和请求-mig-资源">6.3 声明和请求 MIG 资源
+</h3><p>在 K8s 中可以直接通过专属资源名称请求特定的 MIG 切分实例：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># 请求一个 MIG 1g.10gb 实例</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">mig-pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">cuda</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">nvidia/cuda:13.0.0-base-ubi9</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;nvidia-smi&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">limits</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">nvidia.com/mig-1g.10gb</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  </span><span class="c"># 使用特定的 MIG 资源描述</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>检查节点汇报的 MIG 资源状态</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 查看节点MIG资源</span>
+</span></span><span class="line"><span class="cl">kubectl describe node &lt;gpu-node&gt; <span class="p">|</span> grep -A <span class="m">5</span> <span class="s2">&#34;nvidia.com/mig&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出示例</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia.com/mig-1g.10gb: 7</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># nvidia.com/mig-2g.20gb: 0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="7-gpu-调度故障排查">7. GPU 调度故障排查
+</h2><h3 id="71-常见异常及排查方案">7.1 常见异常及排查方案
+</h3><p><strong>故障1：Pod 持续处于 Pending 状态</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 检查调度事件</span>
+</span></span><span class="line"><span class="cl">kubectl describe pod &lt;pod-name&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 常见原因：</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. 调度器没有找到任何配置了 GPU 的节点</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 节点上的可用 GPU 资源已被全部独占，资源耗尽</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 节点被打上了污点（Taints），而申请的 Pod 缺失对应的容忍度（Tolerations）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. Pod 的 NodeSelector 或 NodeAffinity 约束了不存在的标签</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><em>排查步骤</em></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 确认所有节点的GPU可分配状态</span>
+</span></span><span class="line"><span class="cl">kubectl get nodes -o custom-columns<span class="o">=</span>NAME:.metadata.name,GPU:.status.capacity.nvidia<span class="se">\\</span>.com/gpu
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 检查节点是否存在污点</span>
+</span></span><span class="line"><span class="cl">kubectl describe node &lt;node-name&gt; <span class="p">|</span> grep Taints
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 检查Pod的资源申请大小</span>
+</span></span><span class="line"><span class="cl">kubectl get pod &lt;pod-name&gt; -o yaml <span class="p">|</span> grep -A <span class="m">10</span> resources
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<p><strong>故障2：Pod 内部无法找到 GPU 设备</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 执行报错：Pod 无法与 GPU 驱动进行通信</span>
+</span></span><span class="line"><span class="cl">kubectl <span class="nb">exec</span> -it &lt;pod-name&gt; -- nvidia-smi
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出类似：NVIDIA-SMI has failed because it couldn&#39;t communicate with the NVIDIA driver</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><em>排查步骤</em></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 检查设备插件守护进程状态</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-device-plugin
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 确认 NVIDIA Container Toolkit 在底层运行时中的注册状态</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-container-toolkit
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 确认 Pod 的配置中是否已经明确声明了 nvidia.com/gpu 限制</span>
+</span></span><span class="line"><span class="cl">kubectl get pod &lt;pod-name&gt; -o yaml <span class="p">|</span> grep nvidia.com/gpu
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<p><strong>故障3：Device Plugin 未正常启动</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 检索并定位 Device Plugin pod</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-device-plugin
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 若处于异常状态，拉取排查日志</span>
+</span></span><span class="line"><span class="cl">kubectl describe pod -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-device-plugin
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-device-plugin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><em>常见触发原因</em></p>
+<ol>
+<li>宿主机内核模块或 NVIDIA 驱动未成功加载运行</li>
+<li>调度节点并不包含任何物理 GPU 设备</li>
+<li>节点上的关键系统资源耗尽</li>
+</ol>
+<hr>
+<h3 id="72-排查命令速记">7.2 排查命令速记
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 快速查询 GPU Operator 各核心组件状态</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 调阅目标节点的 GPU 剩余分配指标</span>
+</span></span><span class="line"><span class="cl">kubectl describe node &lt;node-name&gt; <span class="p">|</span> grep -A <span class="m">10</span> <span class="s2">&#34;Allocatable&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 针对目标 Pod 精准拉取相关事件信息</span>
+</span></span><span class="line"><span class="cl">kubectl get events --field-selector involvedObject.name<span class="o">=</span>&lt;pod-name&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 检索 GPU Operator 控制面系统日志</span>
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator deployment/gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 获取物理驱动安装及配置日志</span>
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-driver
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 一键式临时验证 GPU 硬件及插件运行状况</span>
+</span></span><span class="line"><span class="cl">kubectl run gpu-test --rm -it --restart<span class="o">=</span>Never <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --image<span class="o">=</span>nvidia/cuda:13.0.0-base-ubi9 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --limits<span class="o">=</span>nvidia.com/gpu<span class="o">=</span><span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -- nvidia-smi
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h3 id="73-故障诊断简易流转图">7.3 故障诊断简易流转图
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-plain" data-lang="plain"><span class="line"><span class="cl">GPU Pod Pending?
+</span></span><span class="line"><span class="cl">       │
+</span></span><span class="line"><span class="cl">       ▼
+</span></span><span class="line"><span class="cl">┌─────────────────┐
+</span></span><span class="line"><span class="cl">│ 有GPU节点吗？    │──No──▶ 引入并检查物理 GPU 节点及硬件连接
+</span></span><span class="line"><span class="cl">└────────┬────────┘
+</span></span><span class="line"><span class="cl">         │Yes
+</span></span><span class="line"><span class="cl">         ▼
+</span></span><span class="line"><span class="cl">┌─────────────────┐
+</span></span><span class="line"><span class="cl">│ GPU资源充足吗？  │──No──▶ 扩容计算节点或等待其他 Pod 资源释放
+</span></span><span class="line"><span class="cl">└────────┬────────┘
+</span></span><span class="line"><span class="cl">         │Yes
+</span></span><span class="line"><span class="cl">         ▼
+</span></span><span class="line"><span class="cl">┌─────────────────┐
+</span></span><span class="line"><span class="cl">│ 节点存在污点吗？ │──Yes─▶ 在部署模板中补充对应的 Tolerations
+</span></span><span class="line"><span class="cl">└────────┬────────┘
+</span></span><span class="line"><span class="cl">         │No
+</span></span><span class="line"><span class="cl">         ▼
+</span></span><span class="line"><span class="cl">┌─────────────────┐
+</span></span><span class="line"><span class="cl">│ Device Plugin   │──Not Running──▶ 检视并排查 GPU Operator 整体运行日志
+</span></span><span class="line"><span class="cl">│ 状态正常吗？     │
+</span></span><span class="line"><span class="cl">└────────┬────────┘
+</span></span><span class="line"><span class="cl">         │Running
+</span></span><span class="line"><span class="cl">         ▼
+</span></span><span class="line"><span class="cl">     调阅 Pod 详情及容器进程输出日志
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="实操练习">实操练习
+</h2><h3 id="验证-gpu-operator-整体健康状态">验证 GPU Operator 整体健康状态
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 检查各系统组件 Pod 运行状态</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 查看集群各节点上报的 GPU 能力</span>
+</span></span><span class="line"><span class="cl">kubectl describe node &lt;gpu-node&gt; <span class="p">|</span> grep -A <span class="m">10</span> <span class="s2">&#34;Capacity&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 运行简单计算进程进行物理校验</span>
+</span></span><span class="line"><span class="cl">kubectl run gpu-test --rm -it --restart<span class="o">=</span>Never <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --image<span class="o">=</span>nvidia/cuda:13.0.0-base-ubi9 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --limits<span class="o">=</span>nvidia.com/gpu<span class="o">=</span><span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -- nvidia-smi
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="gpu-常规应用部署">GPU 常规应用部署
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 创建具备 GPU 请求的长期守护 Pod</span>
+</span></span><span class="line"><span class="cl">cat <span class="s">&lt;&lt; &#39;EOF&#39; | kubectl apply -f -
+</span></span></span><span class="line"><span class="cl"><span class="s">apiVersion: v1
+</span></span></span><span class="line"><span class="cl"><span class="s">kind: Pod
+</span></span></span><span class="line"><span class="cl"><span class="s">metadata:
+</span></span></span><span class="line"><span class="cl"><span class="s">  name: gpu-workload
+</span></span></span><span class="line"><span class="cl"><span class="s">spec:
+</span></span></span><span class="line"><span class="cl"><span class="s">  containers:
+</span></span></span><span class="line"><span class="cl"><span class="s">  - name: cuda
+</span></span></span><span class="line"><span class="cl"><span class="s">    image: nvidia/cuda:13.0.0-base-ubi9
+</span></span></span><span class="line"><span class="cl"><span class="s">    command: [&#34;sh&#34;, &#34;-c&#34;, &#34;nvidia-smi &amp;&amp; sleep 300&#34;]
+</span></span></span><span class="line"><span class="cl"><span class="s">    resources:
+</span></span></span><span class="line"><span class="cl"><span class="s">      limits:
+</span></span></span><span class="line"><span class="cl"><span class="s">        nvidia.com/gpu: 1
+</span></span></span><span class="line"><span class="cl"><span class="s">        memory: &#34;2Gi&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">        cpu: &#34;1&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 检查 Pod 运行状态</span>
+</span></span><span class="line"><span class="cl">kubectl get pod gpu-workload
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 检查 Pod 系统日志</span>
+</span></span><span class="line"><span class="cl">kubectl logs gpu-workload
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 手动进入容器内部检测多卡信息</span>
+</span></span><span class="line"><span class="cl">kubectl <span class="nb">exec</span> -it gpu-workload -- nvidia-smi -L
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="配合亲和性机制精准部署">配合亲和性机制精准部署
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 为目标硬件节点定义高阶属性标签</span>
+</span></span><span class="line"><span class="cl">kubectl label node &lt;gpu-node&gt; gpu-type<span class="o">=</span>a100
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 配置并部署亲和性限制应用</span>
+</span></span><span class="line"><span class="cl">cat <span class="s">&lt;&lt; &#39;EOF&#39; | kubectl apply -f -
+</span></span></span><span class="line"><span class="cl"><span class="s">apiVersion: v1
+</span></span></span><span class="line"><span class="cl"><span class="s">kind: Pod
+</span></span></span><span class="line"><span class="cl"><span class="s">metadata:
+</span></span></span><span class="line"><span class="cl"><span class="s">  name: gpu-affinity-pod
+</span></span></span><span class="line"><span class="cl"><span class="s">spec:
+</span></span></span><span class="line"><span class="cl"><span class="s">  affinity:
+</span></span></span><span class="line"><span class="cl"><span class="s">    nodeAffinity:
+</span></span></span><span class="line"><span class="cl"><span class="s">      requiredDuringSchedulingIgnoredDuringExecution:
+</span></span></span><span class="line"><span class="cl"><span class="s">        nodeSelectorTerms:
+</span></span></span><span class="line"><span class="cl"><span class="s">        - matchExpressions:
+</span></span></span><span class="line"><span class="cl"><span class="s">          - key: gpu-type
+</span></span></span><span class="line"><span class="cl"><span class="s">            operator: In
+</span></span></span><span class="line"><span class="cl"><span class="s">            values:
+</span></span></span><span class="line"><span class="cl"><span class="s">            - a100
+</span></span></span><span class="line"><span class="cl"><span class="s">  containers:
+</span></span></span><span class="line"><span class="cl"><span class="s">  - name: cuda
+</span></span></span><span class="line"><span class="cl"><span class="s">    image: nvidia/cuda:13.0.0-base-ubi9
+</span></span></span><span class="line"><span class="cl"><span class="s">    command: [&#34;nvidia-smi&#34;]
+</span></span></span><span class="line"><span class="cl"><span class="s">    resources:
+</span></span></span><span class="line"><span class="cl"><span class="s">      limits:
+</span></span></span><span class="line"><span class="cl"><span class="s">        nvidia.com/gpu: 1
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 确认 Pod 精准落地到目标标签节点</span>
+</span></span><span class="line"><span class="cl">kubectl get pod gpu-affinity-pod -o wide
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="超量请求压力排查">超量请求压力排查
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 模拟部署超量卡数申请</span>
+</span></span><span class="line"><span class="cl">cat <span class="s">&lt;&lt; &#39;EOF&#39; | kubectl apply -f -
+</span></span></span><span class="line"><span class="cl"><span class="s">apiVersion: v1
+</span></span></span><span class="line"><span class="cl"><span class="s">kind: Pod
+</span></span></span><span class="line"><span class="cl"><span class="s">metadata:
+</span></span></span><span class="line"><span class="cl"><span class="s">  name: gpu-over-request
+</span></span></span><span class="line"><span class="cl"><span class="s">spec:
+</span></span></span><span class="line"><span class="cl"><span class="s">  containers:
+</span></span></span><span class="line"><span class="cl"><span class="s">  - name: cuda
+</span></span></span><span class="line"><span class="cl"><span class="s">    image: nvidia/cuda:13.0.0-base-ubi9
+</span></span></span><span class="line"><span class="cl"><span class="s">    command: [&#34;nvidia-smi&#34;]
+</span></span></span><span class="line"><span class="cl"><span class="s">    resources:
+</span></span></span><span class="line"><span class="cl"><span class="s">      limits:
+</span></span></span><span class="line"><span class="cl"><span class="s">        nvidia.com/gpu: 10  # 假定物理环境并不存在 10 卡可用节点
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 检查应用状态（理应处于 Pending）</span>
+</span></span><span class="line"><span class="cl">kubectl get pod gpu-over-request
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 拉取底层调度器拦截事件</span>
+</span></span><span class="line"><span class="cl">kubectl describe pod gpu-over-request
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 清理环境</span>
+</span></span><span class="line"><span class="cl">kubectl delete pod gpu-over-request
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="总结">总结
+</h2><h3 id="常用命令速查">常用命令速查
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装 GPU Operator</span>
+</span></span><span class="line"><span class="cl">helm repo add nvidia https://helm.ngc.nvidia.com/nvidia
+</span></span><span class="line"><span class="cl">helm install gpu-operator nvidia/gpu-operator -n gpu-operator --create-namespace
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看系统各组件Pod</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出各物理节点的可用 GPU 总量</span>
+</span></span><span class="line"><span class="cl">kubectl describe node &lt;node&gt; <span class="p">|</span> grep nvidia.com/gpu
+</span></span><span class="line"><span class="cl">kubectl get nodes -o custom-columns<span class="o">=</span>NAME:.metadata.name,GPU:.status.capacity.nvidia<span class="se">\\</span>.com/gpu
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 标签及污点管理</span>
+</span></span><span class="line"><span class="cl">kubectl label node &lt;node&gt; gpu-type<span class="o">=</span>a100
+</span></span><span class="line"><span class="cl">kubectl taint nodes &lt;node&gt; nvidia.com/gpu<span class="o">=</span>true:NoSchedule
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 测试 Pod 一键诊断</span>
+</span></span><span class="line"><span class="cl">kubectl run gpu-test --rm -it --restart<span class="o">=</span>Never <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --image<span class="o">=</span>nvidia/cuda:13.0.0-base-ubi9 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --limits<span class="o">=</span>nvidia.com/gpu<span class="o">=</span><span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -- nvidia-smi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 异常流转排查</span>
+</span></span><span class="line"><span class="cl">kubectl describe pod &lt;pod-name&gt;
+</span></span><span class="line"><span class="cl">kubectl get events --field-selector involvedObject.name<span class="o">=</span>&lt;pod-name&gt;
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-device-plugin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="关键配置速查">关键配置速查
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>配置诉求</th>
+					<th>模版语法声明示例</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>单卡 GPU 限制</td>
+					<td><code>limits: nvidia.com/gpu: 1</code></td>
+			</tr>
+			<tr>
+					<td>GPU 局部可见性控制</td>
+					<td><code>env: NVIDIA_VISIBLE_DEVICES: &quot;0,1&quot;</code></td>
+			</tr>
+			<tr>
+					<td>基本标签节点选择</td>
+					<td><code>nodeSelector: nvidia.com/gpu.present: &quot;true&quot;</code></td>
+			</tr>
+			<tr>
+					<td>高级节点调度亲和性</td>
+					<td><code>nodeAffinity: required...</code></td>
+			</tr>
+			<tr>
+					<td>GPU 节点污点容忍</td>
+					<td><code>tolerations: - key: nvidia.com/gpu</code></td>
+			</tr>
+	</tbody>
+</table></div>
+<hr>
+<h2 id="常见问题-faq">常见问题 FAQ
+</h2><h3 id="q1-gpu-operator-初始化失败该如何着手定位">Q1: GPU Operator 初始化失败该如何着手定位？
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 拉取 Helm 控制面的主容器日志</span>
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator deployment/gpu-operator
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 常见阻碍：</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. 物理节点的 Linux 发行版及内核版本并不在当前 Operator 支持范围内</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 无法跨越外网拉取关键镜像（如 nvcr.io 内置镜像，建议使用国内镜像源进行代理）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 集群主控节点资源不足，组件调度异常</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="q2-节点已经部署完成为什么没有汇报可支配的-gpu-资源">Q2: 节点已经部署完成，为什么没有汇报可支配的 GPU 资源？
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 物理检查确认宿主机端硬件被系统识别</span>
+</span></span><span class="line"><span class="cl">lspci <span class="p">|</span> grep -i nvidia
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 检查底层核心驱动 Manager 安装日志，确认内核驱动加载无阻</span>
+</span></span><span class="line"><span class="cl">kubectl logs -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-driver
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 确认上报核心设备插件无异常退出</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -n gpu-operator -l <span class="nv">component</span><span class="o">=</span>nvidia-device-plugin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="q3-生产环境下如何平滑升级-gpu-显卡驱动版本">Q3: 生产环境下如何平滑升级 GPU 显卡驱动版本？
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 方法1：通过 Helm Upgrade 平滑调整参数</span>
+</span></span><span class="line"><span class="cl">helm upgrade gpu-operator nvidia/gpu-operator <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -n gpu-operator <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --set driver.version<span class="o">=</span>560.35.03
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 方法2：若为高阶自定义 values 安装，可直接编辑 K8s ConfigMap</span>
+</span></span><span class="line"><span class="cl">kubectl edit configmap -n gpu-operator gpu-operator-config
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="q4-异构共享技术中mig-与时间分片time-slicing该如何选择">Q4: 异构共享技术中，MIG 与时间分片（Time Slicing）该如何选择？
+</h3><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>技术维度</th>
+					<th>多实例 GPU (MIG)</th>
+					<th>时间分片 (Time Slicing)</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>硬件隔离性</strong></td>
+					<td>✅ 提供完整的硬件级隔离</td>
+					<td>❌ 仅时间片轮询，无硬件级物理隔离</td>
+			</tr>
+			<tr>
+					<td><strong>显存与性能安全性</strong></td>
+					<td>✅ 显存和 SM 独占，互不干扰影响</td>
+					<td>❌ 显存不隔离（可能导致一方 OOM 影响全局）</td>
+			</tr>
+			<tr>
+					<td><strong>底层 GPU 要求</strong></td>
+					<td>仅限特定架构型号（A100/H100/A30 等）</td>
+					<td>适配所有市面主流英伟达 GPU（如 RTX 系列等）</td>
+			</tr>
+			<tr>
+					<td><strong>落地及维护复杂度</strong></td>
+					<td>高</td>
+					<td>极低</td>
+			</tr>
+	</tbody>
+</table></div>
+<hr>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/k8s/">K8S</a>
+        
+            <a href="/tags/gpu/">GPU</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM on K8S 部署与集群实战" height="150" loading="lazy" src="/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/deepsleep_hu_aa601945a99b7ce7.png" srcset="/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/deepsleep_hu_aa601945a99b7ce7.png 1x, /p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/deepsleep_hu_da7a2a5f9d60189c.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #556dec80 0%, #fbfcfdC0 100%);">
+            <h2 class="article-title">vLLM on K8S 部署与集群实战</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post 基于 K8S 的 RuoYi 微服务容器化部署" height="150" loading="lazy" src="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_803e133fac9ba9a2.png" srcset="/p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_803e133fac9ba9a2.png 1x, /p/%E5%9F%BA%E4%BA%8E-k8s-%E7%9A%84-ruoyi-%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2/ruoyi_k8s_hu_139fd7c9ca7c41a6.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #2271db80 0%, #74cdd0C0 100%);">
+            <h2 class="article-title">基于 K8S 的 RuoYi 微服务容器化部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM单卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png" srcset="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png 1x, /p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_dd42eb94b0975759.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #1aa7e380 0%, #05223aC0 100%);">
+            <h2 class="article-title">vLLM单卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM多卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png" srcset="/p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png 1x, /p/vllm%E5%A4%9A%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_dd42eb94b0975759.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #1aa7e380 0%, #05223aC0 100%);">
+            <h2 class="article-title">vLLM多卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post mall-swarm K8s分布式部署" height="150" loading="lazy" src="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png" srcset="/p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_d3987b13bca7fd1b.png 1x, /p/mall-swarm-k8s%E5%88%86%E5%B8%83%E5%BC%8F%E9%83%A8%E7%BD%B2/%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84_hu_39118aa71ccd939b.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #239dde80 0%, #fafafaC0 100%);">
+            <h2 class="article-title">mall-swarm K8s分布式部署</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
