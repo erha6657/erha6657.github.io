@@ -1,0 +1,2436 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Jenkins 传统方式部署各种语言项目主要基于每个项目独立配置的自由风格任务，通过源码管理模块拉取指定分支的代码，在构建触发器中设置轮询 SCM 或定时构建，并在构建环境中根据不同语言的技术栈执行相应的编译、测试和打包命令（如 Java 使用 Maven/Gradle 执行编译打包、Node.js 使用 npm run build 构建静态资源、Python 使用 Docker 构建镜像或直接部署脚本），最后在构建后操作中通过 SSH 插件将产物推送到目标服务器、执行部署脚本或重启服务，从而完成从代码到服务的自动化交付流程。\n">
+<title>Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端">
+<meta property='og:description' content="Jenkins 传统方式部署各种语言项目主要基于每个项目独立配置的自由风格任务，通过源码管理模块拉取指定分支的代码，在构建触发器中设置轮询 SCM 或定时构建，并在构建环境中根据不同语言的技术栈执行相应的编译、测试和打包命令（如 Java 使用 Maven/Gradle 执行编译打包、Node.js 使用 npm run build 构建静态资源、Python 使用 Docker 构建镜像或直接部署脚本），最后在构建后操作中通过 SSH 插件将产物推送到目标服务器、执行部署脚本或重启服务，从而完成从代码到服务的自动化交付流程。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='DevOps' /><meta property='article:published_time' content='2026-06-25T18:10:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T18:10:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo.png' />
+<meta name="twitter:title" content="Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端">
+<meta name="twitter:description" content="Jenkins 传统方式部署各种语言项目主要基于每个项目独立配置的自由风格任务，通过源码管理模块拉取指定分支的代码，在构建触发器中设置轮询 SCM 或定时构建，并在构建环境中根据不同语言的技术栈执行相应的编译、测试和打包命令（如 Java 使用 Maven/Gradle 执行编译打包、Node.js 使用 npm run build 构建静态资源、Python 使用 Docker 构建镜像或直接部署脚本），最后在构建后操作中通过 SSH 插件将产物推送到目标服务器、执行部署脚本或重启服务，从而完成从代码到服务的自动化交付流程。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#部署-java-web-服务环境">部署 Java Web 服务环境</a></li>
+    <li><a href="#搭建-jenkins-构建-java-项目">搭建 Jenkins 构建 Java 项目</a>
+      <ol>
+        <li><a href="#安装-maven">安装 Maven</a></li>
+        <li><a href="#jenkins-关联-java-和-maven">Jenkins 关联 Java 和 Maven</a></li>
+        <li><a href="#安装-maven-插件">安装 Maven 插件</a></li>
+        <li><a href="#安装-publish-over-ssh-插件">安装 Publish Over SSH 插件</a></li>
+        <li><a href="#添加-java-要部署的机器">添加 Java 要部署的机器</a></li>
+        <li><a href="#准备-java-代码仓库">准备 Java 代码仓库</a></li>
+        <li><a href="#创建本地的-maven-仓库">创建本地的 Maven 仓库</a></li>
+        <li><a href="#创建-git-凭证">创建 Git 凭证</a></li>
+        <li><a href="#创建-maven-项目">创建 Maven 项目</a></li>
+        <li><a href="#部署">部署</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#准备代码仓库">准备代码仓库</a></li>
+    <li><a href="#准备-golang-运行环境">准备 Golang 运行环境</a></li>
+    <li><a href="#准备-golang-jenkins-环境">准备 Golang Jenkins 环境</a>
+      <ol>
+        <li><a href="#下载-golang-安装包">下载 Golang 安装包</a></li>
+        <li><a href="#安装-golang">安装 Golang</a></li>
+        <li><a href="#在-jenkins-上设置环境变量">在 Jenkins 上设置环境变量</a></li>
+        <li><a href="#创建-golang-项目">创建 Golang 项目</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#部署-python-环境">部署 Python 环境</a>
+      <ol>
+        <li><a href="#部署-openresty">部署 OpenResty</a></li>
+        <li><a href="#优化-openresty-的基础配置">优化 OpenResty 的基础配置</a></li>
+        <li><a href="#启动-openresty">启动 OpenResty</a></li>
+        <li><a href="#安装-python-环境">安装 Python 环境</a></li>
+        <li><a href="#部署-uwsgi-环境">部署 uWsgi 环境</a></li>
+        <li><a href="#启动-uwsgi-服务">启动 uWsgi 服务</a></li>
+        <li><a href="#测试-openresty--uwsgi-环境">测试 OpenResty + uWsgi 环境</a></li>
+        <li><a href="#启动-openresty-1">启动 OpenResty</a></li>
+      </ol>
+    </li>
+    <li><a href="#使用-jenkins-部署-python">使用 Jenkins 部署 Python</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-php-环境">安装 PHP 环境</a></li>
+    <li><a href="#配置-openresty--php-环境">配置 OpenResty + PHP 环境</a></li>
+    <li><a href="#安装-composer">安装 Composer</a></li>
+    <li><a href="#安装-composer-源">安装 Composer 源</a></li>
+    <li><a href="#启动项目">启动项目</a></li>
+    <li><a href="#配置-jenkins-自动化发布">配置 Jenkins 自动化发布</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-nodejs">安装 NodeJS</a></li>
+    <li><a href="#换源">换源</a></li>
+    <li><a href="#编译-vue-代码">编译 Vue 代码</a></li>
+    <li><a href="#jenkins--node-编译前端代码">Jenkins + Node 编译前端代码</a></li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/">
+            <img alt="Featured image of post Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端" height="2160" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_b2433ff2a90bd56c.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_c7d5b812702cae79.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_6505fc0d49905071.png 2400w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo.png 3840w" width="3840">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/devops/" style="background-color: hsl(152, 60%, 84%); color: hsl(152, 60%, 15%);">
+                DevOps
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4/" style="background-color: hsl(291, 60%, 84%); color: hsl(291, 60%, 15%);">
+                自动化运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/">Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T18:10:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 9 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#部署-java-web-服务环境">部署 Java Web 服务环境</a></li>
+    <li><a href="#搭建-jenkins-构建-java-项目">搭建 Jenkins 构建 Java 项目</a>
+      <ol>
+        <li><a href="#安装-maven">安装 Maven</a></li>
+        <li><a href="#jenkins-关联-java-和-maven">Jenkins 关联 Java 和 Maven</a></li>
+        <li><a href="#安装-maven-插件">安装 Maven 插件</a></li>
+        <li><a href="#安装-publish-over-ssh-插件">安装 Publish Over SSH 插件</a></li>
+        <li><a href="#添加-java-要部署的机器">添加 Java 要部署的机器</a></li>
+        <li><a href="#准备-java-代码仓库">准备 Java 代码仓库</a></li>
+        <li><a href="#创建本地的-maven-仓库">创建本地的 Maven 仓库</a></li>
+        <li><a href="#创建-git-凭证">创建 Git 凭证</a></li>
+        <li><a href="#创建-maven-项目">创建 Maven 项目</a></li>
+        <li><a href="#部署">部署</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#准备代码仓库">准备代码仓库</a></li>
+    <li><a href="#准备-golang-运行环境">准备 Golang 运行环境</a></li>
+    <li><a href="#准备-golang-jenkins-环境">准备 Golang Jenkins 环境</a>
+      <ol>
+        <li><a href="#下载-golang-安装包">下载 Golang 安装包</a></li>
+        <li><a href="#安装-golang">安装 Golang</a></li>
+        <li><a href="#在-jenkins-上设置环境变量">在 Jenkins 上设置环境变量</a></li>
+        <li><a href="#创建-golang-项目">创建 Golang 项目</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#部署-python-环境">部署 Python 环境</a>
+      <ol>
+        <li><a href="#部署-openresty">部署 OpenResty</a></li>
+        <li><a href="#优化-openresty-的基础配置">优化 OpenResty 的基础配置</a></li>
+        <li><a href="#启动-openresty">启动 OpenResty</a></li>
+        <li><a href="#安装-python-环境">安装 Python 环境</a></li>
+        <li><a href="#部署-uwsgi-环境">部署 uWsgi 环境</a></li>
+        <li><a href="#启动-uwsgi-服务">启动 uWsgi 服务</a></li>
+        <li><a href="#测试-openresty--uwsgi-环境">测试 OpenResty + uWsgi 环境</a></li>
+        <li><a href="#启动-openresty-1">启动 OpenResty</a></li>
+      </ol>
+    </li>
+    <li><a href="#使用-jenkins-部署-python">使用 Jenkins 部署 Python</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-php-环境">安装 PHP 环境</a></li>
+    <li><a href="#配置-openresty--php-环境">配置 OpenResty + PHP 环境</a></li>
+    <li><a href="#安装-composer">安装 Composer</a></li>
+    <li><a href="#安装-composer-源">安装 Composer 源</a></li>
+    <li><a href="#启动项目">启动项目</a></li>
+    <li><a href="#配置-jenkins-自动化发布">配置 Jenkins 自动化发布</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-nodejs">安装 NodeJS</a></li>
+    <li><a href="#换源">换源</a></li>
+    <li><a href="#编译-vue-代码">编译 Vue 代码</a></li>
+    <li><a href="#jenkins--node-编译前端代码">Jenkins + Node 编译前端代码</a></li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p>Jenkins 传统方式部署各种语言项目主要基于每个项目独立配置的自由风格任务，通过源码管理模块拉取指定分支的代码，在构建触发器中设置轮询 SCM 或定时构建，并在构建环境中根据不同语言的技术栈执行相应的编译、测试和打包命令（如 Java 使用 Maven/Gradle 执行编译打包、Node.js 使用 npm run build 构建静态资源、Python 使用 Docker 构建镜像或直接部署脚本），最后在构建后操作中通过 SSH 插件将产物推送到目标服务器、执行部署脚本或重启服务，从而完成从代码到服务的自动化交付流程。</p>
+<h1 id="jenkins-部署-java-项目">Jenkins 部署 Java 项目
+</h1><p>Jenkins 部署 Java 项目通常采用 Maven 或 Gradle 作为构建工具，在流水线中配置 JDK 环境后从 Git 仓库拉取源代码，执行编译、运行单元测试和代码质量检查，然后通过 <code>mvn package</code> 或 <code>gradle build</code> 命令生成可执行的 JAR 包或 WAR 包，最后通过 SSH 插件将构建产物部署到 Tomcat 等应用服务器，或使用 Docker 构建镜像推送到镜像仓库并更新 Kubernetes 集群中的服务副本，完成从代码提交到生产部署的自动化流程。</p>
+<ul>
+<li>Java 源代码：<a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/zip/682281/1780491049686-af3d6905-67b0-4dcd-86e8-e04874dad903.zip"  target="_blank" rel="noopener"
+    >monitor.zip</a></li>
+<li>编译好了的 Jar 包：<a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/jar/682281/1780491049772-056ece69-cb56-4d90-8652-f33cc5f6f4ce.jar"  target="_blank" rel="noopener"
+    >app.jar</a></li>
+</ul>
+<h2 id="部署-java-web-服务环境">部署 Java Web 服务环境
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir -p /data/www/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">vim /etc/systemd/system/apps.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>写入 Systemd 配置文件：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">Spring Boot Application</span>
+</span></span><span class="line"><span class="cl"><span class="na">After</span><span class="o">=</span><span class="s">network.target</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">root</span>
+</span></span><span class="line"><span class="cl"><span class="na">WorkingDirectory</span><span class="o">=</span><span class="s">/data/www/</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/jdk17/bin/java -jar /data/www/app.jar</span>
+</span></span><span class="line"><span class="cl"><span class="na">SuccessExitStatus</span><span class="o">=</span><span class="s">143</span>
+</span></span><span class="line"><span class="cl"><span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+    <blockquote>
+        <p>浏览器访问：<a class="link" href="http://192.168.20.59:8080/"  target="_blank" rel="noopener"
+    >http://192.168.20.59:8080/</a></p>
+
+    </blockquote>
+<p><img class="gallery-image" data-flex-basis="395px" data-flex-grow="164" height="952" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762019991600-e33242bf-310b-4258-a170-773fd4e069bd.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762019991600-e33242bf-310b-4258-a170-773fd4e069bd_hu_d26d9215b121bd45.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762019991600-e33242bf-310b-4258-a170-773fd4e069bd.png 1568w" width="1568"></p>
+<h2 id="搭建-jenkins-构建-java-项目">搭建 Jenkins 构建 Java 项目
+</h2><p>Jenkins 是一个开源的自动化服务器，可用于搭建持续集成和持续交付流程。要构建 Java 项目，首先需要安装 Jenkins 并配置 Java 环境，然后安装必要的插件如 Git、Maven 和 Pipeline，接着创建构建任务并配置源码仓库地址、构建触发器以及 Maven 构建命令，最后即可实现 Java 项目的自动化编译、测试和打包。</p>
+<h3 id="安装-maven">安装 Maven
+</h3><p>因为我们是要在 Jenkins 服务器中编译 Java 代码，所以需要先在 Jenkins 服务器中部署 Maven。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf apache-maven-3.9.11-bin.tar.gz -C /usr/local
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ln -s /usr/local/apache-maven-3.9.11 /usr/local/maven
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export M2_HOME=/usr/local/maven&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export PATH=$M2_HOME/bin:$PATH&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> /etc/profile
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mvn --version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="jenkins-关联-java-和-maven">Jenkins 关联 Java 和 Maven
+</h3><p>在 Jenkins 中关联 Java 和 Maven 需要在全局工具配置中分别设置 JDK 和 Maven 的安装路径，Jenkins 会自动调用配置的 Java 环境执行 Maven 构建命令，从而实现对 Java 项目的编译、测试和打包，确保整个构建过程使用一致的开发环境。</p>
+<p><img class="gallery-image" data-flex-basis="738px" data-flex-grow="307" height="601" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021328473-572ae0ce-82be-410e-990c-e0148f77f476.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021328473-572ae0ce-82be-410e-990c-e0148f77f476_hu_5498027b9988d978.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021328473-572ae0ce-82be-410e-990c-e0148f77f476_hu_9f2b9660da94775d.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021328473-572ae0ce-82be-410e-990c-e0148f77f476.png 1850w" width="1850"></p>
+<p><img class="gallery-image" data-flex-basis="557px" data-flex-grow="232" height="757" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021450364-7d3e7285-b1b3-4c1d-96b5-f3cffce820f9.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021450364-7d3e7285-b1b3-4c1d-96b5-f3cffce820f9_hu_fda5308632c6d3df.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021450364-7d3e7285-b1b3-4c1d-96b5-f3cffce820f9_hu_73b62427dccc0c54.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021450364-7d3e7285-b1b3-4c1d-96b5-f3cffce820f9.png 1758w" width="1758"></p>
+<p><img class="gallery-image" data-flex-basis="514px" data-flex-grow="214" height="550" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021507870-65ddc4e3-9312-4b70-8fa7-6cadcfe556f4.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021507870-65ddc4e3-9312-4b70-8fa7-6cadcfe556f4_hu_7e1ea065476b241a.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021507870-65ddc4e3-9312-4b70-8fa7-6cadcfe556f4.png 1180w" width="1180"></p>
+<h3 id="安装-maven-插件">安装 Maven 插件
+</h3>
+    <blockquote>
+        <p>需要下载 Maven Integration 插件。</p>
+
+    </blockquote>
+<p><img class="gallery-image" data-flex-basis="1473px" data-flex-grow="614" height="311" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021588767-5177004c-430e-4885-bcf0-9ddff6681d11.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021588767-5177004c-430e-4885-bcf0-9ddff6681d11_hu_3a4a32f724cb8185.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021588767-5177004c-430e-4885-bcf0-9ddff6681d11_hu_b25ab65e2cc65387.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021588767-5177004c-430e-4885-bcf0-9ddff6681d11.png 1910w" width="1910"></p>
+<h3 id="安装-publish-over-ssh-插件">安装 Publish Over SSH 插件
+</h3><p><img class="gallery-image" data-flex-basis="1438px" data-flex-grow="599" height="317" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022683034-1d0ff60a-cc0a-4af4-affd-7f85f74d2073.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022683034-1d0ff60a-cc0a-4af4-affd-7f85f74d2073_hu_ba36233e9468092.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022683034-1d0ff60a-cc0a-4af4-affd-7f85f74d2073_hu_951d59dd24fbac39.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022683034-1d0ff60a-cc0a-4af4-affd-7f85f74d2073.png 1900w" width="1900"></p>
+<h3 id="添加-java-要部署的机器">添加 Java 要部署的机器
+</h3><p><img class="gallery-image" data-flex-basis="795px" data-flex-grow="331" height="502" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022941770-5ef71c3b-a187-4871-ae41-0b35b1e1ccf1.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022941770-5ef71c3b-a187-4871-ae41-0b35b1e1ccf1_hu_3c1d467d2c1a4dd3.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022941770-5ef71c3b-a187-4871-ae41-0b35b1e1ccf1_hu_cc2f13636e4dbf59.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022941770-5ef71c3b-a187-4871-ae41-0b35b1e1ccf1.png 1664w" width="1664"></p>
+<p><img class="gallery-image" data-flex-basis="550px" data-flex-grow="229" height="722" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023073639-ae2c5bc5-c006-4b52-8602-f42ac2566ceb.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023073639-ae2c5bc5-c006-4b52-8602-f42ac2566ceb_hu_83247ce9b729bd55.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023073639-ae2c5bc5-c006-4b52-8602-f42ac2566ceb_hu_7de0b37b65a06996.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023073639-ae2c5bc5-c006-4b52-8602-f42ac2566ceb.png 1657w" width="1657"></p>
+<h3 id="准备-java-代码仓库">准备 Java 代码仓库
+</h3>
+    <blockquote>
+        <p>代码仓库：<a class="link" href="https://gitee.com/chenyang0910/monitor.git"  target="_blank" rel="noopener"
+    >https://gitee.com/chenyang0910/monitor.git</a></p>
+
+    </blockquote>
+<p><img class="gallery-image" data-flex-basis="600px" data-flex-grow="250" height="482" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021922109-5c6d9a97-0e8f-49f5-9393-e6f59b26145d.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021922109-5c6d9a97-0e8f-49f5-9393-e6f59b26145d_hu_b93a99e28bda5d2e.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762021922109-5c6d9a97-0e8f-49f5-9393-e6f59b26145d.png 1205w" width="1205"></p>
+<h3 id="创建本地的-maven-仓库">创建本地的 Maven 仓库
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir -p /data/software/repository
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">chown -R jenkins.jenkins /data/software/repository
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>修改配置文件：<code>vim /usr/local/maven/conf/settings.xml</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;localRepository&gt;</span>/data/software/repository/<span class="nt">&lt;/localRepository&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;mirrors&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="c">&lt;!-- 阿里云中央仓库镜像 --&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;mirror&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;id&gt;</span>aliyun-central<span class="nt">&lt;/id&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;mirrorOf&gt;</span>central<span class="nt">&lt;/mirrorOf&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;name&gt;</span>Aliyun Central Repository<span class="nt">&lt;/name&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;url&gt;</span>https://maven.aliyun.com/repository/central<span class="nt">&lt;/url&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/mirror&gt;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="c">&lt;!-- 阿里云公共仓库镜像（代理所有仓库） --&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;mirror&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;id&gt;</span>aliyun-public<span class="nt">&lt;/id&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;mirrorOf&gt;</span>*<span class="nt">&lt;/mirrorOf&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;name&gt;</span>Aliyun Public Repository<span class="nt">&lt;/name&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;url&gt;</span>https://maven.aliyun.com/repository/public<span class="nt">&lt;/url&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/mirror&gt;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="c">&lt;!-- 阿里云Spring仓库镜像 --&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;mirror&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;id&gt;</span>aliyun-spring<span class="nt">&lt;/id&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;mirrorOf&gt;</span>spring-milestones,spring-snapshots<span class="nt">&lt;/mirrorOf&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;name&gt;</span>Aliyun Spring Repository<span class="nt">&lt;/name&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;url&gt;</span>https://maven.aliyun.com/repository/spring<span class="nt">&lt;/url&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/mirror&gt;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="c">&lt;!-- 阿里云Google仓库镜像 --&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;mirror&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;id&gt;</span>aliyun-google<span class="nt">&lt;/id&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;mirrorOf&gt;</span>google<span class="nt">&lt;/mirrorOf&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;name&gt;</span>Aliyun Google Repository<span class="nt">&lt;/name&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;url&gt;</span>https://maven.aliyun.com/repository/google<span class="nt">&lt;/url&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/mirror&gt;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="c">&lt;!-- 阿里云Gradle插件仓库镜像 --&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;mirror&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;id&gt;</span>aliyun-gradle-plugin<span class="nt">&lt;/id&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;mirrorOf&gt;</span>gradle-plugin<span class="nt">&lt;/mirrorOf&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;name&gt;</span>Aliyun Gradle Plugin Repository<span class="nt">&lt;/name&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;url&gt;</span>https://maven.aliyun.com/repository/gradle-plugin<span class="nt">&lt;/url&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/mirror&gt;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="c">&lt;!-- 阿里云JCenter仓库镜像 --&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;mirror&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;id&gt;</span>aliyun-jcenter<span class="nt">&lt;/id&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;mirrorOf&gt;</span>jcenter<span class="nt">&lt;/mirrorOf&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;name&gt;</span>Aliyun JCenter Repository<span class="nt">&lt;/name&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;url&gt;</span>https://maven.aliyun.com/repository/jcenter<span class="nt">&lt;/url&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/mirror&gt;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="c">&lt;!-- 阿里云Apache快照仓库镜像 --&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;mirror&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;id&gt;</span>aliyun-apache-snapshots<span class="nt">&lt;/id&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;mirrorOf&gt;</span>apache-snapshots<span class="nt">&lt;/mirrorOf&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;name&gt;</span>Aliyun Apache Snapshots Repository<span class="nt">&lt;/name&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;url&gt;</span>https://maven.aliyun.com/repository/apache-snapshots<span class="nt">&lt;/url&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/mirror&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/mirrors&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="创建-git-凭证">创建 Git 凭证
+</h3><p>在 Jenkins 中创建 Git 凭证可通过&quot;系统管理&quot; -&gt; &ldquo;凭证管理&rdquo; -&gt; &ldquo;全局凭证&quot;添加，支持用户名密码、SSH 密钥等多种方式，配置后 Jenkins 即可安全访问 Git 仓库拉取代码进行自动化构建，确保源码获取的权限安全和流程自动化。</p>
+<p><img class="gallery-image" data-flex-basis="1181px" data-flex-grow="492" height="361" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022206528-825f4f37-da56-4a99-bfec-045a18d323c1.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022206528-825f4f37-da56-4a99-bfec-045a18d323c1_hu_7de8a4e0f02d358e.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022206528-825f4f37-da56-4a99-bfec-045a18d323c1_hu_fe371031f8a3d223.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022206528-825f4f37-da56-4a99-bfec-045a18d323c1.png 1777w" width="1777"></p>
+<p><img class="gallery-image" data-flex-basis="790px" data-flex-grow="329" height="530" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022260546-6d5d56ba-d1ee-4d4a-9f31-ed94eb8b5204.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022260546-6d5d56ba-d1ee-4d4a-9f31-ed94eb8b5204_hu_781c95140948469e.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022260546-6d5d56ba-d1ee-4d4a-9f31-ed94eb8b5204_hu_915521966995bf39.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022260546-6d5d56ba-d1ee-4d4a-9f31-ed94eb8b5204.png 1746w" width="1746"></p>
+<p><img class="gallery-image" data-flex-basis="1130px" data-flex-grow="470" height="343" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022319215-1e0b41bb-41c8-4fbd-a87a-013176c38b97.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022319215-1e0b41bb-41c8-4fbd-a87a-013176c38b97_hu_c48edffe4a64ceac.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022319215-1e0b41bb-41c8-4fbd-a87a-013176c38b97_hu_5003ba8e7b6d512b.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022319215-1e0b41bb-41c8-4fbd-a87a-013176c38b97.png 1615w" width="1615"></p>
+<h3 id="创建-maven-项目">创建 Maven 项目
+</h3><p><img class="gallery-image" data-flex-basis="619px" data-flex-grow="258" height="446" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022378580-6e8b19c5-1a61-4fb5-8640-5c8aeab56626.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022378580-6e8b19c5-1a61-4fb5-8640-5c8aeab56626_hu_a6727b3908e8018e.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022378580-6e8b19c5-1a61-4fb5-8640-5c8aeab56626.png 1152w" width="1152"></p>
+<p><img class="gallery-image" data-flex-basis="400px" data-flex-grow="166" height="800" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022415343-938f1522-bd55-48d0-af3f-d3cfa8ce6cd9.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022415343-938f1522-bd55-48d0-af3f-d3cfa8ce6cd9_hu_83a023f813ab3237.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762022415343-938f1522-bd55-48d0-af3f-d3cfa8ce6cd9.png 1335w" width="1335"></p>
+<p><img class="gallery-image" data-flex-basis="845px" data-flex-grow="352" height="389" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023585292-42c77133-23f7-465f-a161-1e749f788548.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023585292-42c77133-23f7-465f-a161-1e749f788548_hu_213c2f3abe5aeaea.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023585292-42c77133-23f7-465f-a161-1e749f788548.png 1371w" width="1371"></p>
+<p><img class="gallery-image" data-flex-basis="452px" data-flex-grow="188" height="493" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023110082-8d593db8-0ecd-4515-b872-bdf7c92545aa.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023110082-8d593db8-0ecd-4515-b872-bdf7c92545aa_hu_a4243ce48346ca51.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023110082-8d593db8-0ecd-4515-b872-bdf7c92545aa.png 930w" width="930"></p>
+<p><img class="gallery-image" data-flex-basis="376px" data-flex-grow="156" height="831" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023263429-284265d8-61ec-42ef-b514-32c46fdc77e7.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023263429-284265d8-61ec-42ef-b514-32c46fdc77e7_hu_2eaf252433a475a6.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023263429-284265d8-61ec-42ef-b514-32c46fdc77e7.png 1304w" width="1304"></p>
+<h3 id="部署">部署
+</h3><p><img class="gallery-image" data-flex-basis="461px" data-flex-grow="192" height="988" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023937846-0d191a87-e73e-4fca-86f9-9bdeae6b17dd.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023937846-0d191a87-e73e-4fca-86f9-9bdeae6b17dd_hu_71709b3869ffde8b.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023937846-0d191a87-e73e-4fca-86f9-9bdeae6b17dd_hu_5c92001a36f7ba93.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023937846-0d191a87-e73e-4fca-86f9-9bdeae6b17dd.png 1901w" width="1901"></p>
+<p><img class="gallery-image" data-flex-basis="1028px" data-flex-grow="428" height="446" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023922062-ccc1ae07-c532-4363-a9f0-445c14478766.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023922062-ccc1ae07-c532-4363-a9f0-445c14478766_hu_9b1d2cf6a43e4cfd.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023922062-ccc1ae07-c532-4363-a9f0-445c14478766_hu_5181b33ceac17798.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023922062-ccc1ae07-c532-4363-a9f0-445c14478766.png 1911w" width="1911"></p>
+<p><img class="gallery-image" data-flex-basis="837px" data-flex-grow="348" height="406" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023894791-62858479-7b79-406f-af92-7f9e6100018e.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023894791-62858479-7b79-406f-af92-7f9e6100018e_hu_dd0b606ddec291b9.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762023894791-62858479-7b79-406f-af92-7f9e6100018e.png 1416w" width="1416"></p>
+<hr>
+<h1 id="jenkins-部署-golang-项目">Jenkins 部署 Golang 项目
+</h1><p>在 Jenkins 中部署 Golang 项目需要配置 Go 环境变量并安装相关插件，通过设置 GOPATH 和模块代理，Jenkins 能够自动拉取 Go 依赖并执行编译测试，最终将生成的二进制文件部署到目标服务器，实现 Go 应用的持续集成和自动化部署。</p>
+<ul>
+<li>代码：<a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/zip/682281/1780491049865-e98541cc-e3d5-455e-8ea0-75266e9d62df.zip"  target="_blank" rel="noopener"
+    >monitor.zip</a></li>
+</ul>
+<h2 id="准备代码仓库">准备代码仓库
+</h2><p><img class="gallery-image" data-flex-basis="504px" data-flex-grow="210" height="494" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762089348827-93efdfe2-8850-429f-89fd-369576e250d9.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762089348827-93efdfe2-8850-429f-89fd-369576e250d9_hu_e7a77aa99550a43c.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762089348827-93efdfe2-8850-429f-89fd-369576e250d9.png 1038w" width="1038"></p>
+<h2 id="准备-golang-运行环境">准备 Golang 运行环境
+</h2><p>工作目录是：<code>/data/www/golang</code></p>
+<p>编辑：<code>vim /usr/lib/systemd/system/monitor_golang.service</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">Monitor Gin Application</span>
+</span></span><span class="line"><span class="cl"><span class="na">After</span><span class="o">=</span><span class="s">network.target</span>
+</span></span><span class="line"><span class="cl"><span class="na">Wants</span><span class="o">=</span><span class="s">network.target</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">simple</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">root</span>
+</span></span><span class="line"><span class="cl"><span class="na">Group</span><span class="o">=</span><span class="s">root</span>
+</span></span><span class="line"><span class="cl"><span class="na">WorkingDirectory</span><span class="o">=</span><span class="s">/data/www/golang</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/data/www/golang/monitor</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecReload</span><span class="o">=</span><span class="s">/bin/kill -HUP $MAINPID</span>
+</span></span><span class="line"><span class="cl"><span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+</span></span><span class="line"><span class="cl"><span class="na">RestartSec</span><span class="o">=</span><span class="s">5</span>
+</span></span><span class="line"><span class="cl"><span class="na">StandardOutput</span><span class="o">=</span><span class="s">syslog</span>
+</span></span><span class="line"><span class="cl"><span class="na">StandardError</span><span class="o">=</span><span class="s">syslog</span>
+</span></span><span class="line"><span class="cl"><span class="na">SyslogIdentifier</span><span class="o">=</span><span class="s">monitor</span>
+</span></span><span class="line"><span class="cl"><span class="na">Environment</span><span class="o">=</span><span class="s">PATH=/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="准备-golang-jenkins-环境">准备 Golang Jenkins 环境
+</h2><p>准备 Golang Jenkins 环境，是指在一台或多台服务器上配置并集成 Jenkins 这一持续集成/持续部署工具与 Go 语言的开发环境，从而实现 Go 项目的自动化构建、测试、打包和部署。</p>
+
+    <blockquote>
+        <p><strong>注意：</strong> 以下步骤在 Jenkins 服务器上执行。</p>
+
+    </blockquote>
+<h3 id="下载-golang-安装包">下载 Golang 安装包
+</h3>
+    <blockquote>
+        <p>下载链接：<a class="link" href="https://go.dev/doc/install"  target="_blank" rel="noopener"
+    >https://go.dev/doc/install</a></p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://go.dev/dl/go1.24.9.linux-amd64.tar.gz
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="安装-golang">安装 Golang
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">tar -xf go1.24.9.linux-amd64.tar.gz -C /usr/local/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="在-jenkins-上设置环境变量">在 Jenkins 上设置环境变量
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir -p /data/golang/goroot
+</span></span><span class="line"><span class="cl">chown -R jenkins.jenkins /data/golang/goroot
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="606px" data-flex-grow="252" height="656" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762090823123-ce114646-8adb-4e52-b9ab-f88f8fd997dd.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762090823123-ce114646-8adb-4e52-b9ab-f88f8fd997dd_hu_e3f2ea1c742ef814.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762090823123-ce114646-8adb-4e52-b9ab-f88f8fd997dd_hu_72fa626c8aa7e232.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762090823123-ce114646-8adb-4e52-b9ab-f88f8fd997dd.png 1658w" width="1658"></p>
+<h3 id="创建-golang-项目">创建 Golang 项目
+</h3><p><img class="gallery-image" data-flex-basis="902px" data-flex-grow="375" height="394" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762091032398-8b8ee0be-3dc2-4e6d-96e6-8dd596f56976.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762091032398-8b8ee0be-3dc2-4e6d-96e6-8dd596f56976_hu_7eddad1bcfb945d4.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762091032398-8b8ee0be-3dc2-4e6d-96e6-8dd596f56976.png 1481w" width="1481"></p>
+<p><img class="gallery-image" data-flex-basis="429px" data-flex-grow="178" height="773" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762091058876-07c3c13d-4580-4563-9d19-5fa8ccd1beba.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762091058876-07c3c13d-4580-4563-9d19-5fa8ccd1beba_hu_a185f4e68da58cda.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762091058876-07c3c13d-4580-4563-9d19-5fa8ccd1beba.png 1382w" width="1382"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">GO_HOME</span><span class="o">=</span>/usr/local/go
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$GO_HOME</span>/bin
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">go env -w <span class="nv">GO111MODULE</span><span class="o">=</span>on
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">go env -w <span class="nv">GOPROXY</span><span class="o">=</span>https://goproxy.cn,direct
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">go mod tidy
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">go build -o monitor main.go
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -czf deploy.tar.gz monitor templates
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="535px" data-flex-grow="223" height="590" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762092052954-5eb9c537-99f6-45b5-8306-e1588f9ad391.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762092052954-5eb9c537-99f6-45b5-8306-e1588f9ad391_hu_f1ae9b22c3daf3be.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762092052954-5eb9c537-99f6-45b5-8306-e1588f9ad391.png 1317w" width="1317"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">golang_path</span><span class="o">=</span><span class="s2">&#34;/data/www/golang&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> <span class="nv">$golang_path</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">timestamp</span><span class="o">=</span><span class="k">$(</span>date <span class="s1">&#39;+%Y_%m_%d_%H_%M_%S&#39;</span><span class="k">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">dir_path</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$golang_path</span><span class="s2">/</span><span class="nv">$timestamp</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mkdir -p <span class="nv">$dir_path</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf deploy.tar.gz -C <span class="nv">$dir_path</span>/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="o">[</span> -L <span class="s2">&#34;</span><span class="nv">$golang_path</span><span class="s2">/monitor&#34;</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+</span></span><span class="line"><span class="cl">    rm <span class="nv">$golang_path</span>/monitor
+</span></span><span class="line"><span class="cl"><span class="k">fi</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="o">[</span> -L <span class="s2">&#34;</span><span class="nv">$golang_path</span><span class="s2">/templates&#34;</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+</span></span><span class="line"><span class="cl">    rm <span class="nv">$golang_path</span>/templates
+</span></span><span class="line"><span class="cl"><span class="k">fi</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ln -s <span class="nv">$dir_path</span>/monitor <span class="nv">$golang_path</span>/monitor
+</span></span><span class="line"><span class="cl">ln -s <span class="nv">$dir_path</span>/templates <span class="nv">$golang_path</span>/templates
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl restart monitor_golang
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="353px" data-flex-grow="147" height="822" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762093480775-f2b3686b-c7a7-4b80-8f7f-29a090442805.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762093480775-f2b3686b-c7a7-4b80-8f7f-29a090442805_hu_909b22e1f6520d1c.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762093480775-f2b3686b-c7a7-4b80-8f7f-29a090442805.png 1212w" width="1212"></p>
+<hr>
+<h1 id="jenkins-部署-python-项目">Jenkins 部署 Python 项目
+</h1><p>Jenkins 部署 Python 项目需配置 Python 环境并安装 virtualenv 等依赖管理工具，通过创建虚拟环境安装 requirements.txt 中的依赖包，执行单元测试和代码质量检查，最终完成 Python 应用的打包分发或容器化部署，确保项目在不同环境中的一致性。</p>
+<ul>
+<li>代码：<a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/zip/682281/1780491049962-ca5c04f3-d101-4cd6-9ab0-2b7dfb364151.zip"  target="_blank" rel="noopener"
+    >monitor.zip</a></li>
+</ul>
+<h2 id="部署-python-环境">部署 Python 环境
+</h2><p>一般情况下，企业中 Python 服务都是基于 OpenResty 的。</p>
+<h3 id="部署-openresty">部署 OpenResty
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">yum install yum-utils
+</span></span><span class="line"><span class="cl">yum-config-manager --add-repo https://openresty.org/package/centos/openresty.repo
+</span></span><span class="line"><span class="cl">yum install openresty -y
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="优化-openresty-的基础配置">优化 OpenResty 的基础配置
+</h3><p>编辑配置文件：<code>vi /usr/local/openresty/nginx/conf/nginx.conf</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="c1"># 指定一个无法登录的系统用户作为启动用户
+</span></span></span><span class="line"><span class="cl"><span class="k">user</span> <span class="s">openresty</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 配置 worker 进程数
+</span></span></span><span class="line"><span class="cl"><span class="k">worker_processes</span> <span class="s">auto</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 事件配置块
+</span></span></span><span class="line"><span class="cl"><span class="k">events</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 每一个 worker 进程能够同时处理的最大进程数
+</span></span></span><span class="line"><span class="cl">  <span class="kn">worker_connections</span>  <span class="mi">1024</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 指定 I/O 模型
+</span></span></span><span class="line"><span class="cl">  <span class="kn">use</span> <span class="s">epoll</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 防止惊群效应
+</span></span></span><span class="line"><span class="cl">  <span class="kn">accept_mutex</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 批量分配链接数
+</span></span></span><span class="line"><span class="cl">  <span class="kn">multi_accept</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># HTTP 配置块
+</span></span></span><span class="line"><span class="cl"><span class="k">http</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 指定字符编码
+</span></span></span><span class="line"><span class="cl">  <span class="kn">charset</span> <span class="s">utf-8</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 隐藏OpenResty的版本号
+</span></span></span><span class="line"><span class="cl">  <span class="kn">server_tokens</span> <span class="no">off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 定义缓存路径和区域
+</span></span></span><span class="line"><span class="cl">  <span class="kn">proxy_cache_path</span> <span class="s">/var/cache/nginx</span> <span class="s">levels=1:2</span> <span class="s">keys_zone=static_cache:10m</span> <span class="s">max_size=1g</span> <span class="s">inactive=60m</span> <span class="s">use_temp_path=off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 设置日志格式
+</span></span></span><span class="line"><span class="cl">  <span class="kn">log_format</span> <span class="s">json_combined</span> <span class="s">escape=json</span> <span class="s">&#39;</span><span class="p">{</span><span class="kn">&#34;timestamp&#34;:&#34;$time_iso8601&#34;,&#34;remote_addr&#34;:&#34;$remote_addr&#34;,&#34;remote_user&#34;:&#34;$remote_user&#34;,&#34;request&#34;:&#34;$request&#34;,&#34;status&#34;:&#34;$status&#34;,&#34;body_bytes_sent&#34;:&#34;$body_bytes_sent&#34;,&#34;request_time&#34;:&#34;$request_time&#34;,&#34;http_referer&#34;:&#34;$http_referer&#34;,&#34;http_user_agent&#34;:&#34;$http_user_agent&#34;,&#34;http_x_forwarded_for&#34;:&#34;$http_x_forwarded_for&#34;,&#34;server_name&#34;:&#34;$server_name&#34;,&#34;server_protocol&#34;:&#34;$server_protocol&#34;,&#34;upstream_addr&#34;:&#34;$upstream_addr&#34;,&#34;upstream_status&#34;:&#34;$upstream_status&#34;,&#34;upstream_response_time&#34;:&#34;$upstream_response_time&#34;,&#34;upstream_connect_time&#34;:&#34;$upstream_connect_time&#34;,&#34;upstream_header_time&#34;:&#34;$upstream_header_time&#34;,&#34;request_length&#34;:&#34;$request_length&#34;,&#34;request_method&#34;:&#34;$request_method&#34;,&#34;uri&#34;:&#34;$uri&#34;,&#34;query_string&#34;:&#34;$query_string&#34;,&#34;http_host&#34;:&#34;$http_host&#34;,&#34;scheme&#34;:&#34;$scheme&#34;,&#34;gzip_ratio&#34;:&#34;$gzip_ratio&#34;,&#34;connection&#34;:&#34;$connection&#34;,&#34;connection_requests&#34;:&#34;$connection_requests&#34;,&#34;pipe&#34;:&#34;$pipe&#34;}&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 设置日志的路径
+</span></span></span><span class="line"><span class="cl">  <span class="kn">access_log</span> <span class="s">/var/log/openresty/access.log</span> <span class="s">json_combined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 错误日志
+</span></span></span><span class="line"><span class="cl">  <span class="kn">error_log</span> <span class="s">/var/log/openresty/error.log</span> <span class="s">warn</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 启用 gzip 压缩
+</span></span></span><span class="line"><span class="cl">  <span class="kn">gzip</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 压缩级别：1-9，推荐 4-6
+</span></span></span><span class="line"><span class="cl">  <span class="kn">gzip_comp_level</span> <span class="mi">6</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 最小压缩文件大小
+</span></span></span><span class="line"><span class="cl">  <span class="kn">gzip_min_length</span> <span class="mi">1k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 压缩缓冲区
+</span></span></span><span class="line"><span class="cl">  <span class="kn">gzip_buffers</span> <span class="mi">4</span> <span class="mi">16k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 压缩协议版本
+</span></span></span><span class="line"><span class="cl">  <span class="kn">gzip_http_version</span> <span class="mi">1</span><span class="s">.0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 对代理请求启用压缩
+</span></span></span><span class="line"><span class="cl">  <span class="kn">gzip_proxied</span> <span class="s">any</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 在响应头添加 Vary: Accept-Encoding
+</span></span></span><span class="line"><span class="cl">  <span class="kn">gzip_vary</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 指定需要压缩的 MIME 类型
+</span></span></span><span class="line"><span class="cl">  <span class="kn">gzip_types</span> <span class="s">text/css</span> <span class="s">text/xml</span> <span class="s">text/javascript</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 载入 OpenResty 能够识别的文件的类型
+</span></span></span><span class="line"><span class="cl">  <span class="kn">include</span> <span class="s">mime.types</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># OpenResty 无法识别文件类型时，默认的文件类型
+</span></span></span><span class="line"><span class="cl">  <span class="kn">default_type</span>  <span class="s">application/octet-stream</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 提升系统文件句柄效率
+</span></span></span><span class="line"><span class="cl">  <span class="kn">sendfile</span>        <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 65秒无请求则关闭连接
+</span></span></span><span class="line"><span class="cl">  <span class="kn">keepalive_timeout</span> <span class="s">65s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 最多处理1000个请求后关闭连接
+</span></span></span><span class="line"><span class="cl">  <span class="kn">keepalive_requests</span> <span class="mi">1000</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 合并数据包发送
+</span></span></span><span class="line"><span class="cl">  <span class="kn">tcp_nopush</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 减少交互延迟
+</span></span></span><span class="line"><span class="cl">  <span class="kn">tcp_nodelay</span> <span class="no">on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 载入外部的HTTP配置块内部的配置
+</span></span></span><span class="line"><span class="cl">  <span class="kn">include</span> <span class="s">/usr/local/openresty/nginx/conf/conf.d/*.conf</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="启动-openresty">启动 OpenResty
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir -p /usr/local/openresty/nginx/conf/conf.d
+</span></span><span class="line"><span class="cl">mkdir -p /var/log/openresty/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">useradd -r -s /sbin/nologin openresty
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">chown -R openresty.openresty /var/log/openresty/ /usr/local/openresty/nginx/conf/conf.d
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="安装-python-环境">安装 Python 环境
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装 Python3 相关的软件</span>
+</span></span><span class="line"><span class="cl">yum install -y python3 python3-pip python3-devel gcc gcc-c++ make openssl-devel pcre-devel
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装Python组件：Flask和uWsgi</span>
+</span></span><span class="line"><span class="cl">pip3 install flask uwsgi -i https://mirrors.cloud.tencent.com/pypi/simple --trusted-host mirrors.cloud.tencent.com
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">CFLAGS</span><span class="o">=</span><span class="s2">&#34;-std=c99&#34;</span> pip3 install psutil -i https://mirrors.cloud.tencent.com/pypi/simple --trusted-host mirrors.cloud.tencent.com
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="部署-uwsgi-环境">部署 uWsgi 环境
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[uwsgi]</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 基本项目配置</span>
+</span></span><span class="line"><span class="cl"><span class="na">project</span> <span class="o">=</span> <span class="s">myflaskapp</span>
+</span></span><span class="line"><span class="cl"><span class="na">base_dir</span> <span class="o">=</span> <span class="s">/data/python</span>
+</span></span><span class="line"><span class="cl"><span class="na">wsgi-file</span> <span class="o">=</span> <span class="s">%(base_dir)/app.py</span>
+</span></span><span class="line"><span class="cl"><span class="na">callable</span> <span class="o">=</span> <span class="s">app</span>
+</span></span><span class="line"><span class="cl"><span class="na">chdir</span> <span class="o">=</span> <span class="s">%(base_dir)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 基础进程配置</span>
+</span></span><span class="line"><span class="cl"><span class="na">workers</span> <span class="o">=</span> <span class="s">2</span>
+</span></span><span class="line"><span class="cl"><span class="na">threads</span> <span class="o">=</span> <span class="s">2</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 网络配置</span>
+</span></span><span class="line"><span class="cl"><span class="na">socket</span> <span class="o">=</span> <span class="s">/run/uwsgi/%(project).sock</span>
+</span></span><span class="line"><span class="cl"><span class="na">chmod-socket</span> <span class="o">=</span> <span class="s">660</span>
+</span></span><span class="line"><span class="cl"><span class="na">chown-socket</span> <span class="o">=</span> <span class="s">openresty:openresty</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 日志配置</span>
+</span></span><span class="line"><span class="cl"><span class="na">logto</span> <span class="o">=</span> <span class="s">/var/log/uwsgi/%(project).log</span>
+</span></span><span class="line"><span class="cl"><span class="na">logto2</span> <span class="o">=</span> <span class="s">/var/log/uwsgi/%(project)_error.log</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 权限设置</span>
+</span></span><span class="line"><span class="cl"><span class="na">uid</span> <span class="o">=</span> <span class="s">openresty</span>
+</span></span><span class="line"><span class="cl"><span class="na">gid</span> <span class="o">=</span> <span class="s">openresty</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 运行控制</span>
+</span></span><span class="line"><span class="cl"><span class="na">pidfile</span> <span class="o">=</span> <span class="s">/run/uwsgi/%(project).pid</span>
+</span></span><span class="line"><span class="cl"><span class="na">daemonize</span> <span class="o">=</span> <span class="s">/var/log/uwsgi/%(project)_daemon.log</span>
+</span></span><span class="line"><span class="cl"><span class="na">vacuum</span> <span class="o">=</span> <span class="s">true</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 环境变量</span>
+</span></span><span class="line"><span class="cl"><span class="na">env</span> <span class="o">=</span> <span class="s">PYTHONPATH=%(base_dir)</span>
+</span></span><span class="line"><span class="cl"><span class="na">env</span> <span class="o">=</span> <span class="s">FLASK_ENV=production</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="启动-uwsgi-服务">启动 uWsgi 服务
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir -p /run/uwsgi
+</span></span><span class="line"><span class="cl">mkdir -p /var/log/uwsgi
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">chown -R openresty.openresty /var/log/uwsgi /run/uwsgi /data/python
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">/usr/local/bin/uwsgi --ini uwsgi.ini
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="测试-openresty--uwsgi-环境">测试 OpenResty + uWsgi 环境
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="k">server</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">listen</span> <span class="mi">80</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">server_name</span> <span class="s">moniter.example.com</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 反向代理到uWSGI
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_pass</span> <span class="s">unix:/run/uwsgi/myflaskapp.sock</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kn">include</span> <span class="s">uwsgi_params</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_param</span> <span class="s">UWSGI_SCRIPT</span> <span class="s">app.py</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_param</span> <span class="s">UWSGI_CHDIR</span> <span class="s">/data/python</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_param</span> <span class="s">Host</span> <span class="nv">$host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_param</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_param</span> <span class="s">X-Forwarded-For</span> <span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_param</span> <span class="s">X-Forwarded-Proto</span> <span class="nv">$scheme</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_buffer_size</span> <span class="mi">64k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_buffers</span> <span class="mi">4</span> <span class="mi">64k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_busy_buffers_size</span> <span class="mi">128k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_connect_timeout</span> <span class="s">60s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_read_timeout</span> <span class="s">60s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">uwsgi_send_timeout</span> <span class="s">60s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kn">access_log</span> <span class="s">/var/log/openresty/myflaskapp_access.log</span> <span class="s">json_combined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">error_log</span> <span class="s">/var/log/openresty/myflaskapp_error.log</span> <span class="s">warn</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="启动-openresty-1">启动 OpenResty
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now openresty
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="使用-jenkins-部署-python">使用 Jenkins 部署 Python
+</h2><p>将代码仓库中的代码和 uWsgi 配置文件实时写入 Web 服务器中。</p>
+<p><img class="gallery-image" data-flex-basis="441px" data-flex-grow="183" height="806" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762243836802-00d2247d-3d63-4f99-8286-60d4e4835de7.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762243836802-00d2247d-3d63-4f99-8286-60d4e4835de7_hu_32503ed69ec64ff6.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762243836802-00d2247d-3d63-4f99-8286-60d4e4835de7.png 1482w" width="1482"></p>
+<p><img class="gallery-image" data-flex-basis="443px" data-flex-grow="184" height="742" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762243910110-946cee14-9db6-4ff3-96b7-ca5b70609656.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762243910110-946cee14-9db6-4ff3-96b7-ca5b70609656_hu_5c8462fcf0e029f.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762243910110-946cee14-9db6-4ff3-96b7-ca5b70609656.png 1372w" width="1372"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">rm -rf deploy.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -czf deploy.tar.gz ./*
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="480px" data-flex-grow="200" height="694" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762245799047-32930039-4ed8-47be-a3d5-553024063b4c.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762245799047-32930039-4ed8-47be-a3d5-553024063b4c_hu_ca9eb249aa036628.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762245799047-32930039-4ed8-47be-a3d5-553024063b4c.png 1390w" width="1390"></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pip3 install flask uwsgi -i https://mirrors.cloud.tencent.com/pypi/simple --trusted-host mirrors.cloud.tencent.com
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">CFLAGS</span><span class="o">=</span><span class="s2">&#34;-std=c99&#34;</span> pip3 install psutil -i https://mirrors.cloud.tencent.com/pypi/simple --trusted-host mirrors.cloud.tencent.com
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">dir_name</span><span class="o">=</span><span class="k">$(</span>date +%Y-%m-%d_%H-%M-%S-%N<span class="k">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mkdir -p /data/python/file
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mv /data/www/deploy.tar.gz /data/python/file/<span class="nv">$dir_name</span>.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">rm -rf <span class="k">$(</span>ll /data/python/ <span class="p">|</span> grep -v <span class="s2">&#34;tar.gz&#34;</span> <span class="p">|</span> grep -v <span class="s2">&#34;file&#34;</span> <span class="p">|</span> grep -v <span class="s2">&#34;uWsgi.ini&#34;</span> <span class="p">|</span> awk <span class="s1">&#39;NR&gt;1{print $NF}&#39;</span> <span class="p">|</span> xargs<span class="k">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf /data/python/file/<span class="nv">$dir_name</span>.tar.gz -C /data/python
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">chown -R openresty.openresty /data/python
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -15 <span class="k">$(</span>ps -ef <span class="p">|</span> grep uwsgi <span class="p">|</span> grep -v grep <span class="p">|</span> awk <span class="s1">&#39;{print $2}&#39;</span> <span class="p">|</span> xargs <span class="k">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /data/python
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">/usr/local/bin/uwsgi --ini uWsgi.ini
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="381px" data-flex-grow="159" height="820" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762245835101-19148f3f-9fc4-4903-9137-5c3d1766b19e.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762245835101-19148f3f-9fc4-4903-9137-5c3d1766b19e_hu_505b8f741ad54bb.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762245835101-19148f3f-9fc4-4903-9137-5c3d1766b19e.png 1304w" width="1304"></p>
+<hr>
+<h1 id="jenkins-部署-php-项目">Jenkins 部署 PHP 项目
+</h1><p>Jenkins 部署 PHP 项目主要配置 Web 服务器路径和 PHP 运行环境，通过代码检查、语法检测和简单的单元测试后，直接将源码同步到 Web 服务器目录，或配合 Composer 安装依赖生成优化文件，实现 PHP 应用的快速迭代和自动化发布。</p>
+<ul>
+<li>代码：<a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/gz/682281/1780973944012-ebe65cff-6fe6-4078-af20-b8f864b032ff.gz"  target="_blank" rel="noopener"
+    >monitor-php.tar.gz</a></li>
+</ul>
+<h2 id="安装-php-环境">安装 PHP 环境
+</h2>
+    <blockquote>
+        <p><strong>说明：</strong> 分别要在 Jenkins 服务器和 Web 服务器上安装。</p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装 EPEL 仓库</span>
+</span></span><span class="line"><span class="cl">yum install -y epel-release
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 Remi 仓库（CentOS 7 为例）</span>
+</span></span><span class="line"><span class="cl">yum install -y https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 yum-utils 工具</span>
+</span></span><span class="line"><span class="cl">yum install -y yum-utils
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启用 PHP 8.0 模块</span>
+</span></span><span class="line"><span class="cl">yum-config-manager --enable remi-php80
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 PHP 8 及常用扩展</span>
+</span></span><span class="line"><span class="cl">yum install -y php php-cli php-fpm php-mysqlnd php-zip php-devel php-gd php-mcrypt php-mbstring php-curl php-xml php-pear php-bcmath php-json php-redis
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看 PHP 版本</span>
+</span></span><span class="line"><span class="cl">php -v
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看已安装的 PHP 扩展</span>
+</span></span><span class="line"><span class="cl">php -m
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="配置-openresty--php-环境">配置 OpenResty + PHP 环境
+</h2>
+    <blockquote>
+        <p><strong>说明：</strong> 在 Web 服务器上执行。</p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 用户统一</span>
+</span></span><span class="line"><span class="cl">vim /etc/php-fpm.d/www.conf
+</span></span><span class="line"><span class="cl"><span class="c1"># 修改为：</span>
+</span></span><span class="line"><span class="cl"><span class="nv">user</span> <span class="o">=</span> openresty
+</span></span><span class="line"><span class="cl"><span class="nv">group</span> <span class="o">=</span> openresty
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>添加 OpenResty + PHP 的 Nginx 配置：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="k">server</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">listen</span> <span class="mi">80</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">server_name</span> <span class="s">wp.example.com</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">root</span> <span class="s">/data/php</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">index</span> <span class="s">index.php</span> <span class="s">index.html</span> <span class="s">index.htm</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># WordPress 固定链接支持
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">try_files</span> <span class="nv">$uri</span> <span class="nv">$uri/</span> <span class="s">/index.php?</span><span class="nv">$args</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># PHP 处理
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="p">~</span> <span class="sr">\.php$</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">try_files</span> <span class="nv">$uri</span> <span class="p">=</span><span class="mi">404</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_pass</span> <span class="n">127.0.0.1</span><span class="p">:</span><span class="mi">9000</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_index</span> <span class="s">index.php</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_param</span> <span class="s">SCRIPT_FILENAME</span> <span class="nv">$document_root$fastcgi_script_name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">include</span> <span class="s">fastcgi_params</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 禁止访问敏感文件
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="p">~</span><span class="sr">*</span> <span class="s">/(\.user.ini|\.htaccess|\.git|\.svn|\.project)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">deny</span> <span class="s">all</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 静态文件缓存
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="p">~</span><span class="sr">*</span> <span class="s">\.(js|css|png|jpg|jpeg|gif|ico|svg)</span>$ <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">expires</span> <span class="s">30d</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">add_header</span> <span class="s">Cache-Control</span> <span class="s">&#34;public,</span> <span class="s">max-age=2592000&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装-composer">安装 Composer
+</h2>
+    <blockquote>
+        <p><strong>说明：</strong> 只需要在 Jenkins 服务器上安装即可。</p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">php -r <span class="s2">&#34;copy(&#39;https://getcomposer.org/installer&#39;, &#39;composer-setup.php&#39;);&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">php -r <span class="s2">&#34;if (hash_file(&#39;sha384&#39;, &#39;composer-setup.php&#39;) === &#39;c8b085408188070d5f52bcfe4ecfbee5f727afa458b2573b8eaaf77b3419b0bf2768dc67c86944da1544f06fa544fd47&#39;) { echo &#39;Installer verified&#39;.PHP_EOL; } else { echo &#39;Installer corrupt&#39;.PHP_EOL; unlink(&#39;composer-setup.php&#39;); exit(1); }&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">php composer-setup.php
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">php -r <span class="s2">&#34;unlink(&#39;composer-setup.php&#39;);&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mv composer.phar /usr/local/bin/composer
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装-composer-源">安装 Composer 源
+</h2>
+    <blockquote>
+        <p><strong>说明：</strong> 只在 Jenkins 服务器上执行。</p>
+
+    </blockquote>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="启动项目">启动项目
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="c1"># Laravel 项目的 Server 配置（核心）
+</span></span></span><span class="line"><span class="cl"><span class="k">server</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">listen</span>       <span class="mi">80</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">listen</span>       <span class="s">[::]:80</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">server_name</span>  <span class="s">laravel.example.com</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">root</span>         <span class="s">/data/your-project-name/public</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">index</span>        <span class="s">index.php</span> <span class="s">index.html</span> <span class="s">index.htm</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 字符编码配置
+</span></span></span><span class="line"><span class="cl">    <span class="kn">charset</span> <span class="s">utf-8</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># Laravel URL 重写
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">try_files</span> <span class="nv">$uri</span> <span class="nv">$uri/</span> <span class="s">/index.php?</span><span class="nv">$query_string</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">expires</span> <span class="s">-1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># PHP 解析配置（对接 PHP-FPM）
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="p">~</span> <span class="sr">\.php$</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_pass</span>   <span class="n">127.0.0.1</span><span class="p">:</span><span class="mi">9000</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_index</span>  <span class="s">index.php</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_param</span>  <span class="s">SCRIPT_FILENAME</span>  <span class="nv">$realpath_root$fastcgi_script_name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">include</span>        <span class="s">fastcgi_params</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        
+</span></span><span class="line"><span class="cl">        <span class="c1"># Laravel 必需的 FastCGI 参数
+</span></span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_param</span>  <span class="s">PATH_INFO</span> <span class="nv">$fastcgi_path_info</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_param</span>  <span class="s">APP_ENV</span> <span class="s">production</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">fastcgi_param</span>  <span class="s">APP_DEBUG</span> <span class="s">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 禁止访问隐藏文件
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="p">~</span> <span class="sr">/\.(?!well-known).*</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">deny</span> <span class="s">all</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">access_log</span> <span class="no">off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">log_not_found</span> <span class="no">off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 禁止访问 Laravel 敏感目录
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="p">~</span> <span class="sr">/(storage|vendor|bootstrap/cache)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">deny</span> <span class="s">all</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">access_log</span> <span class="no">off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">log_not_found</span> <span class="no">off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="配置-jenkins-自动化发布">配置 Jenkins 自动化发布
+</h2><p><em>(此处可以根据您的项目发布步骤添加具体构建后操作配置)</em></p>
+<hr>
+<h1 id="jenkins-部署-前端-项目">Jenkins 部署 前端 项目
+</h1><p>Jenkins 就像一个不知疲倦的自动化部署机器人。当你写好前端代码（比如 Vue 或 React 项目）并提交到代码仓库（如 Git）后，Jenkins 就会被触发启动。它会按照你预设的“流水线脚本”一步步执行任务：首先拉取最新的代码，然后安装项目依赖（比如执行 <code>npm install</code>），接着运行构建命令（如 <code>npm run build</code>）将源代码打包压缩成浏览器能直接运行的 HTML、CSS、JS 等静态文件。最后，Jenkins 会通过 SSH 或 FTP 等方式，将这些构建好的“成品”文件自动上传到你的 Web 服务器（如 Nginx）的指定目录下。这样一来，整个从代码提交到线上更新的过程就实现了全自动化，极大地提高了部署的效率和可靠性。</p>
+<ul>
+<li>代码：<a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/zip/682281/1780491050050-27fce751-c320-4230-b109-787df80cd39b.zip"  target="_blank" rel="noopener"
+    >vue-test.zip</a></li>
+</ul>
+
+    <blockquote>
+        <p><a class="link" href="https://mirrors.cloud.tencent.com/help/npm.html"  target="_blank" rel="noopener"
+    >腾讯云 NPM 镜像源帮助文档</a></p>
+
+    </blockquote>
+<h2 id="安装-nodejs">安装 NodeJS
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://unofficial-builds.nodejs.org/download/release/v23.7.0/node-v23.7.0-linux-x64-glibc-217.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf node-v23.7.0-linux-x64-glibc-217.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mv node-v23.7.0-linux-x64-glibc-217 node-v23.7.0
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export NODE_HOME=/usr/local/node-v23.7.0&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;export PATH=$PATH:$NODE_HOME/bin&#39;</span> &gt;&gt; /etc/profile
+</span></span><span class="line"><span class="cl"><span class="nb">source</span> /etc/profile
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 检查版本</span>
+</span></span><span class="line"><span class="cl">node -v  <span class="c1"># 应输出 v23.7.0</span>
+</span></span><span class="line"><span class="cl">npm -v   <span class="c1"># 应输出 10.9.2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="换源">换源
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">npm config <span class="nb">set</span> registry http://mirrors.tencent.com/npm/
+</span></span><span class="line"><span class="cl">npm config <span class="nb">set</span> strict-ssl <span class="nb">false</span>
+</span></span><span class="line"><span class="cl">npm config list
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="编译-vue-代码">编译 Vue 代码
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">npm install
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">npm run build
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="jenkins--node-编译前端代码">Jenkins + Node 编译前端代码
+</h2><p><img class="gallery-image" data-flex-basis="607px" data-flex-grow="253" height="667" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762325350554-624623d1-b939-4b4b-8ae9-0c53cef0b29f.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762325350554-624623d1-b939-4b4b-8ae9-0c53cef0b29f_hu_faf86ec6eb848935.png 800w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762325350554-624623d1-b939-4b4b-8ae9-0c53cef0b29f_hu_e531232e7eea49d5.png 1600w, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/1762325350554-624623d1-b939-4b4b-8ae9-0c53cef0b29f.png 1689w" width="1689"></p>
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/devops/">DevOps</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins入门与快速部署" height="150" loading="lazy" src="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_3973d9ee80ef8fa5.png" srcset="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_3973d9ee80ef8fa5.png 1x, /p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_9ac2908d21b70e9c.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11b6c480 0%, #fafcfbC0 100%);">
+            <h2 class="article-title">Jenkins入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8S入门与快速部署" height="150" loading="lazy" src="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png" srcset="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png 1x, /p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_38900f2844a9c2a7.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #336ee580 0%, #fefeffC0 100%);">
+            <h2 class="article-title">K8S入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Harbor 企业级镜像仓库部署与配置" height="150" loading="lazy" src="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/52d5a28a-9c8b-48a3-b600-4cdd22d47329_hu_7f2a34b91b26509.png" srcset="/p/harbor-%E4%BC%81%E4%B8%9A%E7%BA%A7%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%85%8D%E7%BD%AE/52d5a28a-9c8b-48a3-b600-4cdd22d47329_hu_7f2a34b91b26509.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #69666780 0%, #fafbfcC0 100%);">
+            <h2 class="article-title">Harbor 企业级镜像仓库部署与配置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post vLLM单卡Docker部署完整指南" height="150" loading="lazy" src="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png" srcset="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_1a3b0cd9c7cf9f29.png 1x, /p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/a54bdba5-86bc-49af-8ae9-75af41daa3b8_hu_dd42eb94b0975759.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #1aa7e380 0%, #05223aC0 100%);">
+            <h2 class="article-title">vLLM单卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post ELK+Kafka+Filebeat+Logstash分布式日志收集系统部署指南" height="150" loading="lazy" src="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/3afcb987-3bef-4ade-b343-93ad1b985424_hu_b9d002c66e4c5698.png" srcset="/p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/3afcb987-3bef-4ade-b343-93ad1b985424_hu_b9d002c66e4c5698.png 1x, /p/elk-kafka-filebeat-logstash%E5%88%86%E5%B8%83%E5%BC%8F%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/3afcb987-3bef-4ade-b343-93ad1b985424_hu_4ef725f80554faa0.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #69b4bb80 0%, #ffffffC0 100%);">
+            <h2 class="article-title">ELK&#43;Kafka&#43;Filebeat&#43;Logstash分布式日志收集系统部署指南</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
