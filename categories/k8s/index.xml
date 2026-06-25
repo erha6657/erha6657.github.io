@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
-        <title>K8S on Erha&#39;s Blog</title>
+        <title>K8s on Erha&#39;s Blog</title>
         <link>https://erha6657.github.io/categories/k8s/</link>
-        <description>Recent content in K8S on Erha&#39;s Blog</description>
+        <description>Recent content in K8s on Erha&#39;s Blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
         <lastBuildDate>Thu, 25 Jun 2026 16:56:00 +0800</lastBuildDate><atom:link href="https://erha6657.github.io/categories/k8s/index.xml" rel="self" type="application/rss+xml" /><item>

@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Prometheus 是一个开源的云原生监控系统，最初由 SoundCloud 开发，现在已成为继 Kubernetes 之后第二个从云原生计算基金会（CNCF）毕业的项目。它的核心设计目标是实现高可靠性和易用性，尤其适合在动态的微服务架构中进行监控。Prometheus 采用独特的 “拉取”（Pull）模型，定期从配置好的目标（如应用程序、服务器）上抓取指标数据，并将其存储在内置的时序数据库中。它还提供了一个强大的查询语言 PromQL，允许用户灵活地查询和聚合这些监控数据，并结合 Alertmanager 组件实现灵活的警报机制。\n">
+<title>Prometheus 监控系统从入门到进阶</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Prometheus 监控系统从入门到进阶">
+<meta property='og:description' content="Prometheus 是一个开源的云原生监控系统，最初由 SoundCloud 开发，现在已成为继 Kubernetes 之后第二个从云原生计算基金会（CNCF）毕业的项目。它的核心设计目标是实现高可靠性和易用性，尤其适合在动态的微服务架构中进行监控。Prometheus 采用独特的 “拉取”（Pull）模型，定期从配置好的目标（如应用程序、服务器）上抓取指标数据，并将其存储在内置的时序数据库中。它还提供了一个强大的查询语言 PromQL，允许用户灵活地查询和聚合这些监控数据，并结合 Alertmanager 组件实现灵活的警报机制。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Prometheus' /><meta property='article:tag' content='监控系统' /><meta property='article:tag' content='云原生' /><meta property='article:published_time' content='2026-06-25T19:03:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T19:03:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo.png' />
+<meta name="twitter:title" content="Prometheus 监控系统从入门到进阶">
+<meta name="twitter:description" content="Prometheus 是一个开源的云原生监控系统，最初由 SoundCloud 开发，现在已成为继 Kubernetes 之后第二个从云原生计算基金会（CNCF）毕业的项目。它的核心设计目标是实现高可靠性和易用性，尤其适合在动态的微服务架构中进行监控。Prometheus 采用独特的 “拉取”（Pull）模型，定期从配置好的目标（如应用程序、服务器）上抓取指标数据，并将其存储在内置的时序数据库中。它还提供了一个强大的查询语言 PromQL，允许用户灵活地查询和聚合这些监控数据，并结合 Alertmanager 组件实现灵活的警报机制。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#-prometheus-启动参数详解表">📊 Prometheus 启动参数详解表</a></li>
+    <li><a href="#使用-openresty-代理-prometheus">使用 Openresty 代理 Prometheus</a>
+      <ol>
+        <li><a href="#安装-openresty">安装 Openresty</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#global-全局配置">global 全局配置</a></li>
+    <li><a href="#alerting-告警插件定义">alerting 告警插件定义</a>
+      <ol>
+        <li><a href="#具体配置解析">具体配置解析</a>
+          <ol>
+            <li><a href="#工作示例">工作示例</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#alertmanager-安装">Alertmanager 安装</a></li>
+    <li><a href="#rule_files-规则文件告警规则">rule_files 规则文件（告警规则）</a>
+      <ol>
+        <li><a href="#first_rulesyml案例">first_rules.yml案例</a></li>
+      </ol>
+    </li>
+    <li><a href="#scrape_configs">scrape_configs</a></li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/">
+            <img alt="Featured image of post Prometheus 监控系统从入门到进阶" height="450" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo.png" width="750">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E7%9B%91%E6%8E%A7/" style="background-color: hsl(51, 60%, 84%); color: hsl(51, 60%, 15%);">
+                监控
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4/" style="background-color: hsl(291, 60%, 84%); color: hsl(291, 60%, 15%);">
+                自动化运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/">Prometheus 监控系统从入门到进阶</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T19:03:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 9 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#-prometheus-启动参数详解表">📊 Prometheus 启动参数详解表</a></li>
+    <li><a href="#使用-openresty-代理-prometheus">使用 Openresty 代理 Prometheus</a>
+      <ol>
+        <li><a href="#安装-openresty">安装 Openresty</a></li>
+      </ol>
+    </li>
+  </ol>
+
+  <ol>
+    <li><a href="#global-全局配置">global 全局配置</a></li>
+    <li><a href="#alerting-告警插件定义">alerting 告警插件定义</a>
+      <ol>
+        <li><a href="#具体配置解析">具体配置解析</a>
+          <ol>
+            <li><a href="#工作示例">工作示例</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#alertmanager-安装">Alertmanager 安装</a></li>
+    <li><a href="#rule_files-规则文件告警规则">rule_files 规则文件（告警规则）</a>
+      <ol>
+        <li><a href="#first_rulesyml案例">first_rules.yml案例</a></li>
+      </ol>
+    </li>
+    <li><a href="#scrape_configs">scrape_configs</a></li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p>Prometheus 是一个开源的云原生监控系统，最初由 SoundCloud 开发，现在已成为继 Kubernetes 之后第二个从云原生计算基金会（CNCF）毕业的项目。它的核心设计目标是实现高可靠性和易用性，尤其适合在动态的微服务架构中进行监控。Prometheus 采用独特的 <strong>“拉取”（Pull）模型</strong>，定期从配置好的目标（如应用程序、服务器）上抓取指标数据，并将其存储在内置的<strong>时序数据库</strong>中。它还提供了一个强大的查询语言 <strong>PromQL</strong>，允许用户灵活地查询和聚合这些监控数据，并结合 Alertmanager 组件实现灵活的警报机制。</p>
+<p>Prometheus 以时间序列数据的形式收集和存储其指标，即指标信息与其记录时的时间戳一起存储，以及称为标签的可选键值对。</p>
+<p>官网：<a class="link" href="https://prometheus.io/"  target="_blank" rel="noopener"
+    >https://prometheus.io/</a></p>
+<h1 id="特性">特性
+</h1><p>Prometheus 的主要特性包括：</p>
+<ul>
+<li>一个多维数据模型，时间序列数据由指标名称和键/值对标识</li>
+<li>PromQL，一种灵活的查询语言，以利用这种维度</li>
+<li>不依赖分布式存储；单个服务器节点是自治的</li>
+<li>时间序列数据通过 HTTP 拉取模型进行采集</li>
+<li>通过中间网关支持推送时间序列</li>
+<li>通过服务发现或静态配置发现目标</li>
+<li>多种图形和仪表盘支持模式</li>
+</ul>
+<h1 id="什么是指标">什么是指标
+</h1><p>通俗地说，指标是数值测量。术语“时间序列”指的是记录随时间的变化。用户想要测量的东西因应用程序而异。对于 Web 服务器，它可能是请求时间；对于数据库，它可能是活动连接数或活动查询数，等等。</p>
+<p>指标在理解您的应用程序为何以某种方式工作方面发挥着重要作用。假设您正在运行一个 Web 应用程序，并发现它很慢。要了解您的应用程序发生了什么，您需要一些信息。例如，当请求数量很高时，应用程序可能会变慢。如果您有请求计数指标，就可以确定原因并增加服务器数量以处理负载。</p>
+<h1 id="组件">组件
+</h1><p>Prometheus生态系统由多个协同工作的核心组件构成，共同提供完整的监控解决方案。</p>
+<p><strong>1. Prometheus Server（核心服务器）</strong><br>
+作为系统核心，负责抓取、存储和处理时序数据。它本身包含三个关键模块：</p>
+<ul>
+<li><strong>Retrieval（数据抓取模块）：</strong> 主动从配置好的监控目标（Target）拉取指标数据。</li>
+<li><strong>Storage（存储引擎）：</strong> 将抓取到的数据持久化存储到内置的时序数据库中，默认保存期限为15天（可调整）。</li>
+<li><strong>PromQL（查询引擎）：</strong> 提供强大的专用查询语言，用于对存储的数据进行实时查询、聚合和分析。</li>
+</ul>
+<p><strong>2. Client Libraries（客户端库）</strong><br>
+为各种编程语言提供的官方SDK。应用程序集成这些库后，能便捷地内置指标采集功能，并通过HTTP接口将数据暴露给Prometheus Server，是实现应用层自定义监控的主要方式。</p>
+<p><strong>3. Exporters（指标导出器）</strong><br>
+用于监控那些自身不支持直接提供指标的服务（如操作系统、数据库、硬件等）。Exporters作为代理，收集这些第三方服务的状态数据，并将其转换为Prometheus可识别的格式暴露出来。</p>
+<p><strong>4. Push Gateway（推送网关）</strong><br>
+作为一个特殊的中转服务，主要用于捕获来自短期任务（如定时批处理作业）的指标数据。这些任务在退出前将数据推送到Pushgateway，随后由Prometheus Server统一拉取，弥补了Pull模型在临时任务监控上的不足。</p>
+<p><strong>5. Alertmanager（告警管理器）</strong><br>
+独立的告警处理中心。它接收来自Prometheus Server的告警信息，并负责进行去重、分组、静默，以及根据路由规则将告警通知发送到正确的接收渠道（如邮件、钉钉、Slack等）。</p>
+<p><strong>6. Service Discovery（服务发现）</strong><br>
+支持多种动态发现监控目标的机制（如基于文件、DNS、Consul、Kubernetes等）。在云原生动态环境中，它能自动发现并监控新的服务实例，无需手动修改配置。</p>
+<p><strong>7. Grafana（数据可视化）</strong><br>
+一个强大的开源可视化工具，常与Prometheus搭配使用。它从Prometheus中查询数据，并提供丰富的图形化仪表盘进行展示，使得监控数据更加直观，同时也支持设置告警通知。</p>
+<h1 id="prometheus架构">Prometheus架构
+</h1><p><img loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1762355817036-045338b0-6ef7-4181-96fa-cb7c950eebb1.svg"></p>
+<h1 id="prometheus-安装">Prometheus 安装
+</h1><p>下载安装包：</p>
+<ul>
+<li><a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/gz/682281/1780491223288-1e87dac8-05ab-48cb-ac78-9a822186ef4f.gz"  target="_blank" rel="noopener"
+    >prometheus-3.5.0.linux-amd64.tar.gz</a></li>
+<li><a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/gz/682281/1780491223467-c1d507b2-ccd6-4702-a242-c350db9a1b0d.gz"  target="_blank" rel="noopener"
+    >prometheus-3.5.1.linux-amd64.tar.gz</a></li>
+<li><a class="link" href="https://www.yuque.com/attachments/yuque/0/2026/gz/682281/1780491223571-ad81e541-5b69-44bc-b972-df463cb7f48d.gz"  target="_blank" rel="noopener"
+    >prometheus-3.9.1.linux-amd64.tar.gz</a></li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf prometheus-3.5.0.linux-amd64.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mv prometheus-3.5.0.linux-amd64 prometheus-3.5.0
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ln -s /usr/local/prometheus-3.5.0 /usr/local/prometheus
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 添加用户</span>
+</span></span><span class="line"><span class="cl">useradd -r -M -s /sbin/nologin prometheus
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建数据目录</span>
+</span></span><span class="line"><span class="cl">mkdir -p /data/prometheus
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">chown -R prometheus.prometheus /usr/local/prometheus
+</span></span><span class="line"><span class="cl">chown -R prometheus.prometheus /data/prometheus
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 添加 service</span>
+</span></span><span class="line"><span class="cl">vim /usr/lib/systemd/system/prometheus.service
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Unit<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Description</span><span class="o">=</span>Prometheus Server
+</span></span><span class="line"><span class="cl"><span class="nv">Documentation</span><span class="o">=</span>https://prometheus.io/
+</span></span><span class="line"><span class="cl"><span class="nv">After</span><span class="o">=</span>network.target
+</span></span><span class="line"><span class="cl"><span class="nv">Wants</span><span class="o">=</span>network.target
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Service<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Type</span><span class="o">=</span>simple
+</span></span><span class="line"><span class="cl"><span class="nv">User</span><span class="o">=</span>prometheus
+</span></span><span class="line"><span class="cl"><span class="nv">Group</span><span class="o">=</span>prometheus
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStartPre</span><span class="o">=</span>/usr/local/prometheus/promtool check config /usr/local/prometheus/prometheus.yml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/local/prometheus/prometheus --web.listen-address<span class="o">=</span>0.0.0.0:9090 --storage.tsdb.path<span class="o">=</span><span class="s2">&#34;/data/prometheus&#34;</span> --storage.tsdb.retention.time<span class="o">=</span>15d --storage.tsdb.retention.size<span class="o">=</span>100GB --web.route-prefix<span class="o">=</span>/prom --storage.tsdb.wal-compression --query.timeout<span class="o">=</span>5s --query.max-concurrency<span class="o">=</span><span class="m">20</span> --web.external-url<span class="o">=</span>http://192.168.20.76:80/prom --config.file<span class="o">=</span>/usr/local/prometheus/prometheus.yml
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">ExecReload</span><span class="o">=</span>/bin/kill -HUP <span class="nv">$MAINPID</span>
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStop</span><span class="o">=</span>/bin/kill -s TERM <span class="nv">$MAINPID</span>
+</span></span><span class="line"><span class="cl"><span class="nv">TimeoutStopSec</span><span class="o">=</span>30s
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 资源限制</span>
+</span></span><span class="line"><span class="cl"><span class="nv">LimitNOFILE</span><span class="o">=</span><span class="m">65536</span>
+</span></span><span class="line"><span class="cl"><span class="nv">LimitNPROC</span><span class="o">=</span><span class="m">2048</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 重启策略</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Restart</span><span class="o">=</span>on-failure
+</span></span><span class="line"><span class="cl"><span class="nv">RestartSec</span><span class="o">=</span>5s
+</span></span><span class="line"><span class="cl"><span class="nv">StartLimitInterval</span><span class="o">=</span>300s
+</span></span><span class="line"><span class="cl"><span class="nv">StartLimitBurst</span><span class="o">=</span><span class="m">3</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Install<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="-prometheus-启动参数详解表">📊 Prometheus 启动参数详解表
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th><strong>参数</strong></th>
+					<th><strong>默认值</strong></th>
+					<th><strong>说明</strong></th>
+					<th><strong>运维建议</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>--web.listen-address</code></td>
+					<td><code>0.0.0.0:9090</code></td>
+					<td>Web界面和API监听地址</td>
+					<td>生产环境建议绑定具体IP，配合防火墙规则</td>
+			</tr>
+			<tr>
+					<td><code>--storage.tsdb.path</code></td>
+					<td><code>data/</code></td>
+					<td>时序数据库存储路径</td>
+					<td>使用独立磁盘，确保足够空间和正确权限</td>
+			</tr>
+			<tr>
+					<td><code>--storage.tsdb.retention.time</code></td>
+					<td><code>15d</code></td>
+					<td>数据保留时间</td>
+					<td>根据业务需求和存储容量调整，通常15-30天</td>
+			</tr>
+			<tr>
+					<td><code>--storage.tsdb.retention.size</code></td>
+					<td>无限制</td>
+					<td>数据保留大小限制</td>
+					<td>设置磁盘容量80%作为安全阈值</td>
+			</tr>
+			<tr>
+					<td><code>--web.route-prefix</code></td>
+					<td><code>/</code></td>
+					<td>Web访问路径前缀</td>
+					<td>反向代理或多实例部署时需配置</td>
+			</tr>
+			<tr>
+					<td><code>--web.external-url</code></td>
+					<td><code>http://localhost:9090/</code></td>
+					<td>外部访问基准URL</td>
+					<td>必须设置为客户端实际访问地址</td>
+			</tr>
+			<tr>
+					<td><code>--config.file</code></td>
+					<td><code>prometheus.yml</code></td>
+					<td>主配置文件路径</td>
+					<td>配置文件应版本控制，定期验证语法</td>
+			</tr>
+	</tbody>
+</table></div>
+<p><img class="gallery-image" data-flex-basis="585px" data-flex-grow="243" height="441" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1762358534284-f6584e90-cbd0-4dc1-91aa-21db8db1d6f9.png" srcset="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1762358534284-f6584e90-cbd0-4dc1-91aa-21db8db1d6f9_hu_e909349bc9112f0.png 800w, /p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/1762358534284-f6584e90-cbd0-4dc1-91aa-21db8db1d6f9.png 1076w" width="1076"></p>
+<h2 id="使用-openresty-代理-prometheus">使用 Openresty 代理 Prometheus
+</h2><h3 id="安装-openresty">安装 Openresty
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">yum install yum-utils
+</span></span><span class="line"><span class="cl">yum-config-manager --add-repo https://openresty.org/package/centos/openresty.repo
+</span></span><span class="line"><span class="cl">yum install openresty openresty-resty
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">cat &gt; /usr/local/openresty/nginx/conf/nginx.conf <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s"># 指定一个无法登录的系统用户作为启动用户
+</span></span></span><span class="line"><span class="cl"><span class="s">user prometheus;
+</span></span></span><span class="line"><span class="cl"><span class="s"># 配置 worker 进程数
+</span></span></span><span class="line"><span class="cl"><span class="s">worker_processes auto;
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># 事件配置块
+</span></span></span><span class="line"><span class="cl"><span class="s">events {
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 每一个 worker 进程能够同时处理的最大进程数
+</span></span></span><span class="line"><span class="cl"><span class="s">        worker_connections  1024;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 指定 I/O 模型
+</span></span></span><span class="line"><span class="cl"><span class="s">        use epoll;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 防止惊群效应
+</span></span></span><span class="line"><span class="cl"><span class="s">        accept_mutex on;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 批量分配链接数
+</span></span></span><span class="line"><span class="cl"><span class="s">        multi_accept on;
+</span></span></span><span class="line"><span class="cl"><span class="s">}
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s"># HTTP 配置块
+</span></span></span><span class="line"><span class="cl"><span class="s">http {
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 指定字符编码
+</span></span></span><span class="line"><span class="cl"><span class="s">        charset utf-8;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 隐藏OpenResty的版本号
+</span></span></span><span class="line"><span class="cl"><span class="s">        server_tokens off;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 定义缓存路径和区域（必须添加这部分）
+</span></span></span><span class="line"><span class="cl"><span class="s">        proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=static_cache:10m max_size=1g inactive=60m use_temp_path=off;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 设置日志格式
+</span></span></span><span class="line"><span class="cl"><span class="s">        # escape=json 是 NGINX log_format 指令的一个参数，它告诉 NGINX 在生成 JSON 日志时自动转义特殊字符，确保输出的 JSON 格式是有效的、可解析的。
+</span></span></span><span class="line"><span class="cl"><span class="s">        log_format json_combined escape=json &#39;{&#34;timestamp&#34;:&#34;$time_iso8601&#34;,&#34;remote_addr&#34;:&#34;$remote_addr&#34;,&#34;remote_user&#34;:&#34;$remote_user&#34;,&#34;request&#34;:&#34;$request&#34;,&#34;status&#34;:&#34;$status&#34;,&#34;body_bytes_sent&#34;:&#34;$body_bytes_sent&#34;,&#34;request_time&#34;:&#34;$request_time&#34;,&#34;http_referer&#34;:&#34;$http_referer&#34;,&#34;http_user_agent&#34;:&#34;$http_user_agent&#34;,&#34;http_x_forwarded_for&#34;:&#34;$http_x_forwarded_for&#34;,&#34;server_name&#34;:&#34;$server_name&#34;,&#34;server_protocol&#34;:&#34;$server_protocol&#34;,&#34;upstream_addr&#34;:&#34;$upstream_addr&#34;,&#34;upstream_status&#34;:&#34;$upstream_status&#34;,&#34;upstream_response_time&#34;:&#34;$upstream_response_time&#34;,&#34;upstream_connect_time&#34;:&#34;$upstream_connect_time&#34;,&#34;upstream_header_time&#34;:&#34;$upstream_header_time&#34;,&#34;request_length&#34;:&#34;$request_length&#34;,&#34;request_method&#34;:&#34;$request_method&#34;,&#34;uri&#34;:&#34;$uri&#34;,&#34;query_string&#34;:&#34;$query_string&#34;,&#34;http_host&#34;:&#34;$http_host&#34;,&#34;scheme&#34;:&#34;$scheme&#34;,&#34;gzip_ratio&#34;:&#34;$gzip_ratio&#34;,&#34;connection&#34;:&#34;$connection&#34;,&#34;connection_requests&#34;:&#34;$connection_requests&#34;,&#34;pipe&#34;:&#34;$pipe&#34;}&#39;;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 设置日志的路径
+</span></span></span><span class="line"><span class="cl"><span class="s">        access_log /var/log/openresty/access.log json_combined;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 错误日志
+</span></span></span><span class="line"><span class="cl"><span class="s">        error_log /var/log/openresty/error.log warn;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 启用 gzip 压缩
+</span></span></span><span class="line"><span class="cl"><span class="s">        gzip on;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 压缩级别：1-9，推荐 4-6（平衡性能与压缩率）
+</span></span></span><span class="line"><span class="cl"><span class="s">        gzip_comp_level 6;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 最小压缩文件大小：小于 1k 的文件不压缩（避免压缩开销大于收益）
+</span></span></span><span class="line"><span class="cl"><span class="s">        gzip_min_length 1k;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 压缩缓冲区：4 个 16k 大小的缓冲区
+</span></span></span><span class="line"><span class="cl"><span class="s">        gzip_buffers 4 16k;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 压缩协议版本：支持 HTTP/1.0 及以上
+</span></span></span><span class="line"><span class="cl"><span class="s">        gzip_http_version 1.0;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 对代理请求启用压缩（如反向代理场景）
+</span></span></span><span class="line"><span class="cl"><span class="s">        gzip_proxied any;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 在响应头添加 Vary: Accept-Encoding，帮助代理服务器正确缓存
+</span></span></span><span class="line"><span class="cl"><span class="s">        gzip_vary on;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 指定需要压缩的 MIME 类型（按需添加）
+</span></span></span><span class="line"><span class="cl"><span class="s">        gzip_types text/css text/xml text/javascript;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 载入 OpenResty 能够识别的文件的类型
+</span></span></span><span class="line"><span class="cl"><span class="s">        include mime.types;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # OpenResty 无法识别文件类型时，默认的文件类型
+</span></span></span><span class="line"><span class="cl"><span class="s">        default_type  application/octet-stream;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 提升系统文件句柄效率
+</span></span></span><span class="line"><span class="cl"><span class="s">        sendfile        on;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 65秒无请求则关闭连接
+</span></span></span><span class="line"><span class="cl"><span class="s">        keepalive_timeout 65s;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 最多处理1000个请求后关闭连接
+</span></span></span><span class="line"><span class="cl"><span class="s">        keepalive_requests 1000;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 合并数据包发送（适合静态资源）
+</span></span></span><span class="line"><span class="cl"><span class="s">        tcp_nopush on;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 减少交互延迟（适合动态内容）
+</span></span></span><span class="line"><span class="cl"><span class="s">        tcp_nodelay on;
+</span></span></span><span class="line"><span class="cl"><span class="s">        # 载入外部的HTTP配置块内部的配置
+</span></span></span><span class="line"><span class="cl"><span class="s">        include /usr/local/openresty/nginx/conf/conf.d/*.conf;
+</span></span></span><span class="line"><span class="cl"><span class="s">}
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mkdir -p /var/cache/nginx
+</span></span><span class="line"><span class="cl">mkdir -p /var/log/openresty
+</span></span><span class="line"><span class="cl">mkdir -p /usr/local/openresty/nginx/conf/conf.d/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">chown -R openresty.openresty /var/cache/nginx /var/log/openresty /usr/local/openresty
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl <span class="nb">enable</span> --now openresty
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>添加 Prometheus 的代理配置。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="k">server</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">listen</span> <span class="mi">80</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">server_name</span> <span class="s">_</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># Prometheus 代理配置
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/prom/</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_pass</span> <span class="s">http://192.168.20.76:9090/prom/</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 重要头部信息
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$host</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-For</span> <span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-Proto</span> <span class="nv">$scheme</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 超时设置
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_connect_timeout</span> <span class="s">30s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_send_timeout</span> <span class="s">30s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_read_timeout</span> <span class="s">30s</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 其他代理设置
+</span></span></span><span class="line"><span class="cl">        <span class="kn">proxy_redirect</span> <span class="no">off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">proxy_buffering</span> <span class="no">off</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 可选：重写根路径到 Prometheus
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="p">=</span> <span class="s">/</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">return</span> <span class="mi">302</span> <span class="s">/prom/</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="prometheus-配置详解">prometheus 配置详解
+</h1><p>Prometheus 的配置详解主要围绕其核心配置文件 <code>prometheus.yml</code> 展开，该文件通过定义全局设置、抓取目标、数据存储规则和告警管理等关键部分，完整地构建了监控体系的运作逻辑。其中，全局区块（global）设定了数据抓取间隔等基础参数，抓取配置区块（scrape_configs）则具体指明了从哪些监控目标（如服务器节点、应用程序接口）拉取指标数据，并可通过标签（labels）对数据进行灵活标记与分类。此外，配置还涉及数据存储路径与保留策略的设定，以及如何与 Alertmanager 联动实现告警规则的触发与通知，从而形成一个从数据采集、存储、查询到告警的端到端监控解决方案。</p>
+<h2 id="global-全局配置">global 全局配置
+</h2><p>Prometheus 的 <code>global</code> 全局配置定义了整个 Prometheus 实例的默认行为，为数据采集、规则评估等核心活动提供了基础设定。下面这个表格汇总了 <code>global</code> 段中常见的配置项及其作用：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>配置参数</th>
+					<th>功能说明</th>
+					<th>默认值</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>scrape_interval</code></td>
+					<td>抓取目标指标数据的默认频率</td>
+					<td><code>1m</code></td>
+			</tr>
+			<tr>
+					<td><code>scrape_timeout</code></td>
+					<td>每次指标抓取请求的超时时间</td>
+					<td><code>10s</code></td>
+			</tr>
+			<tr>
+					<td><code>evaluation_interval</code></td>
+					<td>评估告警规则 (<code>rule_files</code>) 的频率</td>
+					<td><code>1m</code></td>
+			</tr>
+			<tr>
+					<td><code>external_labels</code></td>
+					<td>与外部系统通信时添加的标签（Prometheus主从）</td>
+					<td>无</td>
+			</tr>
+	</tbody>
+</table></div>
+<ul>
+<li>若想<strong>不重启Prometheus</strong>就加载配置，需确保启动参数包含 <code>--web.enable-lifecycle</code>，然后通过 <code>curl -X POST http://localhost:9090/-/reload</code> 触发热加载</li>
+<li>建议在<strong>重载配置前</strong>使用 <code>promtool check config prometheus.yml</code> 命令<strong>验证配置文件语法</strong>，避免因配置错误导致服务异常。</li>
+</ul>
+<h2 id="alerting-告警插件定义">alerting 告警插件定义
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">alerting</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">alert_relabel_configs</span><span class="p">:</span><span class="w"> </span><span class="c"># 动态修改 alert 属性的规则配置</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">source_labels</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">dc] </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">regex</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;(.+)\\d+&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">target_label</span><span class="p">:</span><span class="w"> </span><span class="l">dc1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">alertmanagers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">static_configs</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">targets</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;127.0.0.1:9093&#39;</span><span class="p">]</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="具体配置解析">具体配置解析
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">alert_relabel_configs</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">source_labels</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">dc]       </span><span class="w"> </span><span class="c"># 从现有标签 &#39;dc&#39; 取值</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">regex</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;(.+)\\d+&#34;</span><span class="w">          </span><span class="c"># 正则表达式：匹配 &#34;文字+数字&#34; 的模式</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">target_label</span><span class="p">:</span><span class="w"> </span><span class="l">dc1         </span><span class="w"> </span><span class="c"># 将处理结果保存到新标签 &#39;dc1&#39;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="工作示例">工作示例
+</h4><p>假设有一个告警带有标签 <code>dc=&quot;beijing1&quot;</code>：</p>
+<ol>
+<li><strong>提取源标签</strong>：从 <code>dc</code> 标签获取值 <code>&quot;beijing1&quot;</code></li>
+<li><strong>正则匹配</strong>：
+<ul>
+<li>正则表达式 <code>(.+)\\d+</code> 分解：
+<ul>
+<li><code>(.+)</code>：捕获组，匹配一个或多个任意字符</li>
+<li><code>\\d+</code>：匹配一个或多个数字</li>
+</ul>
+</li>
+<li>对 <code>&quot;beijing1&quot;</code> 的匹配结果：
+<ul>
+<li>整个字符串匹配成功</li>
+<li>捕获组 <code>(.+)</code> 捕获到 <code>&quot;beijing&quot;</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>替换操作</strong>：
+<ul>
+<li>默认动作为 <code>replace</code>，将捕获组的内容赋给目标标签</li>
+<li>新标签：<code>dc1=&quot;beijing&quot;</code></li>
+</ul>
+</li>
+</ol>
+<p><strong>效果</strong>：去掉了数据中心编号，只保留地区名称。</p>
+<h2 id="alertmanager-安装">Alertmanager 安装
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://github.com/prometheus/alertmanager/releases/download/v0.29.0/alertmanager-0.29.0.linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf alertmanager-0.29.0.linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mv alertmanager-0.29.0.linux-amd64 /usr/local/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ln -s /usr/local/alertmanager-0.29.0.linux-amd64 /usr/local/alertmanager
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">mkdir -p /var/lib/alertmanager
+</span></span><span class="line"><span class="cl">chown -R prometheus.prometheus /var/lib/alertmanager
+</span></span><span class="line"><span class="cl">chown -R prometheus.prometheus /usr/local/alertmanager
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo tee /etc/systemd/system/alertmanager.service &gt; /dev/null <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Alertmanager
+</span></span></span><span class="line"><span class="cl"><span class="s">Wants=network-online.target
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network-online.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">User=prometheus
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=prometheus
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">WorkingDirectory=/usr/local/alertmanager/
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/local/alertmanager/alertmanager --config.file=/usr/local/alertmanager/alertmanager.yml --storage.path=/var/lib/alertmanager --web.route-prefix=/alert --log.level=info --log.format=logfmt --data.retention=120h --web.timeout=5s --web.external-url=http://10.1.0.80:9093/alert --web.listen-address=0.0.0.0:9093
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=always
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>--config.file</code> ：指定 AlertManager 的配置文件</li>
+<li><code>--storage.path</code> ：指定 AlertManager 的数据存储目录</li>
+<li><code>--web.route-prefix</code> ： 定义 AlertManager 的访问的默认路径后缀</li>
+<li><code>--log.level</code> ： 指定输出的 AlertManager 的日志登记</li>
+<li><code>--log.format</code> ： 输出的日志的格式</li>
+<li><code>--data.retention</code> ： 保存监控告警数据的时间</li>
+<li><code>--web.timeout</code> ： web访问超时时间</li>
+<li><code>--web.external-url</code> ： 指定 web 访问的 URL</li>
+<li><code>--web.listen-address</code> ： web 服务监听的端口</li>
+</ul>
+<p>测试是否正常：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 检查健康状态</span>
+</span></span><span class="line"><span class="cl">curl http://localhost:9093/-/healthy
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 检查就绪状态</span>
+</span></span><span class="line"><span class="cl">curl http://localhost:9093/-/ready
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看运行时信息</span>
+</span></span><span class="line"><span class="cl">curl http://localhost:9093/api/v2/status
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 重载配置（如果启用了 web.enable-lifecycle）</span>
+</span></span><span class="line"><span class="cl">curl -X POST http://localhost:9093/-/reload
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="rule_files-规则文件告警规则">rule_files 规则文件（告警规则）
+</h2><p>这段内容主要介绍了告警规则的配置。其核心作用是定义基于哪些指标来触发报警（类似于触发器机制）。规则设定完成后，Prometheus 会根据全局配置中的 <code>evaluation_interval</code> 参数定期扫描并加载这些规则；当规则发生变更时，系统也会自动完成加载。</p>
+<p>至于报警信息的传递方式和路由分配，则由 Alertmanager 插件负责实现。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># Load rules once and periodically evaluate them according to the global &#39;evaluation_interval&#39;.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">rule_files</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span>- <span class="s2">&#34;/usr/local/prometheus/rules/*.yaml&#34;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="first_rulesyml案例">first_rules.yml案例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 告警组 对一组相关的告警进行统一定义，下面可定义多个告警规则</span>
+</span></span><span class="line"><span class="cl">groups:
+</span></span><span class="line"><span class="cl">- name: test-rules
+</span></span><span class="line"><span class="cl">  rules:
+</span></span><span class="line"><span class="cl">    - alert: InstanceDown <span class="c1"># 告警规则的名称</span>
+</span></span><span class="line"><span class="cl">      expr: up<span class="o">{</span><span class="nv">job</span><span class="o">=</span><span class="s2">&#34;prometheus&#34;</span><span class="o">}</span> <span class="o">==</span> <span class="m">0</span> <span class="c1"># 告警的判定条件，参考PromQL高级查询来设定</span>
+</span></span><span class="line"><span class="cl">      <span class="k">for</span>: 10s <span class="c1"># 满足告警条件持续时间多久后，才会发送告警</span>
+</span></span><span class="line"><span class="cl">      labels: <span class="c1">#标签项</span>
+</span></span><span class="line"><span class="cl">        severity: error
+</span></span><span class="line"><span class="cl">      annotations: <span class="c1"># 解析项，详细解释告警信息;在告警产生时会一同作为参数发送到alertmanager</span>
+</span></span><span class="line"><span class="cl">        summary: <span class="s2">&#34;{{</span><span class="nv">$labels</span><span class="s2">.instance}}: has been down,is {{</span><span class="nv">$value</span><span class="s2">}}&#34;</span>  <span class="c1">#摘要</span>
+</span></span><span class="line"><span class="cl">        description: <span class="s2">&#34;{{</span><span class="nv">$labels</span><span class="s2">.instance}}: job {{</span><span class="nv">$labels</span><span class="s2">.job}} has been down &#34;</span>  <span class="c1">#描述</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="scrape_configs">scrape_configs
+</h2><p><code>scrape_configs</code> 是 Prometheus 配置的核心部分，用于定义<strong>抓取目标</strong>和<strong>抓取行为</strong>。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">scrape_configs:
+</span></span><span class="line"><span class="cl">  <span class="c1"># 抓取 Prometheus 自身指标</span>
+</span></span><span class="line"><span class="cl">  - job_name: <span class="s1">&#39;prometheus&#39;</span>
+</span></span><span class="line"><span class="cl">    static_configs:
+</span></span><span class="line"><span class="cl">      - targets: <span class="o">[</span><span class="s1">&#39;localhost:9090&#39;</span><span class="o">]</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="c1"># 抓取 Node Exporter 指标</span>
+</span></span><span class="line"><span class="cl">  - job_name: <span class="s1">&#39;node-exporter&#39;</span>
+</span></span><span class="line"><span class="cl">    static_configs:
+</span></span><span class="line"><span class="cl">      - targets: <span class="o">[</span><span class="s1">&#39;node-exporter:9100&#39;</span><span class="o">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>job_name</code> ：定义抓取任务的名称，会作为 <code>job</code> 标签附加到所有抓取的指标上。</p>
+<p><code>scrape_interval</code> ：抓取间隔，覆盖全局的 <code>scrape_interval</code>。</p>
+<p><code>scrape_timeout</code>：抓取超时时间。</p>
+<p><code>metrics_path</code>：指标路径，默认为 <code>/metrics</code></p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/prometheus/">Prometheus</a>
+        
+            <a href="/tags/%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F/">监控系统</a>
+        
+            <a href="/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Prometheus 常用 Exporter 安装与配置" height="150" loading="lazy" src="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo_hu_d3ed806a757a47e8.png" srcset="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo_hu_d3ed806a757a47e8.png 1x, /p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo_hu_e6e6345858b987f9.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #eee8e780 0%, #e55333C0 100%);">
+            <h2 class="article-title">Prometheus 常用 Exporter 安装与配置</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8S入门与快速部署" height="150" loading="lazy" src="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png" srcset="/p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_5f4a284001b09311.png 1x, /p/k8s%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/k8s_logo_hu_38900f2844a9c2a7.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #336ee580 0%, #fefeffC0 100%);">
+            <h2 class="article-title">K8S入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins Pipeline 与多节点架构配置完整指南" height="150" loading="lazy" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/Jenkins+k8s_hu_b3d2473df09b7689.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/Jenkins+k8s_hu_b3d2473df09b7689.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #28222280 0%, #fbf9f6C0 100%);">
+            <h2 class="article-title">Jenkins Pipeline 与多节点架构配置完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测" height="150" loading="lazy" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267_hu_8140ec60a1b86383.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267_hu_8140ec60a1b86383.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #4499ce80 0%, #0a080aC0 100%);">
+            <h2 class="article-title">SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端" height="150" loading="lazy" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_cd2617af23e8a79c.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_cd2617af23e8a79c.png 1x, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_1ca24c247c8c23b5.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11121480 0%, #fefefdC0 100%);">
+            <h2 class="article-title">Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>

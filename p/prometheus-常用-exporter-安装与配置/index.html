@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Exporter（导出器）是监控系统中的一个核心数据采集组件，通常与 Prometheus 这类时序数据库配合使用。它的核心职责是将各种监控目标（如操作系统、应用程序、数据库、硬件设备）的内部运行状态 and 指标，抓取并转换为 Prometheus 能够直接识别和存储的标准化格式（通常是 HTTP 接口暴露的纯文本数据）。简单来说，Exporter 充当了一个“翻译官”的角色，架起了异构系统与统一监控平台之间的桥梁。通过部署对应的 Exporter（如 node_exporter 用于服务器硬件指标，mysqld_exporter 用于 MySQL 数据库指标），我们可以轻松实现对各类基础设施和服务的性能监控、健康状态检查与告警。\n">
+<title>Prometheus 常用 Exporter 安装与配置</title>
+
+
+<link rel="canonical" href="https://erha6657.github.io/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="Prometheus 常用 Exporter 安装与配置">
+<meta property='og:description' content="Exporter（导出器）是监控系统中的一个核心数据采集组件，通常与 Prometheus 这类时序数据库配合使用。它的核心职责是将各种监控目标（如操作系统、应用程序、数据库、硬件设备）的内部运行状态 and 指标，抓取并转换为 Prometheus 能够直接识别和存储的标准化格式（通常是 HTTP 接口暴露的纯文本数据）。简单来说，Exporter 充当了一个“翻译官”的角色，架起了异构系统与统一监控平台之间的桥梁。通过部署对应的 Exporter（如 node_exporter 用于服务器硬件指标，mysqld_exporter 用于 MySQL 数据库指标），我们可以轻松实现对各类基础设施和服务的性能监控、健康状态检查与告警。\n">
+<meta property='og:url' content='https://erha6657.github.io/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/'>
+<meta property='og:site_name' content='Erha&#39;s Blog'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='监控' /><meta property='article:published_time' content='2026-06-25T19:05:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-25T19:05:00&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo.png' />
+<meta name="twitter:title" content="Prometheus 常用 Exporter 安装与配置">
+<meta name="twitter:description" content="Exporter（导出器）是监控系统中的一个核心数据采集组件，通常与 Prometheus 这类时序数据库配合使用。它的核心职责是将各种监控目标（如操作系统、应用程序、数据库、硬件设备）的内部运行状态 and 指标，抓取并转换为 Prometheus 能够直接识别和存储的标准化格式（通常是 HTTP 接口暴露的纯文本数据）。简单来说，Exporter 充当了一个“翻译官”的角色，架起了异构系统与统一监控平台之间的桥梁。通过部署对应的 Exporter（如 node_exporter 用于服务器硬件指标，mysqld_exporter 用于 MySQL 数据库指标），我们可以轻松实现对各类基础设施和服务的性能监控、健康状态检查与告警。\n"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://erha6657.github.io/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo.png' />
+    <link rel="shortcut icon" href="img/avatar.png" />
+
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="/img/avatar.jpg" 
+                        width="150"
+                        height="150"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+                    <span class="emoji">✏️</span>
+                
+            </figure>
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Erha&#39;s Blog</a></h1>
+            <h2 class="site-description">生活本应沉闷,跑起来总会有风</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://github.com/erha6657'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页 | Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类&amp;标签</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E6%8A%80%E6%9C%AF%E9%93%BE%E6%8E%A5/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>技术链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ol>
+    <li><a href="#mysql-创建用户">MySQL 创建用户</a></li>
+    <li><a href="#安装-mysqld_exporter">安装 mysqld_exporter</a></li>
+    <li><a href="#添加-mysqld_exporter的配置">添加 mysqld_exporter的配置</a></li>
+    <li><a href="#直接启动">直接启动</a></li>
+    <li><a href="#创建-systemd-服务推荐">创建 systemd 服务（推荐）</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装">安装</a></li>
+    <li><a href="#启动">启动</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-blackbox_exporter">安装 blackbox_exporter</a></li>
+    <li><a href="#配置">配置</a></li>
+    <li><a href="#启动探测模块">启动探测模块</a></li>
+    <li><a href="#启动-1">启动</a></li>
+    <li><a href="#与-prometheus-相连">与 Prometheus 相连</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#添加依赖">添加依赖</a></li>
+    <li><a href="#配置应用属性">配置应用属性</a></li>
+  </ol>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+    <div class="article-image">
+        <a href="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/">
+            <img alt="Featured image of post Prometheus 常用 Exporter 安装与配置" height="450" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/prometheus_logo.png" width="750">
+        </a>
+    </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/%E7%9B%91%E6%8E%A7/" style="background-color: hsl(51, 60%, 84%); color: hsl(51, 60%, 15%);">
+                监控
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E8%BF%90%E7%BB%B4/" style="background-color: hsl(291, 60%, 84%); color: hsl(291, 60%, 15%);">
+                自动化运维
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" style="background-color: hsl(237, 60%, 84%); color: hsl(237, 60%, 15%);">
+                学习笔记
+            </a>
+        
+            
+            
+            
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/">Prometheus 常用 Exporter 安装与配置</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    
+    
+    
+    
+    
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-06-25T19:05:00&#43;08:00'>2026年6月25日星期四</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        阅读时长: 4 分钟
+                    </time>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>目录</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ol>
+    <li><a href="#mysql-创建用户">MySQL 创建用户</a></li>
+    <li><a href="#安装-mysqld_exporter">安装 mysqld_exporter</a></li>
+    <li><a href="#添加-mysqld_exporter的配置">添加 mysqld_exporter的配置</a></li>
+    <li><a href="#直接启动">直接启动</a></li>
+    <li><a href="#创建-systemd-服务推荐">创建 systemd 服务（推荐）</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装">安装</a></li>
+    <li><a href="#启动">启动</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#安装-blackbox_exporter">安装 blackbox_exporter</a></li>
+    <li><a href="#配置">配置</a></li>
+    <li><a href="#启动探测模块">启动探测模块</a></li>
+    <li><a href="#启动-1">启动</a></li>
+    <li><a href="#与-prometheus-相连">与 Prometheus 相连</a></li>
+  </ol>
+
+  <ol>
+    <li><a href="#添加依赖">添加依赖</a></li>
+    <li><a href="#配置应用属性">配置应用属性</a></li>
+  </ol>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <p>Exporter（导出器）是监控系统中的一个核心数据采集组件，通常与 Prometheus 这类时序数据库配合使用。它的核心职责是<strong>将各种监控目标（如操作系统、应用程序、数据库、硬件设备）的内部运行状态 and 指标，抓取并转换为 Prometheus 能够直接识别和存储的标准化格式（通常是 HTTP 接口暴露的纯文本数据）</strong>。简单来说，Exporter 充当了一个“翻译官”的角色，架起了异构系统与统一监控平台之间的桥梁。通过部署对应的 Exporter（如 node_exporter 用于服务器硬件指标，mysqld_exporter 用于 MySQL 数据库指标），我们可以轻松实现对各类基础设施和服务的性能监控、健康状态检查与告警。</p>
+<h1 id="安装-node_exporter">安装 node_exporter
+</h1><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf node_exporter-1.10.2.linux-amd64.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ln -s /usr/local/node_exporter-1.10.2.linux-amd64 /usr/local/node_exporter
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 设置文件权限</span>
+</span></span><span class="line"><span class="cl">sudo chown -R prometheus:prometheus /usr/local/node_exporter-1.10.2.linux-amd64
+</span></span><span class="line"><span class="cl">sudo chown -R prometheus:prometheus /usr/local/node_exporter
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo tee /etc/systemd/system/node_exporter.service &gt; /dev/null <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">[Unit]
+</span></span></span><span class="line"><span class="cl"><span class="s">Description=Node Exporter
+</span></span></span><span class="line"><span class="cl"><span class="s">Documentation=https://prometheus.io/docs/guides/node-exporter/
+</span></span></span><span class="line"><span class="cl"><span class="s">Wants=network-online.target
+</span></span></span><span class="line"><span class="cl"><span class="s">After=network-online.target
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Service]
+</span></span></span><span class="line"><span class="cl"><span class="s">User=prometheus
+</span></span></span><span class="line"><span class="cl"><span class="s">Group=prometheus
+</span></span></span><span class="line"><span class="cl"><span class="s">Type=simple
+</span></span></span><span class="line"><span class="cl"><span class="s">Restart=on-failure
+</span></span></span><span class="line"><span class="cl"><span class="s">ExecStart=/usr/local/node_exporter/node_exporter \
+</span></span></span><span class="line"><span class="cl"><span class="s">    --web.listen-address=:9100 \
+</span></span></span><span class="line"><span class="cl"><span class="s">    --path.rootfs=/
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">[Install]
+</span></span></span><span class="line"><span class="cl"><span class="s">WantedBy=multi-user.target
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 创建配置目录</span>
+</span></span><span class="line"><span class="cl">sudo mkdir -p /etc/node_exporter/textfile_collector
+</span></span><span class="line"><span class="cl">sudo chown -R prometheus:prometheus /etc/node_exporter
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 设置目录权限</span>
+</span></span><span class="line"><span class="cl">sudo chmod <span class="m">755</span> /etc/node_exporter
+</span></span><span class="line"><span class="cl">sudo chmod <span class="m">755</span> /etc/node_exporter/textfile_collector
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo systemctl daemon-reload
+</span></span><span class="line"><span class="cl">sudo systemctl start node_exporter
+</span></span><span class="line"><span class="cl">sudo systemctl status node_exporter
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> node_exporter
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="添加至-prometheus">添加至 Prometheus
+</h1><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">scrape_configs</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">job_name</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;prometheus&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">static_configs</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">targets</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;localhost:9090&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;prometheus&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">job_name</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;node_exporter&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">static_configs</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">targets</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;10.1.0.70:9100&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;node&#34;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><img class="gallery-image" data-flex-basis="546px" data-flex-grow="227" height="513" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/1762436924761-7819cad0-04ce-45c4-9864-b230b177325f.png" srcset="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/1762436924761-7819cad0-04ce-45c4-9864-b230b177325f_hu_beb1d83afb4cd6d6.png 800w, /p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/1762436924761-7819cad0-04ce-45c4-9864-b230b177325f.png 1168w" width="1168"></p>
+<h1 id="mysqld_exporter">mysqld_exporter
+</h1><p>MySQLD_Exporter 是用来收集 MySQL 数据库的监控数据的。</p>
+<h2 id="mysql-创建用户">MySQL 创建用户
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 创建允许从任何IP连接的用户（生产环境建议限制IP）
+</span></span></span><span class="line"><span class="cl"><span class="k">CREATE</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="s1">&#39;exporter&#39;</span><span class="o">@</span><span class="s1">&#39;%&#39;</span><span class="w"> </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="s1">&#39;Chen1234546!&#39;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">GRANT</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">PRIVILEGES</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="o">*</span><span class="p">.</span><span class="o">*</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="s1">&#39;exporter&#39;</span><span class="o">@</span><span class="s1">&#39;%&#39;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">-- 刷新权限
+</span></span></span><span class="line"><span class="cl"><span class="n">FLUSH</span><span class="w"> </span><span class="k">PRIVILEGES</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="安装-mysqld_exporter">安装 mysqld_exporter
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.18.0/mysqld_exporter-0.18.0.linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf mysqld_exporter-0.18.0.linux-amd64.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">ln -s /usr/local/mysqld_exporter-0.18.0.linux-amd64 /usr/local/mysqld_exporter
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="添加-mysqld_exporter的配置">添加 mysqld_exporter的配置
+</h2><p><code>/usr/local/mysqld_exporter/.my.cnf</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>client<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">user</span><span class="o">=</span>exporter
+</span></span><span class="line"><span class="cl"><span class="nv">password</span><span class="o">=</span>你的密码
+</span></span><span class="line"><span class="cl"><span class="nv">host</span><span class="o">=</span>localhost
+</span></span><span class="line"><span class="cl"><span class="nv">port</span><span class="o">=</span><span class="m">3306</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="直接启动">直接启动
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./mysqld_exporter <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --config.my-cnf<span class="o">=</span>/usr/local/mysqld_exporter/.my.cnf <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --web.listen-address<span class="o">=</span>:9104
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="创建-systemd-服务推荐">创建 systemd 服务（推荐）
+</h2><p><code>sudo vi /etc/systemd/system/mysqld_exporter.service</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>Unit<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Description</span><span class="o">=</span>Prometheus MySQL Exporter
+</span></span><span class="line"><span class="cl"><span class="nv">After</span><span class="o">=</span>network.target
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Service<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">User</span><span class="o">=</span>prometheus
+</span></span><span class="line"><span class="cl"><span class="nv">Group</span><span class="o">=</span>prometheus
+</span></span><span class="line"><span class="cl"><span class="nv">Type</span><span class="o">=</span>simple
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/local/mysqld_exporter/mysqld_exporter <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --config.my-cnf<span class="o">=</span>/usr/local/mysqld_exporter/.my.cnf <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --web.listen-address<span class="o">=</span>:9104
+</span></span><span class="line"><span class="cl"><span class="nv">Restart</span><span class="o">=</span>always
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Install<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="redis_exporter">redis_exporter
+</h1><h2 id="安装">安装
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://github.com/oliver006/redis_exporter/releases/download/v1.80.0/redis_exporter-v1.80.0.linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf redis_exporter-v1.80.0.linux-amd64.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ln -s /usr/local/redis_exporter-v1.80.0.linux-amd64 /usr/local/redis_exporter
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="启动">启动
+</h2><p><code>sudo vi /etc/systemd/system/redis_exporter.service</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>Unit<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Description</span><span class="o">=</span>Redis Exporter <span class="k">for</span> Prometheus
+</span></span><span class="line"><span class="cl"><span class="nv">Documentation</span><span class="o">=</span>https://github.com/oliver006/redis_exporter
+</span></span><span class="line"><span class="cl"><span class="nv">Wants</span><span class="o">=</span>network-online.target
+</span></span><span class="line"><span class="cl"><span class="nv">After</span><span class="o">=</span>network-online.target
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Service<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Type</span><span class="o">=</span>simple
+</span></span><span class="line"><span class="cl"><span class="nv">User</span><span class="o">=</span>redis
+</span></span><span class="line"><span class="cl"><span class="nv">Group</span><span class="o">=</span>redis
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 启动命令</span>
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/local/redis_exporter/redis_exporter --web.listen-address<span class="o">=</span>:9121 --redis.addr<span class="o">=</span>127.0.0.1 --redis.password<span class="o">=</span>Chen123456! --log-format<span class="o">=</span>json
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">Restart</span><span class="o">=</span>always
+</span></span><span class="line"><span class="cl"><span class="nv">RestartSec</span><span class="o">=</span><span class="m">5</span>
+</span></span><span class="line"><span class="cl"><span class="nv">StartLimitInterval</span><span class="o">=</span><span class="m">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安全设置</span>
+</span></span><span class="line"><span class="cl"><span class="nv">NoNewPrivileges</span><span class="o">=</span>yes
+</span></span><span class="line"><span class="cl"><span class="nv">PrivateTmp</span><span class="o">=</span>yes
+</span></span><span class="line"><span class="cl"><span class="nv">ProtectSystem</span><span class="o">=</span>strict
+</span></span><span class="line"><span class="cl"><span class="nv">ProtectHome</span><span class="o">=</span>yes
+</span></span><span class="line"><span class="cl"><span class="nv">ReadWritePaths</span><span class="o">=</span>/var/lib/redis_exporter
+</span></span><span class="line"><span class="cl"><span class="nv">ProtectKernelTunables</span><span class="o">=</span>yes
+</span></span><span class="line"><span class="cl"><span class="nv">ProtectKernelModules</span><span class="o">=</span>yes
+</span></span><span class="line"><span class="cl"><span class="nv">ProtectControlGroups</span><span class="o">=</span>yes
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Install<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="blackbox_exporter">blackbox_exporter
+</h1><p>Blackbox Exporter是Prometheus官方推出的黑盒监控工具，允许您从外部探测目标服务的可用性，支持HTTP/HTTPS、TCP、ICMP、DNS和gRPC等多种协议。下面我将为您详细介绍几种主流的安装方式。</p>
+<h2 id="安装-blackbox_exporter">安装 blackbox_exporter
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.27.0/blackbox_exporter-0.27.0.linux-amd64.tar.gz
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">tar -xf blackbox_exporter-0.27.0.linux-amd64.tar.gz -C /usr/local/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ln -s /usr/local/blackbox_exporter-0.27.0.linux-amd64 /usr/local/blackbox_exporter
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">chown -R prometheus.prometheus /usr/local/blackbox_exporter
+</span></span><span class="line"><span class="cl">chown -R prometheus.prometheus /usr/local/blackbox_exporter/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="配置">配置
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">modules</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">http_2xx</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">prober</span><span class="p">:</span><span class="w"> </span><span class="l">http</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">http</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">preferred_ip_protocol</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;ip4&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">http_post_2xx</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">prober</span><span class="p">:</span><span class="w"> </span><span class="l">http</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">http</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">method</span><span class="p">:</span><span class="w"> </span><span class="l">POST</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">tcp_connect</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">prober</span><span class="p">:</span><span class="w"> </span><span class="l">tcp</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ssh_banner</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">prober</span><span class="p">:</span><span class="w"> </span><span class="l">tcp</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">tcp</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">query_response</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">expect</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;^SSH-2.0-&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">send</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;SSH-2.0-blackbox-ssh-check&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ssh_banner_extract</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">prober</span><span class="p">:</span><span class="w"> </span><span class="l">tcp</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l">5s</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">tcp</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">query_response</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">expect</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;^SSH-2.0-([^ -]+)(?: (.*))?$&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">ssh_version</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;${1}&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">ssh_comments</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;${2}&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">icmp</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">prober</span><span class="p">:</span><span class="w"> </span><span class="l">icmp</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">icmp_ttl5</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">prober</span><span class="p">:</span><span class="w"> </span><span class="l">icmp</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l">5s</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">icmp</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ttl</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="启动探测模块">启动探测模块
+</h2><p>Blackbox Exporter 的行为由一个名为 <code>blackbox.yml</code> 的配置文件定义。解压后目录内通常自带一个默认配置文件，您可以直接使用它，或根据需要进行修改。以下是一个支持HTTP、TCP和ICMP探测的基础配置示例：</p>
+<p><code>/etc/systemd/system/blackbox-exporter.service</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[</span>Unit<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Description</span><span class="o">=</span>Prometheus Blackbox Exporter
+</span></span><span class="line"><span class="cl"><span class="nv">After</span><span class="o">=</span>network.target
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Service<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Type</span><span class="o">=</span>simple
+</span></span><span class="line"><span class="cl"><span class="nv">User</span><span class="o">=</span>prometheus
+</span></span><span class="line"><span class="cl"><span class="nv">Group</span><span class="o">=</span>prometheus
+</span></span><span class="line"><span class="cl"><span class="nv">ExecStart</span><span class="o">=</span>/usr/local/blackbox_exporter/blackbox_exporter --config.file<span class="o">=</span>/usr/local/blackbox_exporter/blackbox.yml
+</span></span><span class="line"><span class="cl"><span class="nv">Restart</span><span class="o">=</span>on-failure
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Install<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启动后，默认监听在 <strong>9115</strong> 端口。您可以通过浏览器访问 <code>http://你的服务器IP:9115</code> 来验证服务是否正常运行。</p>
+<h2 id="启动-1">启动
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl daemon-reload
+</span></span><span class="line"><span class="cl">sudo systemctl start blackbox-exporter
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> blackbox-exporter  <span class="c1"># 设置开机自启</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="与-prometheus-相连">与 Prometheus 相连
+</h2><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 监控网站 HTTP/HTTPS</span>
+</span></span><span class="line"><span class="cl">- job_name: <span class="s1">&#39;website_http&#39;</span>
+</span></span><span class="line"><span class="cl">  metrics_path: /probe
+</span></span><span class="line"><span class="cl">  params:
+</span></span><span class="line"><span class="cl">    module: <span class="o">[</span>http_2xx<span class="o">]</span>
+</span></span><span class="line"><span class="cl">  static_configs:
+</span></span><span class="line"><span class="cl">    - targets:
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;https://www.baidu.com&#39;</span>
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;https://www.google.com&#39;</span>
+</span></span><span class="line"><span class="cl">  relabel_configs:
+</span></span><span class="line"><span class="cl">    - source_labels: <span class="o">[</span>__address__<span class="o">]</span>
+</span></span><span class="line"><span class="cl">      target_label: __param_target
+</span></span><span class="line"><span class="cl">    - source_labels: <span class="o">[</span>__param_target<span class="o">]</span>
+</span></span><span class="line"><span class="cl">      target_label: instance
+</span></span><span class="line"><span class="cl">    - target_label: __address__
+</span></span><span class="line"><span class="cl">      replacement: 127.0.0.1:9115
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 监控 SSH 服务</span>
+</span></span><span class="line"><span class="cl">- job_name: <span class="s1">&#39;ssh_services&#39;</span>
+</span></span><span class="line"><span class="cl">  metrics_path: /probe
+</span></span><span class="line"><span class="cl">  params:
+</span></span><span class="line"><span class="cl">    module: <span class="o">[</span>ssh_banner<span class="o">]</span>
+</span></span><span class="line"><span class="cl">  static_configs:
+</span></span><span class="line"><span class="cl">    - targets:
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;10.1.0.60:22&#39;</span>
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;10.1.0.80:22&#39;</span>
+</span></span><span class="line"><span class="cl">  relabel_configs:
+</span></span><span class="line"><span class="cl">    - source_labels: <span class="o">[</span>__address__<span class="o">]</span>
+</span></span><span class="line"><span class="cl">      target_label: __param_target
+</span></span><span class="line"><span class="cl">    - source_labels: <span class="o">[</span>__param_target<span class="o">]</span>
+</span></span><span class="line"><span class="cl">      target_label: instance
+</span></span><span class="line"><span class="cl">    - target_label: __address__
+</span></span><span class="line"><span class="cl">      replacement: 127.0.0.1:9115
+</span></span><span class="line"><span class="cl">      
+</span></span><span class="line"><span class="cl"><span class="c1"># 监控 TCP 端口连通性</span>
+</span></span><span class="line"><span class="cl">- job_name: <span class="s1">&#39;tcp_ports&#39;</span>
+</span></span><span class="line"><span class="cl">  metrics_path: /probe
+</span></span><span class="line"><span class="cl">  params:
+</span></span><span class="line"><span class="cl">    module: <span class="o">[</span>tcp_connect<span class="o">]</span>  <span class="c1"># 使用TCP连接探测模块</span>
+</span></span><span class="line"><span class="cl">  static_configs:
+</span></span><span class="line"><span class="cl">    - targets:
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;10.1.0.60:22&#39;</span>
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;10.1.0.80:22&#39;</span>
+</span></span><span class="line"><span class="cl">  relabel_configs:
+</span></span><span class="line"><span class="cl">    - source_labels: <span class="o">[</span>__address__<span class="o">]</span>
+</span></span><span class="line"><span class="cl">      target_label: __param_target
+</span></span><span class="line"><span class="cl">    - source_labels: <span class="o">[</span>__param_target<span class="o">]</span>
+</span></span><span class="line"><span class="cl">      target_label: instance
+</span></span><span class="line"><span class="cl">    - target_label: __address__
+</span></span><span class="line"><span class="cl">      replacement: 127.0.0.1:9115
+</span></span><span class="line"><span class="cl">      
+</span></span><span class="line"><span class="cl"><span class="c1"># 监控 ICMP (Ping)</span>
+</span></span><span class="line"><span class="cl">- job_name: <span class="s1">&#39;icmp_ping&#39;</span>
+</span></span><span class="line"><span class="cl">  metrics_path: /probe
+</span></span><span class="line"><span class="cl">  params:
+</span></span><span class="line"><span class="cl">    module: <span class="o">[</span>icmp<span class="o">]</span>
+</span></span><span class="line"><span class="cl">  static_configs:
+</span></span><span class="line"><span class="cl">    - targets:
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;10.1.0.60&#39;</span>
+</span></span><span class="line"><span class="cl">      - <span class="s1">&#39;10.1.0.80&#39;</span>
+</span></span><span class="line"><span class="cl">  relabel_configs:
+</span></span><span class="line"><span class="cl">    - source_labels: <span class="o">[</span>__address__<span class="o">]</span>
+</span></span><span class="line"><span class="cl">      target_label: __param_target
+</span></span><span class="line"><span class="cl">    - source_labels: <span class="o">[</span>__param_target<span class="o">]</span>
+</span></span><span class="line"><span class="cl">      target_label: instance
+</span></span><span class="line"><span class="cl">    - target_label: __address__
+</span></span><span class="line"><span class="cl">      replacement: 127.0.0.1:9115
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>步骤</th>
+					<th>关键标签 <code>__address__</code></th>
+					<th>新标签 <code>__param_target</code></th>
+					<th>新标签 <code>instance</code></th>
+					<th>说明</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>初始状态</strong></td>
+					<td><code>https://example.com</code></td>
+					<td>(不存在)</td>
+					<td>(不存在)</td>
+					<td>Prometheus 从配置文件中读取目标。</td>
+			</tr>
+			<tr>
+					<td><strong>规则 1 后</strong></td>
+					<td><code>https://example.com</code></td>
+					<td><code>https://example.com</code></td>
+					<td>(不存在)</td>
+					<td>将目标地址保存为参数，用于后续传递给 Blackbox。</td>
+			</tr>
+			<tr>
+					<td><strong>规则 2 后</strong></td>
+					<td><code>https://example.com</code></td>
+					<td><code>https://example.com</code></td>
+					<td><code>https://example.com</code></td>
+					<td>将目标地址保留为 <code>instance</code> 标签，便于在UI中识别。</td>
+			</tr>
+			<tr>
+					<td><strong>规则 3 后</strong></td>
+					<td><strong><code>127.0.0.1:9115</code></strong></td>
+					<td><code>https://example.com</code></td>
+					<td><code>https://example.com</code></td>
+					<td><strong>重写实际抓取地址</strong>，指向 Blackbox Exporter。</td>
+			</tr>
+	</tbody>
+</table></div>
+<p><strong>最终抓取的 URL</strong>：<br>
+<code>http://127.0.0.1:9115/probe?target=https://example.com</code></p>
+<h1 id="监控-springboot">监控 SpringBoot
+</h1><p>监控Spring Boot应用是保证系统稳定性和可观察性的关键。下面我将为你详细介绍如何使用Prometheus监控Spring Boot应用，包括环境搭建、配置和可视化监控数据。</p>
+<h2 id="添加依赖">添加依赖
+</h2><p>在pom.xml中添加以下依赖：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- Spring Boot Actuator --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dependency&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;groupId&gt;</span>org.springframework.boot<span class="nt">&lt;/groupId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;artifactId&gt;</span>spring-boot-starter-actuator<span class="nt">&lt;/artifactId&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dependency&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c">&lt;!-- Prometheus监控支持 --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dependency&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;groupId&gt;</span>io.micrometer<span class="nt">&lt;/groupId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;artifactId&gt;</span>micrometer-registry-prometheus<span class="nt">&lt;/artifactId&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dependency&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="配置应用属性">配置应用属性
+</h2><p>在application.properties中配置：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">management.endpoints.web.exposure.include<span class="o">=</span>prometheus,health,info
+</span></span><span class="line"><span class="cl">management.metrics.export.prometheus.enabled<span class="o">=</span><span class="nb">true</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+    <blockquote>
+        <p><a class="link" href="http://10.1.0.65:8080/actuator/prometheus"  target="_blank" rel="noopener"
+    >http://10.1.0.65:8080/actuator/prometheus</a></p>
+
+    </blockquote>
+<p><img class="gallery-image" data-flex-basis="421px" data-flex-grow="175" height="551" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/1762438891113-2d3e3218-d461-45fb-81ff-723754e8de2b.png" srcset="/p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/1762438891113-2d3e3218-d461-45fb-81ff-723754e8de2b_hu_45b29d582f0b14b0.png 800w, /p/prometheus-%E5%B8%B8%E7%94%A8-exporter-%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/1762438891113-2d3e3218-d461-45fb-81ff-723754e8de2b.png 968w" width="968"></p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E7%9B%91%E6%8E%A7/">监控</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright inline-meta">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under <a class="link" href="https://creativecommons.org/licenses/by-nc-sa/4.0/"  target="_blank" rel="noopener"
+    >CC BY-NC-SA 4.0</a></span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">相关文章</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="has-image">
+    <a href="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Prometheus 监控系统从入门到进阶" height="150" loading="lazy" src="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo_hu_d3ed806a757a47e8.png" srcset="/p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo_hu_d3ed806a757a47e8.png 1x, /p/prometheus-%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E8%BF%9B%E9%98%B6/prometheus_logo_hu_e6e6345858b987f9.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #eee8e780 0%, #e55333C0 100%);">
+            <h2 class="article-title">Prometheus 监控系统从入门到进阶</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins Pipeline 与多节点架构配置完整指南" height="150" loading="lazy" src="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/Jenkins+k8s_hu_b3d2473df09b7689.png" srcset="/p/jenkins-pipeline-%E4%B8%8E%E5%A4%9A%E8%8A%82%E7%82%B9%E6%9E%B6%E6%9E%84%E9%85%8D%E7%BD%AE%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/Jenkins+k8s_hu_b3d2473df09b7689.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #28222280 0%, #fbf9f6C0 100%);">
+            <h2 class="article-title">Jenkins Pipeline 与多节点架构配置完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测" height="150" loading="lazy" src="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267_hu_8140ec60a1b86383.png" srcset="/p/sonarqube-%E4%B8%8E-jenkins-%E9%9B%86%E6%88%90%E6%8C%87%E5%8D%97%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%E4%B8%8E%E8%B4%A8%E9%87%8F%E6%A3%80%E6%B5%8B/00c0374c-ccf9-4975-8942-e7c1cc9fd267_hu_8140ec60a1b86383.png 1x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #4499ce80 0%, #0a080aC0 100%);">
+            <h2 class="article-title">SonarQube 与 Jenkins 集成指南：实现自动化代码扫描与质量检测</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端" height="150" loading="lazy" src="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_cd2617af23e8a79c.png" srcset="/p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_cd2617af23e8a79c.png 1x, /p/jenkins-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E9%83%A8%E7%BD%B2%E5%A4%9A%E8%AF%AD%E8%A8%80%E9%A1%B9%E7%9B%AEjava/golang/python/php/%E5%89%8D%E7%AB%AF/jenkins_logo_hu_1ca24c247c8c23b5.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11121480 0%, #fefefdC0 100%);">
+            <h2 class="article-title">Jenkins 传统方式部署多语言项目:Java/Golang/Python/PHP/前端</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Jenkins入门与快速部署" height="150" loading="lazy" src="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_3973d9ee80ef8fa5.png" srcset="/p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_3973d9ee80ef8fa5.png 1x, /p/jenkins%E5%85%A5%E9%97%A8%E4%B8%8E%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2/1761973782281-bfc269a1-9330-4cec-9c50-2a6f158ea6a0_hu_9ac2908d21b70e9c.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #11b6c480 0%, #fafcfbC0 100%);">
+            <h2 class="article-title">Jenkins入门与快速部署</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 Erha&#39;s Blog
+    </section>
+    
+    <section class="powerby">
+        
+            Erha <br/>
+        使用 <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> 构建 <br />
+        主题 <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.3">Stack</a></b> 由 <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a> 设计
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
+    import gallery from '\/ts\/gallery.js';
+
+    const articleContent = document.querySelector('.article-content');
+    const shouldLoad = articleContent && (articleContent.querySelectorAll('figure').length > 0 || articleContent.querySelectorAll('img.gallery-image').length > 0);
+    
+    if (shouldLoad) {
+        gallery(articleContent);
+
+        const PhotoSwipeLightbox = (await import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js")).default;
+        const styleHref = "https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.css";
+
+        const styleTag = document.createElement('link');
+        styleTag.rel = 'stylesheet';
+        styleTag.href = styleHref;
+        document.head.appendChild(styleTag);
+
+        const lightbox = new PhotoSwipeLightbox({
+            gallerySelector: '.article-content',
+            childSelector: 'figure a.image-link',
+            pswpModule: () => import("https:\/\/cdn.jsdelivr.net\/npm\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js")
+        });
+        lightbox.init();
+    }
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.f856840516f7c2ad1769a8f5937e3d08d6cb386e2cd2dd025ae696e0ff207958.js" defer></script>
+<div id="particles-js"></div>
+
+<script src=https://erha6657.github.io/background/particles.min.js></script>
+<script>
+function getParticlesConfig(theme) {
+    var isDark = (theme === 'dark');
+    return {
+        "particles": {
+            "number": {
+                "value": 25,
+                "density": {
+                    "enable": true,
+                    "value_area": 1200
+                }
+            },
+            "color": {
+                "value": isDark
+                    ? ["#8d8d8d", "#a0a0a0", "#b0b0b0", "#9e9e9e", "#7a7a7a"]
+                    : ["#ff9a56", "#ffb74d", "#ffe0b2", "#ffcc80", "#ffab40"]
+            },
+            "shape": {
+                "type": ["circle", "edge"],
+                "stroke": {"width": 0, "color": "#000"}
+            },
+            "opacity": {
+                "value": 0.5,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 0.3,
+                    "opacity_min": 0.15,
+                    "sync": false
+                }
+            },
+            "size": {
+                "value": 3,
+                "random": true,
+                "anim": {
+                    "enable": true,
+                    "speed": 1,
+                    "size_min": 1,
+                    "sync": false
+                }
+            },
+            "line_linked": {
+                "enable": true,
+                "distance": 280,
+                "color": isDark ? "#9e9e9e" : "#ffab40",
+                "opacity": isDark ? 0.15 : 0.25,
+                "width": 1
+            },
+            "move": {
+                "enable": true,
+                "speed": 0.6,
+                "direction": "none",
+                "random": true,
+                "straight": false,
+                "out_mode": "bounce",
+                "bounce": false,
+                "attract": {
+                    "enable": false
+                }
+            }
+        },
+        "interactivity": {
+            "detect_on": "window",
+            "events": {
+                "onhover": {
+                    "enable": true,
+                    "mode": "grab"
+                },
+                "onclick": {
+                    "enable": false
+                },
+                "resize": true
+            },
+            "modes": {
+                "grab": {
+                    "distance": 140,
+                    "line_linked": {"opacity": 0.5}
+                },
+                "repulse": {
+                    "distance": 200,
+                    "duration": 0.4
+                },
+                "push": {
+                    "particles_nb": 0
+                }
+            }
+        },
+        "retina_detect": true
+    };
+}
+
+function initParticles(theme) {
+    
+    var oldCanvas = document.querySelector('#particles-js canvas');
+    if (oldCanvas) oldCanvas.remove();
+    
+    particlesJS('particles-js', getParticlesConfig(theme));
+}
+
+
+initParticles(document.documentElement.dataset.scheme || 'light');
+
+
+window.addEventListener('onColorSchemeChange', function(e) {
+    initParticles(e.detail);
+});
+</script>
+
+<style>
+  #particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+</style>
+
+<style>
+.fish-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    pointer-events: none;
+    z-index: -1;
+    margin-top: -20px;
+}
+</style>
+
+<script>
+var RENDERER = {
+    POINT_INTERVAL : 12,
+    FISH_COUNT : 2,
+    MAX_INTERVAL_COUNT : 50,
+    INIT_HEIGHT_RATE : 0.5,
+    THRESHOLD : 30,
+    WATCH_INTERVAL : 300,
+
+    init : function(){
+        this.setParameters();
+        this.reconstructMethods();
+        this.setup();
+        this.bindEvent();
+        this.render();
+    },
+    setParameters : function(){
+        this.$window = window;
+        this.$document = document.body
+        this.$container = document.getElementById('jsi-flying-fish-container');
+        this.$canvas = document.createElement('canvas');
+        this.$container.appendChild(this.$canvas)
+        this.context = this.$canvas.getContext('2d');
+        this.points = [];
+        this.fishes = [];
+        this.watchIds = [];
+    },
+    createSurfacePoints : function(){
+        var count = Math.round(this.width / this.POINT_INTERVAL);
+        this.pointInterval = this.width / (count - 1);
+        this.points.push(new SURFACE_POINT(this, 0));
+
+        for(var i = 1; i < count; i++){
+            var point = new SURFACE_POINT(this, i * this.pointInterval),
+                previous = this.points[i - 1];
+
+            point.setPreviousPoint(previous);
+            previous.setNextPoint(point);
+            this.points.push(point);
+        }
+    },
+    reconstructMethods : function(){
+        this.watchWindowSize = this.watchWindowSize.bind(this);
+        this.jdugeToStopResize = this.jdugeToStopResize.bind(this);
+        this.startEpicenter = this.startEpicenter.bind(this);
+        this.moveEpicenter = this.moveEpicenter.bind(this);
+        this.reverseVertical = this.reverseVertical.bind(this);
+        this.render = this.render.bind(this);
+    },
+    setup : function(){
+        this.points.length = 0;
+        this.fishes.length = 0;
+        this.watchIds.length = 0;
+        this.intervalCount = this.MAX_INTERVAL_COUNT;
+        this.width = this.$container.offsetWidth;
+        this.height = this.$container.offsetHeight;
+        this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
+        this.$canvas.width = this.width;
+        this.$canvas.height = this.height;
+        this.reverse = false;
+
+        this.fishes.push(new FISH(this));
+        this.createSurfacePoints();
+    },
+    watchWindowSize : function(){
+        this.clearTimer();
+        this.tmpWidth = this.$window.width;
+        this.tmpHeight = this.$window.height;
+        this.watchIds.push(setTimeout(this.jdugeToStopResize, this.WATCH_INTERVAL));
+    },
+    clearTimer : function(){
+        while(this.watchIds.length > 0){
+            clearTimeout(this.watchIds.pop());
+        }
+    },
+    jdugeToStopResize : function(){
+        var width = this.$window.width(),
+            height = this.$window.height(),
+            stopped = (width == this.tmpWidth && height == this.tmpHeight);
+
+        this.tmpWidth = width;
+        this.tmpHeight = height;
+
+        if(stopped){
+            this.setup();
+        }
+    },
+    bindEvent : function(){
+
+        this.$window.onresize = this.watchWindowSize;
+        this.$container.onclick = this.reverseVertical;
+        this.$container.onmouseenter = this.startEpicenter;
+        this.$container.addEventListener('onmousemove', this.moveEpicenter);
+
+    },
+    getAxis : function(event){
+
+        var offset = this.getOffset(this.$container);
+        return {
+            x : event.clientX - offset.left + this.$document.scrollLeft,
+            y : event.clientY - offset.top + this.$document.scrollTop
+        };
+    },
+
+    getOffset: function(Node, offset) {
+        if (!offset) {
+              offset = {};
+              offset.top = 0;
+              offset.left = 0;
+        }
+        if (Node == document.body) {
+                return offset;
+         }
+        offset.top += Node.offsetTop;    offset.left += Node.offsetLeft;
+        return this.getOffset(Node.parentNode, offset);
+    },
+    startEpicenter : function(event){
+        this.axis = this.getAxis(event);
+    },
+    moveEpicenter : function(event){
+        var axis = this.getAxis(event);
+
+        if(!this.axis){
+            this.axis = axis;
+        }
+        this.generateEpicenter(axis.x, axis.y, axis.y - this.axis.y);
+        this.axis = axis;
+    },
+    generateEpicenter : function(x, y, velocity){
+        if(y < this.height / 2 - this.THRESHOLD || y > this.height / 2 + this.THRESHOLD){
+            return;
+        }
+        var index = Math.round(x / this.pointInterval);
+
+        if(index < 0 || index >= this.points.length){
+            return;
+        }
+        this.points[index].interfere(y, velocity);
+    },
+    reverseVertical : function(){
+        this.reverse = !this.reverse;
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].reverseVertical();
+        }
+    },
+    controlStatus : function(){
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateSelf();
+        }
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].updateNeighbors();
+        }
+        if(this.fishes.length < this.fishCount){
+            if(--this.intervalCount == 0){
+                this.intervalCount = this.MAX_INTERVAL_COUNT;
+                this.fishes.push(new FISH(this));
+            }
+        }
+    },
+    render : function(){
+        requestAnimationFrame(this.render);
+        this.controlStatus();
+        this.context.clearRect(0, 0, this.width, this.height);
+        var isDark = document.documentElement.dataset.scheme === 'dark';
+        this.context.fillStyle = isDark ? 'hsl(0, 0%, 80%)' : 'hsl(350, 50%, 72%)';
+
+        for(var i = 0, count = this.fishes.length; i < count; i++){
+            this.fishes[i].render(this.context);
+        }
+        this.context.save();
+        this.context.globalCompositeOperation = 'xor';
+        this.context.beginPath();
+        this.context.moveTo(0, this.reverse ? 0 : this.height);
+
+        for(var i = 0, count = this.points.length; i < count; i++){
+            this.points[i].render(this.context);
+        }
+        this.context.lineTo(this.width, this.reverse ? 0 : this.height);
+        this.context.closePath();
+        this.context.fill();
+        this.context.restore();
+    }
+};
+var SURFACE_POINT = function(renderer, x){
+    this.renderer = renderer;
+    this.x = x;
+    this.init();
+};
+SURFACE_POINT.prototype = {
+    SPRING_CONSTANT : 0.03,
+    SPRING_FRICTION : 0.9,
+    WAVE_SPREAD : 0.3,
+    ACCELARATION_RATE : 0.01,
+
+    init : function(){
+        this.initHeight = this.renderer.height * this.renderer.INIT_HEIGHT_RATE;
+        this.height = this.initHeight;
+        this.fy = 0;
+        this.force = {previous : 0, next : 0};
+    },
+    setPreviousPoint : function(previous){
+        this.previous = previous;
+    },
+    setNextPoint : function(next){
+        this.next = next;
+    },
+    interfere : function(y, velocity){
+        this.fy = this.renderer.height * this.ACCELARATION_RATE * ((this.renderer.height - this.height - y) >= 0 ? -1 : 1) * Math.abs(velocity);
+    },
+    updateSelf : function(){
+        this.fy += this.SPRING_CONSTANT * (this.initHeight - this.height);
+        this.fy *= this.SPRING_FRICTION;
+        this.height += this.fy;
+    },
+    updateNeighbors : function(){
+        if(this.previous){
+            this.force.previous = this.WAVE_SPREAD * (this.height - this.previous.height);
+        }
+        if(this.next){
+            this.force.next = this.WAVE_SPREAD * (this.height - this.next.height);
+        }
+    },
+    render : function(context){
+        if(this.previous){
+            this.previous.height += this.force.previous;
+            this.previous.fy += this.force.previous;
+        }
+        if(this.next){
+            this.next.height += this.force.next;
+            this.next.fy += this.force.next;
+        }
+        context.lineTo(this.x, this.renderer.height - this.height);
+    }
+};
+var FISH = function(renderer){
+    this.renderer = renderer;
+    this.init();
+};
+FISH.prototype = {
+    GRAVITY : 0.4,
+
+    init : function(){
+        this.direction = Math.random() < 0.5;
+        this.x = this.direction ? (this.renderer.width + this.renderer.THRESHOLD) : -this.renderer.THRESHOLD;
+        this.previousY = this.y;
+        this.vx = this.getRandomValue(2, 5) * (this.direction ? -1 : 1);
+
+        if(this.renderer.reverse){
+            this.y = this.getRandomValue(this.renderer.height * 1 / 10, this.renderer.height * 4 / 10);
+            this.vy = this.getRandomValue(1, 3);
+            this.ay = this.getRandomValue(0.02, 0.1);
+        }else{
+            this.y = this.getRandomValue(this.renderer.height * 6 / 10, this.renderer.height * 9 / 10);
+            this.vy = this.getRandomValue(-3, -1);
+            this.ay = this.getRandomValue(-0.1, -0.02);
+        }
+        this.isOut = false;
+        this.theta = 0;
+        this.phi = 0;
+    },
+    getRandomValue : function(min, max){
+        return min + (max - min) * Math.random();
+    },
+    reverseVertical : function(){
+        this.isOut = !this.isOut;
+        this.ay *= -1;
+    },
+    controlStatus : function(context){
+        this.previousY = this.y;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.ay;
+
+        if(this.renderer.reverse){
+            if(this.y > this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy -= this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(0.05, 0.2);
+                }
+                this.isOut = false;
+            }
+        }else{
+            if(this.y < this.renderer.height * this.renderer.INIT_HEIGHT_RATE){
+                this.vy += this.GRAVITY;
+                this.isOut = true;
+            }else{
+                if(this.isOut){
+                    this.ay = this.getRandomValue(-0.2, -0.05);
+                }
+                this.isOut = false;
+            }
+        }
+        if(!this.isOut){
+            this.theta += Math.PI / 40;
+            this.theta %= Math.PI * 2;
+            this.phi += Math.PI / 60;
+            this.phi %= Math.PI * 2;
+        }
+        this.renderer.generateEpicenter(this.x + (this.direction ? -1 : 1) * this.renderer.THRESHOLD, this.y, this.y - this.previousY);
+
+        if(this.vx > 0 && this.x > this.renderer.width + this.renderer.THRESHOLD || this.vx < 0 && this.x < -this.renderer.THRESHOLD){
+            this.init();
+        }
+    },
+    render : function(context){
+        context.save();
+        context.translate(this.x, this.y);
+        context.rotate(Math.PI + Math.atan2(this.vy, this.vx));
+        context.scale(1, this.direction ? 1 : -1);
+        context.beginPath();
+        context.moveTo(-30, 0);
+        context.bezierCurveTo(-20, 15, 15, 10, 40, 0);
+        context.bezierCurveTo(15, -10, -20, -15, -30, 0);
+        context.fill();
+
+        context.save();
+        context.translate(40, 0);
+        context.scale(0.9 + 0.2 * Math.sin(this.theta), 1);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(5, 10, 20, 8);
+        context.quadraticCurveTo(12, 5, 10, 0);
+        context.quadraticCurveTo(12, -5, 20, -8);
+        context.quadraticCurveTo(5, -10, 0, 0);
+        context.fill();
+        context.restore();
+
+        context.save();
+        context.translate(-3, 0);
+        context.rotate((Math.PI / 3 + Math.PI / 10 * Math.sin(this.phi)) * (this.renderer.reverse ? -1 : 1));
+
+        context.beginPath();
+
+        if(this.renderer.reverse){
+            context.moveTo(5, 0);
+            context.bezierCurveTo(10, 10, 10, 30, 0, 40);
+            context.bezierCurveTo(-12, 25, -8, 10, 0, 0);
+        }else{
+            context.moveTo(-5, 0);
+            context.bezierCurveTo(-10, -10, -10, -30, 0, -40);
+            context.bezierCurveTo(12, -25, 8, -10, 0, 0);
+        }
+        context.closePath();
+        context.fill();
+        context.restore();
+        context.restore();
+        this.controlStatus(context);
+    }
+};
+
+
+(function() {
+    
+    var container = document.createElement('div');
+    container.id = 'jsi-flying-fish-container';
+    container.className = 'fish-container';
+    document.body.appendChild(container);
+    RENDERER.init();
+})();
+</script>
+
+
+    </body>
+</html>
