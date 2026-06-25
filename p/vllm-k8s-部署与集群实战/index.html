@@ -2,24 +2,24 @@
 <html lang="zh" dir="ltr">
     <head><meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content=" 环境要求： Kubernetes 1.30+, vLLM 0.17.1, NVIDIA GPU Operator\n学习目标 完成本指南的学习后，您将能够：\n序号 学习目标 验收标准 1 理解vLLM on K8s架构 能说明各组件作用 2 配置存储（PV/PVC） 能创建模型存储卷 3 编写vLLM Deployment 能编写完整的Deployment YAML 4 配置Service 能暴露vLLM服务 5 部署多副本 能扩容vLLM实例 6 配置Ingress 能通过域名访问服务 7 完成滚动更新 能无中断升级服务 vLLM K8s基础部署 部署架构设计 vLLM on Kubernetes 架构 将vLLM部署到Kubernetes，需要以下组件：\n">
-<title>vLLM on K8S 部署与集群实战</title>
+<title>vLLM  K8S 部署与集群实战</title>
 
 
-<link rel="canonical" href="https://erha6657.github.io/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/">
+<link rel="canonical" href="https://erha6657.github.io/p/vllm-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
 
 
-<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="vLLM on K8S 部署与集群实战">
+<link rel="stylesheet" href="/scss/style.min.e62e09c60ba428a627e03568fa3df938f6a8224f815b5846f00816c17d4a0be4.css"><meta property='og:title' content="vLLM  K8S 部署与集群实战">
 <meta property='og:description' content=" 环境要求： Kubernetes 1.30+, vLLM 0.17.1, NVIDIA GPU Operator\n学习目标 完成本指南的学习后，您将能够：\n序号 学习目标 验收标准 1 理解vLLM on K8s架构 能说明各组件作用 2 配置存储（PV/PVC） 能创建模型存储卷 3 编写vLLM Deployment 能编写完整的Deployment YAML 4 配置Service 能暴露vLLM服务 5 部署多副本 能扩容vLLM实例 6 配置Ingress 能通过域名访问服务 7 完成滚动更新 能无中断升级服务 vLLM K8s基础部署 部署架构设计 vLLM on Kubernetes 架构 将vLLM部署到Kubernetes，需要以下组件：\n">
-<meta property='og:url' content='https://erha6657.github.io/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/'>
+<meta property='og:url' content='https://erha6657.github.io/p/vllm-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/'>
 <meta property='og:site_name' content='Erha&#39;s Blog'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='vLLM' /><meta property='article:tag' content='大模型' /><meta property='article:tag' content='GPU' /><meta property='article:published_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='article:modified_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/1a776a3a-a9b9-4a2a-b72d-2f24d62575d3.png' />
-<meta name="twitter:title" content="vLLM on K8S 部署与集群实战">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Kubernetes' /><meta property='article:tag' content='vLLM' /><meta property='article:tag' content='大模型' /><meta property='article:tag' content='GPU' /><meta property='article:published_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='article:modified_time' content='2026-06-24T21:14:22&#43;08:00'/><meta property='og:image' content='https://erha6657.github.io/p/vllm-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/1a776a3a-a9b9-4a2a-b72d-2f24d62575d3.png' />
+<meta name="twitter:title" content="vLLM  K8S 部署与集群实战">
 <meta name="twitter:description" content=" 环境要求： Kubernetes 1.30+, vLLM 0.17.1, NVIDIA GPU Operator\n学习目标 完成本指南的学习后，您将能够：\n序号 学习目标 验收标准 1 理解vLLM on K8s架构 能说明各组件作用 2 配置存储（PV/PVC） 能创建模型存储卷 3 编写vLLM Deployment 能编写完整的Deployment YAML 4 配置Service 能暴露vLLM服务 5 部署多副本 能扩容vLLM实例 6 配置Ingress 能通过域名访问服务 7 完成滚动更新 能无中断升级服务 vLLM K8s基础部署 部署架构设计 vLLM on Kubernetes 架构 将vLLM部署到Kubernetes，需要以下组件：\n"><meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content='https://erha6657.github.io/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/1a776a3a-a9b9-4a2a-b72d-2f24d62575d3.png' />
+    <meta name="twitter:image" content='https://erha6657.github.io/p/vllm-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/1a776a3a-a9b9-4a2a-b72d-2f24d62575d3.png' />
     <link rel="shortcut icon" href="img/avatar.png" />
 
 
@@ -353,8 +353,8 @@
     <article class="has-image main-article">
     <header class="article-header">
     <div class="article-image">
-        <a href="/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/">
-            <img alt="Featured image of post vLLM on K8S 部署与集群实战" height="375" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/1a776a3a-a9b9-4a2a-b72d-2f24d62575d3.png" width="500">
+        <a href="/p/vllm-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/">
+            <img alt="Featured image of post vLLM  K8S 部署与集群实战" height="375" loading="lazy" sizes="(max-width: 767px) calc(100vw - 30px), (max-width: 1023px) 700px, (max-width: 1279px) 950px, 1232px" src="/p/vllm-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/1a776a3a-a9b9-4a2a-b72d-2f24d62575d3.png" width="500">
         </a>
     </div>
     
@@ -394,8 +394,8 @@
             
             
             
-            <a href="/categories/%E9%83%A8%E7%BD%B2%E7%AC%94%E8%AE%B0/" style="background-color: hsl(358, 60%, 84%); color: hsl(358, 60%, 15%);">
-                部署笔记
+            <a href="/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/" style="background-color: hsl(158, 60%, 84%); color: hsl(158, 60%, 15%);">
+                部署文档
             </a>
         
     </header>
@@ -403,7 +403,7 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/p/vllm-on-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/">vLLM on K8S 部署与集群实战</a>
+            <a href="/p/vllm-k8s-%E9%83%A8%E7%BD%B2%E4%B8%8E%E9%9B%86%E7%BE%A4%E5%AE%9E%E6%88%98/">vLLM  K8S 部署与集群实战</a>
         </h2>
     
         
@@ -2792,38 +2792,6 @@
             
                 
 <article class="has-image">
-    <a href="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">
-        
-        <div class="article-image">
-            <img alt="Featured image of post K8S GPU 调度与 NVIDIA GPU Operator 部署指南" height="150" loading="lazy" src="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork_hu_f0af787d5934909e.png" srcset="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork_hu_f0af787d5934909e.png 1x, /p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork_hu_224aeca7aec7b731.png 2x" width="250">
-
-        </div>
-        
-
-        <div class="article-details"style="background: linear-gradient(0deg, #576dea80 0%, #fbfcfdC0 100%);">
-            <h2 class="article-title">K8S GPU 调度与 NVIDIA GPU Operator 部署指南</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="has-image">
-    <a href="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/">
-        
-        <div class="article-image">
-            <img alt="Featured image of post Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障" height="150" loading="lazy" src="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_f28026e359ada8d5.png" srcset="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_f28026e359ada8d5.png 1x, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_de4f9a419797cea4.png 2x" width="250">
-
-        </div>
-        
-
-        <div class="article-details"style="background: linear-gradient(0deg, #252d3280 0%, #f5f7f5C0 100%);">
-            <h2 class="article-title">Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障</h2>
-        </div>
-    </a>
-</article>
-            
-                
-<article class="has-image">
     <a href="/p/vllm%E5%8D%95%E5%8D%A1docker%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/">
         
         <div class="article-image">
@@ -2850,6 +2818,38 @@
 
         <div class="article-details"style="background: linear-gradient(0deg, #1aa7e380 0%, #05223aC0 100%);">
             <h2 class="article-title">vLLM多卡Docker部署完整指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post K8S GPU 调度与 NVIDIA GPU Operator 部署指南" height="150" loading="lazy" src="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork_hu_f0af787d5934909e.png" srcset="/p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork_hu_f0af787d5934909e.png 1x, /p/k8s-gpu-%E8%B0%83%E5%BA%A6%E4%B8%8E-nvidia-gpu-operator-%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97/deepwork_hu_224aeca7aec7b731.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #576dea80 0%, #fbfcfdC0 100%);">
+            <h2 class="article-title">K8S GPU 调度与 NVIDIA GPU Operator 部署指南</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="has-image">
+    <a href="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/">
+        
+        <div class="article-image">
+            <img alt="Featured image of post Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障" height="150" loading="lazy" src="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_f28026e359ada8d5.png" srcset="/p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_f28026e359ada8d5.png 1x, /p/linux-nvidia-%E9%A9%B1%E5%8A%A8%E4%B8%8E-cuda-toolkit-%E5%AE%89%E8%A3%85%E5%8F%8A%E7%9B%91%E6%8E%A7%E6%8E%92%E9%9A%9C/1781342996014-64388eaa-3265-4303-bf86-107520788371_hu_de4f9a419797cea4.png 2x" width="250">
+
+        </div>
+        
+
+        <div class="article-details"style="background: linear-gradient(0deg, #252d3280 0%, #f5f7f5C0 100%);">
+            <h2 class="article-title">Linux  NVIDIA 驱动与 CUDA Toolkit 安装及监控排障</h2>
         </div>
     </a>
 </article>
