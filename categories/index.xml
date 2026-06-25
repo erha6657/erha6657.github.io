@@ -5,7 +5,25 @@
         <description>Recent content in Categories on Erha&#39;s Blog</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh</language>
-        <lastBuildDate>Thu, 25 Jun 2026 16:00:00 +0800</lastBuildDate><atom:link href="https://erha6657.github.io/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Thu, 25 Jun 2026 16:32:00 +0800</lastBuildDate><atom:link href="https://erha6657.github.io/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+            <title>K8S</title>
+            <link>https://erha6657.github.io/categories/k8s/</link>
+            <pubDate>Thu, 25 Jun 2026 16:32:00 +0800</pubDate>
+            <guid>https://erha6657.github.io/categories/k8s/</guid>
+            <description></description>
+        </item><item>
+            <title>部署笔记</title>
+            <link>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E7%AC%94%E8%AE%B0/</link>
+            <pubDate>Thu, 25 Jun 2026 16:32:00 +0800</pubDate>
+            <guid>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E7%AC%94%E8%AE%B0/</guid>
+            <description></description>
+        </item><item>
+            <title>学习笔记</title>
+            <link>https://erha6657.github.io/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</link>
+            <pubDate>Thu, 25 Jun 2026 16:32:00 +0800</pubDate>
+            <guid>https://erha6657.github.io/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</guid>
+            <description></description>
+        </item><item>
             <title>部署文档</title>
             <link>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3/</link>
             <pubDate>Thu, 25 Jun 2026 16:00:00 +0800</pubDate>
@@ -16,12 +34,6 @@
             <link>https://erha6657.github.io/categories/%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF/</link>
             <pubDate>Thu, 25 Jun 2026 16:00:00 +0800</pubDate>
             <guid>https://erha6657.github.io/categories/%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF/</guid>
-            <description></description>
-        </item><item>
-            <title>学习笔记</title>
-            <link>https://erha6657.github.io/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</link>
-            <pubDate>Thu, 25 Jun 2026 16:00:00 +0800</pubDate>
-            <guid>https://erha6657.github.io/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</guid>
             <description></description>
         </item><item>
             <title>Docker</title>
@@ -46,18 +58,6 @@
             <link>https://erha6657.github.io/categories/%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/</link>
             <pubDate>Thu, 25 Jun 2026 09:53:45 +0800</pubDate>
             <guid>https://erha6657.github.io/categories/%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86/</guid>
-            <description></description>
-        </item><item>
-            <title>K8S</title>
-            <link>https://erha6657.github.io/categories/k8s/</link>
-            <pubDate>Wed, 24 Jun 2026 21:14:22 +0800</pubDate>
-            <guid>https://erha6657.github.io/categories/k8s/</guid>
-            <description></description>
-        </item><item>
-            <title>部署笔记</title>
-            <link>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E7%AC%94%E8%AE%B0/</link>
-            <pubDate>Wed, 24 Jun 2026 21:14:22 +0800</pubDate>
-            <guid>https://erha6657.github.io/categories/%E9%83%A8%E7%BD%B2%E7%AC%94%E8%AE%B0/</guid>
             <description></description>
         </item><item>
             <title>容器化部署</title>
